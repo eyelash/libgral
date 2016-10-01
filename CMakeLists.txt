@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.0)
+project(libgral)
+
+if(WIN32)
+
+elseif(APPLE)
+
+else()
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(GTK REQUIRED gtk+-3.0)
+	add_library(gral gral_linux.c)
+	target_include_directories(gral PRIVATE ${GTK_INCLUDE_DIRS})
+	target_compile_options(gral PRIVATE ${GTK_CFLAGS_OTHER})
+	target_link_libraries(gral ${GTK_LIBRARIES})
+endif()
+
+option(BUILD_DEMO "build the demo application")
+if(BUILD_DEMO)
+	add_executable(demo demo.c)
+	target_include_directories(demo PRIVATE ${PROJECT_SOURCE_DIR})
+	target_link_libraries(demo gral)
+endif()
