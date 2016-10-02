@@ -4,7 +4,9 @@ project(libgral)
 if(WIN32)
 
 elseif(APPLE)
-
+	find_library(COCOA Cocoa)
+	add_library(gral gral_macos.m)
+	target_link_libraries(gral ${COCOA})
 else()
 	find_package(PkgConfig REQUIRED)
 	pkg_check_modules(GTK REQUIRED gtk+-3.0)

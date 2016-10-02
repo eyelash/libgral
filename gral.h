@@ -15,8 +15,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
-#ifndef LIBGRAL_H
-#define LIBGRAL_H
+#ifndef GRAL_H
+#define GRAL_H
 
 #ifdef __cplusplus
 extern "C" {
