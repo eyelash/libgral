@@ -16,7 +16,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "gral.h"
-#include <Cocoa/Cocoa.h>
+#import <Cocoa/Cocoa.h>
+#import <AudioToolbox/AudioToolbox.h>
 
 @interface GralApplicationDelegate: NSObject<NSApplicationDelegate>
 @end
@@ -102,4 +103,45 @@ struct gral_window *gral_window_create(int width, int height, const char *title,
 	[window setContentView:view];
 	[window makeKeyAndOrderFront:nil];
 	return (struct gral_window *)window;
+}
+
+
+/*==========
+    AUDIO
+ ==========*/
+
+static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
+	int (*callback)(int16_t *buffer, int frames) = user_data;
+	int frames = buffer->mAudioDataBytesCapacity / (2 * sizeof(int16_t));
+	if (callback(buffer->mAudioData, frames)) {
+		buffer->mAudioDataByteSize = buffer->mAudioDataBytesCapacity;
+		AudioQueueEnqueueBuffer(queue, buffer, buffer->mPacketDescriptionCount, buffer->mPacketDescriptions);
+	}
+	else {
+		AudioQueueStop(queue, NO);
+		CFRunLoopStop(CFRunLoopGetCurrent());
+	}
+}
+
+void gral_audio_play(int (*callback)(int16_t *buffer, int frames)) {
+	AudioQueueRef queue;
+	AudioStreamBasicDescription format = {
+		.mSampleRate = 44100,
+		.mFormatID = kAudioFormatLinearPCM,
+		.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger|kLinearPCMFormatFlagIsPacked,
+		.mBytesPerPacket = 2 * sizeof(int16_t),
+		.mFramesPerPacket = 1,
+		.mBytesPerFrame = 2 * sizeof(int16_t),
+		.mChannelsPerFrame = 2,
+		.mBitsPerChannel = sizeof(int16_t) * 8
+	};
+	AudioQueueNewOutput(&format, &audio_callback, callback, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue);
+	AudioQueueBufferRef buffers[3];
+	for (int i = 0; i < 3; i++) {
+		AudioQueueAllocateBuffer(queue, 1024 * 2 * sizeof(int16_t), &buffers[i]);
+		audio_callback(callback, queue, buffers[i]);
+	}
+	AudioQueueStart(queue, NULL);
+	CFRunLoopRun();
+	AudioQueueDispose(queue, NO);
 }
