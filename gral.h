@@ -18,6 +18,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #ifndef GRAL_H
 #define GRAL_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +48,13 @@ struct gral_window_interface {
 	void (*resize)(int width, int height);
 };
 struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface);
+
+
+/*==========
+    AUDIO
+ ==========*/
+
+void gral_audio_play(int (*callback)(int16_t *buffer, int frames));
 
 #ifdef __cplusplus
 }

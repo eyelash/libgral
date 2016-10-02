@@ -17,6 +17,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "gral.h"
 #include <gtk/gtk.h>
+#include <alsa/asoundlib.h>
 
 void gral_init(int *argc, char ***argv) {
 	gtk_init(argc, argv);
@@ -64,16 +65,29 @@ static void area_size_allocate_callback(GtkWidget *area, GdkRectangle *allocatio
 	resize(allocation->width, allocation->height);
 }
 
-struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *handler) {
+struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface) {
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size(GTK_WINDOW(window), width, height);
 	gtk_window_set_title(GTK_WINDOW(window), title);
-	g_signal_connect(window, "delete-event", G_CALLBACK(window_delete_event_callback), handler->close);
+	g_signal_connect(window, "delete-event", G_CALLBACK(window_delete_event_callback), interface->close);
 	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	GtkWidget *area = gtk_drawing_area_new();
-	g_signal_connect(area, "draw", G_CALLBACK(area_draw_callback), handler->draw);
-	g_signal_connect(area, "size-allocate", G_CALLBACK(area_size_allocate_callback), handler->resize);
+	g_signal_connect(area, "draw", G_CALLBACK(area_draw_callback), interface->draw);
+	g_signal_connect(area, "size-allocate", G_CALLBACK(area_size_allocate_callback), interface->resize);
 	gtk_container_add(GTK_CONTAINER(window), area);
 	gtk_widget_show_all(window);
 	return (struct gral_window *)window;
+}
+
+
+/*==========
+    AUDIO
+ ==========*/
+
+void gral_audio_play(int (*callback)(int16_t *buffer, int frames)) {
+	snd_pcm_t *pcm;
+	snd_pcm_open(&pcm, "default", SND_PCM_STREAM_PLAYBACK, 0);
+	snd_pcm_set_params(pcm, SND_PCM_FORMAT_S16, SND_PCM_ACCESS_RW_INTERLEAVED, 2, 44100, 1, 0);
+	// TODO: implement
+	snd_pcm_close(pcm);
 }
