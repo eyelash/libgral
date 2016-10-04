@@ -61,33 +61,87 @@ void gral_painter_draw_rectangle(struct gral_painter *painter, float x, float y,
 @end
 
 @interface GralWindowDelegate: NSObject<NSWindowDelegate> {
-	@public struct gral_window_interface interface;
+	@public
+		struct gral_window_interface interface;
+		void *user_data;
 }
 @end
 @implementation GralWindowDelegate
 - (BOOL)windowShouldClose:(id)sender {
-	return interface.close();
+	return interface.close(user_data);
 }
 @end
 
 @interface GralView: NSView {
-	@public struct gral_window_interface interface;
+	@public
+		struct gral_window_interface interface;
+		void *user_data;
 }
 @end
 @implementation GralView
+- (BOOL)acceptsFirstResponder {
+	return YES;
+}
 - (BOOL)isFlipped {
 	return YES;
 }
 - (void)drawRect:(NSRect)rect {
-	interface.draw(NULL);
+	interface.draw(NULL, user_data);
 }
 - (void)setFrameSize:(NSSize)size {
 	[super setFrameSize:size];
-	interface.resize(size.width, size.height);
+	interface.resize(size.width, size.height, user_data);
+}
+- (void)mouseEntered:(NSEvent *)event {
+	interface.mouse_enter(user_data);
+}
+- (void)mouseExited:(NSEvent *)event {
+	interface.mouse_leave(user_data);
+}
+- (void)mouseMoved:(NSEvent *)event {
+	NSPoint location = [event locationInWindow];
+	location = [self convertPoint:location fromView:nil];
+	interface.mouse_move(location.x, location.y, user_data);
+}
+- (void)mouseDragged:(NSEvent *)event {
+	[self mouseMoved:event];
+}
+- (void)rightMouseDragged:(NSEvent *)event {
+	[self mouseMoved:event];
+}
+- (void)otherMouseDragged:(NSEvent *)event {
+	[self mouseMoved:event];
+}
+- (void)mouseDown:(NSEvent *)event {
+	interface.mouse_button_press(1, user_data);
+}
+- (void)rightMouseDown:(NSEvent *)event {
+	interface.mouse_button_press(2, user_data);
+}
+- (void)otherMouseDown:(NSEvent *)event {
+	//interface.mouse_button_press(3, user_data);
+}
+- (void)mouseUp:(NSEvent *)event {
+	interface.mouse_button_release(1, user_data);
+}
+- (void)rightMouseUp:(NSEvent *)event {
+	interface.mouse_button_release(2, user_data);
+}
+- (void)otherMouseUp:(NSEvent *)event {
+	//interface.mouse_button_release(3, user_data);
+}
+- (void)scrollWheel:(NSEvent *)event {
+	//interface.scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
+}
+- (void)keyDown:(NSEvent *)event {
+
+}
+- (void)keyUp:(NSEvent *)event {
+
 }
 @end
 
-struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface) {
+struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
 	GralWindow *window = [[GralWindow alloc]
 		initWithContentRect:CGRectMake(0, 0, width, height)
 		styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
@@ -96,10 +150,19 @@ struct gral_window *gral_window_create(int width, int height, const char *title,
 	];
 	GralWindowDelegate *delegate = [[GralWindowDelegate alloc] init];
 	delegate->interface = *interface;
+	delegate->user_data = user_data;
 	[window setDelegate:delegate];
 	[window setTitle:[[NSString alloc] initWithUTF8String:title]];
 	GralView *view = [[GralView alloc] init];
 	view->interface = *interface;
+	view->user_data = user_data;
+	NSTrackingArea *trackingArea = [[NSTrackingArea alloc]
+		initWithRect:CGRectMake(0, 0, width, height)
+		options:NSTrackingMouseEnteredAndExited|NSTrackingMouseMoved|NSTrackingActiveInKeyWindow|NSTrackingInVisibleRect
+		owner:view
+		userInfo:nil
+	];
+	[view addTrackingArea:trackingArea];
 	[window setContentView:view];
 	[window makeKeyAndOrderFront:nil];
 	return (struct gral_window *)window;
