@@ -43,11 +43,17 @@ void gral_painter_draw_rectangle(struct gral_painter *painter, float x, float y,
 
 struct gral_window;
 struct gral_window_interface {
-	int (*close)(void);
-	void (*draw)(struct gral_painter *painter);
-	void (*resize)(int width, int height);
+	int (*close)(void *user_data);
+	void (*draw)(struct gral_painter *painter, void *user_data);
+	void (*resize)(int width, int height, void *user_data);
+	void (*mouse_enter)(void *user_data);
+	void (*mouse_leave)(void *user_data);
+	void (*mouse_move)(float x, float y, void *user_data);
+	void (*mouse_button_press)(int button, void *user_data);
+	void (*mouse_button_release)(int button, void *user_data);
+	void (*scroll)(float dx, float dy, void *user_data);
 };
-struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface);
+struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data);
 
 
 /*==========
