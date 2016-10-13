@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(libgral)
 
 if(WIN32)
-
+	add_library(gral gral_windows.cpp)
 elseif(APPLE)
 	find_library(COCOA Cocoa)
 	find_library(AUDIO_TOOLBOX AudioToolbox)
