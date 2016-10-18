@@ -17,14 +17,47 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "gral.h"
 #include <Windows.h>
+#include <gdiplus.h>
 
 static HINSTANCE hInstance;
+static ULONG_PTR gdi_token;
+
+struct WindowData {
+	gral_window_interface i;
+	void *user_data;
+	WindowData(gral_window_interface *i, void *user_data): i(*i), user_data(user_data) {}
+};
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
-	case WM_CLOSE:
-		DestroyWindow(hwnd);
+	case WM_PAINT: {
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hwnd, &ps);
+		Gdiplus::Graphics graphics(hdc);
+		Gdiplus::SolidBrush brush(Gdiplus::Color(255, 0, 0));
+		graphics.FillRectangle(&brush, 10, 10, 100, 100);
+		EndPaint(hwnd, &ps);
 		return 0;
+	}
+	case WM_LBUTTONDOWN: {
+		window_data->i.mouse_button_press(0, window_data->user_data);
+		return 0;
+	}
+	case WM_LBUTTONUP: {
+		window_data->i.mouse_button_release(0, window_data->user_data);
+		return 0;
+	}
+	case WM_SIZE: {
+		window_data->i.resize(LOWORD(lParam), HIWORD(lParam), window_data->user_data);
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
+	case WM_CLOSE: {
+		if (window_data->i.close(window_data->user_data)) {
+			DestroyWindow(hwnd);
+		}
+		return 0;
+	}
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
@@ -35,6 +68,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 void gral_init(int *argc, char ***argv) {
 	hInstance = GetModuleHandle(NULL);
+	Gdiplus::GdiplusStartupInput startup_input;
+	Gdiplus::GdiplusStartup(&gdi_token, &startup_input, NULL);
 	WNDCLASS window_class = {};
 	window_class.lpfnWndProc = &WndProc;
 	window_class.hInstance = hInstance;
@@ -70,9 +105,10 @@ void gral_painter_draw_rectangle(gral_painter *painter, float x, float y, float 
  ===========*/
 
 gral_window *gral_window_create(int width, int height, const char *title, gral_window_interface *i, void *user_data) {
-	HWND window = CreateWindow("gral_window", title, WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
-	ShowWindow(window, SW_SHOW);
-	return (gral_window *)window;
+	HWND hwnd = CreateWindow("gral_window", title, WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
+	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)new WindowData(i, user_data));
+	ShowWindow(hwnd, SW_SHOW);
+	return (gral_window *)hwnd;
 }
 
 
