@@ -171,10 +171,31 @@ struct gral_window *gral_window_create(int width, int height, const char *title,
     AUDIO
  ==========*/
 
+#define FRAMES 1024
+
+static void play_buffer(snd_pcm_t *pcm, int16_t *buffer, int frames) {
+	while (frames > 0) {
+		int frames_written = snd_pcm_writei(pcm, buffer, frames);
+		if (frames_written < 0) {
+			fprintf(stderr, "audio error: %s\n", snd_strerror(frames_written));
+			snd_pcm_recover(pcm, frames_written, 0);
+			snd_pcm_prepare(pcm);
+			continue;
+		}
+		buffer += 2 * frames_written;
+		frames -= frames_written;
+	}
+}
+
 void gral_audio_play(int (*callback)(int16_t *buffer, int frames)) {
 	snd_pcm_t *pcm;
 	snd_pcm_open(&pcm, "default", SND_PCM_STREAM_PLAYBACK, 0);
-	snd_pcm_set_params(pcm, SND_PCM_FORMAT_S16, SND_PCM_ACCESS_RW_INTERLEAVED, 2, 44100, 1, 0);
-	// TODO: implement
+	snd_pcm_set_params(pcm, SND_PCM_FORMAT_S16, SND_PCM_ACCESS_RW_INTERLEAVED, 2, 44100, 1, 1000000*FRAMES/44100);
+	snd_pcm_prepare(pcm);
+	int16_t buffer[FRAMES*2];
+	while (callback(buffer, FRAMES)) {
+		play_buffer(pcm, buffer, FRAMES);
+	}
+	snd_pcm_drain(pcm);
 	snd_pcm_close(pcm);
 }
