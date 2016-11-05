@@ -33,6 +33,39 @@ int gral_run(void) {
     PAINTING
  =============*/
 
+void gral_painter_new_path(struct gral_painter *painter) {
+	cairo_new_path((cairo_t *)painter);
+}
+
+void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
+	cairo_move_to((cairo_t *)painter, x, y);
+}
+
+void gral_painter_close_path(struct gral_painter *painter) {
+	cairo_close_path((cairo_t *)painter);
+}
+
+void gral_painter_line_to(struct gral_painter *painter, float x, float y) {
+	cairo_line_to((cairo_t *)painter, x, y);
+}
+
+void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
+	cairo_curve_to((cairo_t *)painter, x1, y1, x2, y2, x, y);
+}
+
+void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha) {
+	cairo_set_source_rgba((cairo_t *)painter, red, green, blue, alpha);
+	cairo_fill_preserve((cairo_t *)painter);
+}
+
+void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha) {
+	cairo_set_line_width((cairo_t *)painter, line_width);
+	cairo_set_line_cap((cairo_t *)painter, CAIRO_LINE_CAP_ROUND);
+	cairo_set_line_join((cairo_t *)painter, CAIRO_LINE_JOIN_ROUND);
+	cairo_set_source_rgba((cairo_t *)painter, red, green, blue, alpha);
+	cairo_stroke_preserve((cairo_t *)painter);
+}
+
 void gral_painter_set_color(struct gral_painter *painter, float red, float green, float blue, float alpha) {
 	cairo_t *cr = (cairo_t *)painter;
 	cairo_set_source_rgba(cr, red, green, blue, alpha);

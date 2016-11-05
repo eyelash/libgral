@@ -42,6 +42,34 @@ int gral_run(void) {
     PAINTING
  =============*/
 
+void gral_painter_new_path(struct gral_painter *painter) {
+	// TODO: implement
+}
+
+void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
+	// TODO: implement
+}
+
+void gral_painter_close_path(struct gral_painter *painter) {
+	// TODO: implement
+}
+
+void gral_painter_line_to(struct gral_painter *painter, float x, float y) {
+	// TODO: implement
+}
+
+void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
+	// TODO: implement
+}
+
+void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha) {
+	// TODO: implement
+}
+
+void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha) {
+	// TODO: implement
+}
+
 void gral_painter_set_color(struct gral_painter *painter, float red, float green, float blue, float alpha) {
 	[[NSColor colorWithRed:red green:green blue:blue alpha:alpha] set];
 }

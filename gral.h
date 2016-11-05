@@ -33,6 +33,13 @@ int gral_run(void);
  =============*/
 
 struct gral_painter;
+void gral_painter_new_path(struct gral_painter *painter);
+void gral_painter_move_to(struct gral_painter *painter, float x, float y);
+void gral_painter_close_path(struct gral_painter *painter);
+void gral_painter_line_to(struct gral_painter *painter, float x, float y);
+void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y);
+void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha);
+void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha);
 void gral_painter_set_color(struct gral_painter *painter, float red, float green, float blue, float alpha);
 void gral_painter_draw_rectangle(struct gral_painter *painter, float x, float y, float width, float height);
 
