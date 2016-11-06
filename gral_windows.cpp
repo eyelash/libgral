@@ -22,6 +22,15 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 static HINSTANCE hInstance;
 static ULONG_PTR gdi_token;
 
+struct gral_painter {
+	Gdiplus::Graphics graphics;
+	Gdiplus::GraphicsPath path;
+	Gdiplus::PointF point;
+	gral_painter(HDC hdc): graphics(hdc), path(Gdiplus::FillModeWinding) {
+		graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+	}
+};
+
 struct WindowData {
 	gral_window_interface i;
 	void *user_data;
@@ -34,9 +43,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
-		Gdiplus::Graphics graphics(hdc);
-		Gdiplus::SolidBrush brush(Gdiplus::Color(255, 0, 0));
-		graphics.FillRectangle(&brush, 10, 10, 100, 100);
+		gral_painter painter(hdc);
+		window_data->i.draw(&painter, window_data->user_data);
 		EndPaint(hwnd, &ps);
 		return 0;
 	}
@@ -90,6 +98,46 @@ int gral_run(void) {
 /*=============
     PAINTING
  =============*/
+
+void gral_painter_new_path(gral_painter *painter) {
+	painter->path.Reset();
+	painter->path.SetFillMode(Gdiplus::FillModeWinding);
+}
+
+void gral_painter_move_to(gral_painter *painter, float x, float y) {
+	painter->path.StartFigure();
+	painter->point = Gdiplus::PointF(x, y);
+}
+
+void gral_painter_close_path(gral_painter *painter) {
+	painter->path.CloseFigure();
+}
+
+void gral_painter_line_to(gral_painter *painter, float x, float y) {
+	painter->path.AddLine(painter->point, Gdiplus::PointF(x, y));
+	painter->point = Gdiplus::PointF(x, y);
+}
+
+void gral_painter_curve_to(gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
+	painter->path.AddBezier(painter->point, Gdiplus::PointF(x1, y1), Gdiplus::PointF(x2, y2), Gdiplus::PointF(x, y));
+	painter->point = Gdiplus::PointF(x, y);
+}
+
+static Gdiplus::Color make_color(float r, float g, float b, float a) {
+	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
+}
+
+void gral_painter_fill(gral_painter *painter, float red, float green, float blue, float alpha) {
+	Gdiplus::SolidBrush brush(make_color(red, green, blue, alpha));
+	painter->graphics.FillPath(&brush, &painter->path);
+}
+
+void gral_painter_stroke(gral_painter *painter, float line_width, float red, float green, float blue, float alpha) {
+	Gdiplus::Pen pen(make_color(red, green, blue, alpha), line_width);
+	pen.SetLineCap(Gdiplus::LineCapRound, Gdiplus::LineCapRound, Gdiplus::DashCapRound);
+	pen.SetLineJoin(Gdiplus::LineJoinRound);
+	painter->graphics.DrawPath(&pen, &painter->path);
+}
 
 void gral_painter_set_color(gral_painter *painter, float red, float green, float blue, float alpha) {
 	

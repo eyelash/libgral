@@ -1,5 +1,6 @@
 #include <gral.h>
 #include <stdio.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 static int close(void *user_data) {
