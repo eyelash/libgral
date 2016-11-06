@@ -18,6 +18,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "gral.h"
 //#define UNICODE
 #include <Windows.h>
+#include <windowsx.h>
 #include <gdiplus.h>
 
 static HINSTANCE hInstance;
@@ -57,7 +58,8 @@ struct gral_text {
 struct WindowData {
 	gral_window_interface i;
 	void *user_data;
-	WindowData(gral_window_interface *i, void *user_data): i(*i), user_data(user_data) {}
+	bool mouse_inside;
+	WindowData(gral_window_interface *i, void *user_data): i(*i), user_data(user_data), mouse_inside(false) {}
 };
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -71,12 +73,41 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		EndPaint(hwnd, &ps);
 		return 0;
 	}
+	case WM_MOUSEMOVE: {
+		if (!window_data->mouse_inside) {
+			window_data->mouse_inside = true;
+			window_data->i.mouse_enter(window_data->user_data);
+			TRACKMOUSEEVENT track_mouse_event;
+			track_mouse_event.cbSize = sizeof(TRACKMOUSEEVENT);
+			track_mouse_event.dwFlags = TME_LEAVE;
+			track_mouse_event.hwndTrack = hwnd;
+			TrackMouseEvent(&track_mouse_event);
+		}
+		window_data->i.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
+		return 0;
+	}
+	case WM_MOUSELEAVE: {
+		window_data->i.mouse_leave(window_data->user_data);
+		window_data->mouse_inside = false;
+		return 0;
+	}
 	case WM_LBUTTONDOWN: {
 		window_data->i.mouse_button_press(0, window_data->user_data);
 		return 0;
 	}
+	case WM_RBUTTONDOWN: {
+		//window_data->i.mouse_button_press(0, window_data->user_data);
+		return 0;
+	}
 	case WM_LBUTTONUP: {
 		window_data->i.mouse_button_release(0, window_data->user_data);
+		return 0;
+	}
+	case WM_RBUTTONUP: {
+		//window_data->i.mouse_button_release(0, window_data->user_data);
+		return 0;
+	}
+	case WM_MOUSEWHEEL: {
 		return 0;
 	}
 	case WM_CHAR: {
@@ -93,9 +124,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		}
 		return 0;
 	}
-	case WM_DESTROY:
+	case WM_DESTROY: {
 		PostQuitMessage(0);
 		return 0;
+	}
 	default:
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
@@ -105,9 +137,16 @@ void gral_init(int *argc, char ***argv) {
 	hInstance = GetModuleHandle(NULL);
 	Gdiplus::GdiplusStartupInput startup_input;
 	Gdiplus::GdiplusStartup(&gdi_token, &startup_input, NULL);
-	WNDCLASS window_class = {};
+	WNDCLASS window_class;
+	window_class.style = 0;
 	window_class.lpfnWndProc = &WndProc;
+	window_class.cbClsExtra = 0;
+	window_class.cbWndExtra = 0;
 	window_class.hInstance = hInstance;
+	window_class.hIcon = NULL;
+	window_class.hCursor = LoadCursor(NULL, IDC_ARROW);
+	window_class.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
+	window_class.lpszMenuName = NULL;
 	window_class.lpszClassName = "gral_window";
 	RegisterClass(&window_class);
 }
@@ -130,7 +169,7 @@ static Gdiplus::Color make_color(float r, float g, float b, float a) {
 	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
 }
 
-struct gral_text *gral_text_create(struct gral_window *window, const char *utf8, float size) {
+gral_text *gral_text_create(struct gral_window *window, const char *utf8, float size) {
 	return new gral_text(utf8, size);
 }
 
@@ -177,14 +216,6 @@ void gral_painter_stroke(gral_painter *painter, float line_width, float red, flo
 	pen.SetLineCap(Gdiplus::LineCapRound, Gdiplus::LineCapRound, Gdiplus::DashCapRound);
 	pen.SetLineJoin(Gdiplus::LineJoinRound);
 	painter->graphics.DrawPath(&pen, &painter->path);
-}
-
-void gral_painter_set_color(gral_painter *painter, float red, float green, float blue, float alpha) {
-	
-}
-
-void gral_painter_draw_rectangle(gral_painter *painter, float x, float y, float width, float height) {
-	
 }
 
 
