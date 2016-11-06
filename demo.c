@@ -16,7 +16,7 @@ static void draw_star(struct gral_painter *painter, float x, float y, float size
 	gral_painter_move_to(painter, cx, y);
 	int i;
 	for (i = 1; i < 5; i++) {
-		float a = M_PI * 3.0f / 2.0f + M_PI * 2.0f * 2.0f / 5.0f * i;
+		float a = (float)M_PI * 3.0f / 2.0f + (float)M_PI * 2.0f * 2.0f / 5.0f * i;
 		gral_painter_line_to(painter, cx + cosf(a)*radius, cy + sinf(a)*radius);
 	}
 	gral_painter_close_path(painter);

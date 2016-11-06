@@ -16,6 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "gral.h"
+//#define UNICODE
 #include <Windows.h>
 #include <gdiplus.h>
 
@@ -29,6 +30,28 @@ struct gral_painter {
 	gral_painter(HDC hdc): graphics(hdc), path(Gdiplus::FillModeWinding) {
 		graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 	}
+};
+
+class UTF16String {
+	wchar_t *data;
+public:
+	UTF16String(const char *utf8) {
+		int length = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
+		data = new wchar_t[length];
+		MultiByteToWideChar(CP_UTF8, 0, utf8, -1, data, length);
+	}
+	~UTF16String() {
+		delete[] data;
+	}
+	operator const WCHAR*() const {
+		return data;
+	}
+};
+
+struct gral_text {
+	UTF16String string;
+	Gdiplus::Font font;
+	gral_text(const char *utf8, float size): string(utf8), font(Gdiplus::FontFamily::GenericSansSerif(), size, 0, Gdiplus::UnitPixel) {}
 };
 
 struct WindowData {
@@ -54,6 +77,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_LBUTTONUP: {
 		window_data->i.mouse_button_release(0, window_data->user_data);
+		return 0;
+	}
+	case WM_CHAR: {
+		//printf("WM_CHAR: %X\n", wParam);
 		return 0;
 	}
 	case WM_SIZE: {
@@ -99,6 +126,23 @@ int gral_run(void) {
     PAINTING
  =============*/
 
+static Gdiplus::Color make_color(float r, float g, float b, float a) {
+	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
+}
+
+struct gral_text *gral_text_create(struct gral_window *window, const char *utf8, float size) {
+	return new gral_text(utf8, size);
+}
+
+void gral_text_delete(struct gral_text *text) {
+	delete text;
+}
+
+void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+	Gdiplus::SolidBrush brush(make_color(red, green, blue, alpha));
+	painter->graphics.DrawString(text->string, -1, &text->font, Gdiplus::PointF(x, y), &brush);
+}
+
 void gral_painter_new_path(gral_painter *painter) {
 	painter->path.Reset();
 	painter->path.SetFillMode(Gdiplus::FillModeWinding);
@@ -121,10 +165,6 @@ void gral_painter_line_to(gral_painter *painter, float x, float y) {
 void gral_painter_curve_to(gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
 	painter->path.AddBezier(painter->point, Gdiplus::PointF(x1, y1), Gdiplus::PointF(x2, y2), Gdiplus::PointF(x, y));
 	painter->point = Gdiplus::PointF(x, y);
-}
-
-static Gdiplus::Color make_color(float r, float g, float b, float a) {
-	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
 }
 
 void gral_painter_fill(gral_painter *painter, float red, float green, float blue, float alpha) {
