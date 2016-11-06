@@ -33,6 +33,25 @@ int gral_run(void) {
     PAINTING
  =============*/
 
+struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
+	PangoLayout *layout = gtk_widget_create_pango_layout(GTK_WIDGET(window), text);
+	PangoFontDescription *font_description = pango_font_description_new();
+	pango_font_description_set_absolute_size(font_description, size*PANGO_SCALE);
+	pango_layout_set_font_description(layout, font_description);
+	pango_font_description_free(font_description);
+	return (struct gral_text *)layout;
+}
+
+void gral_text_delete(struct gral_text *text) {
+	g_object_unref(text);
+}
+
+void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+	cairo_move_to((cairo_t *)painter, x, y);
+	cairo_set_source_rgba((cairo_t *)painter, red, green, blue, alpha);
+	pango_cairo_show_layout((cairo_t *)painter, (PangoLayout *)text);
+}
+
 void gral_painter_new_path(struct gral_painter *painter) {
 	cairo_new_path((cairo_t *)painter);
 }
@@ -64,17 +83,6 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
 	cairo_set_line_join((cairo_t *)painter, CAIRO_LINE_JOIN_ROUND);
 	cairo_set_source_rgba((cairo_t *)painter, red, green, blue, alpha);
 	cairo_stroke_preserve((cairo_t *)painter);
-}
-
-void gral_painter_set_color(struct gral_painter *painter, float red, float green, float blue, float alpha) {
-	cairo_t *cr = (cairo_t *)painter;
-	cairo_set_source_rgba(cr, red, green, blue, alpha);
-}
-
-void gral_painter_draw_rectangle(struct gral_painter *painter, float x, float y, float width, float height) {
-	cairo_t *cr = (cairo_t *)painter;
-	cairo_rectangle(cr, x, y, width, height);
-	cairo_fill(cr);
 }
 
 

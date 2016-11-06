@@ -3,6 +3,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+static struct gral_text *text;
+
 static int close(void *user_data) {
 	return 1;
 }
@@ -26,6 +28,7 @@ static void draw(struct gral_painter *painter, void *user_data) {
 	gral_painter_new_path(painter);
 	draw_star(painter, 220.0f, 20.0f, 160.0f);
 	gral_painter_stroke(painter, 3.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	gral_painter_draw_text(painter, text, 50.0f, 50.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 }
 
 static void resize(int width, int height, void *user_data) {
@@ -69,6 +72,7 @@ int main(int argc, char **argv) {
 		&mouse_button_release,
 		&scroll
 	};
-	gral_window_create(800, 600, "test", &interface, 0);
+	struct gral_window *window = gral_window_create(800, 600, "test", &interface, 0);
+	text = gral_text_create(window, "Test", 16.0f);
 	return gral_run();
 }

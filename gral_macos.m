@@ -70,14 +70,6 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
 	// TODO: implement
 }
 
-void gral_painter_set_color(struct gral_painter *painter, float red, float green, float blue, float alpha) {
-	[[NSColor colorWithRed:red green:green blue:blue alpha:alpha] set];
-}
-
-void gral_painter_draw_rectangle(struct gral_painter *painter, float x, float y, float width, float height) {
-	[NSBezierPath fillRect:CGRectMake(x, y, width, height)];
-}
-
 
 /*===========
     WINDOW

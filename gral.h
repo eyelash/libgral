@@ -24,30 +24,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 extern "C" {
 #endif
 
-void gral_init(int *argc, char ***argv);
-int gral_run(void);
-
-
-/*=============
-    PAINTING
- =============*/
-
 struct gral_painter;
-void gral_painter_new_path(struct gral_painter *painter);
-void gral_painter_move_to(struct gral_painter *painter, float x, float y);
-void gral_painter_close_path(struct gral_painter *painter);
-void gral_painter_line_to(struct gral_painter *painter, float x, float y);
-void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y);
-void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha);
-void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha);
-void gral_painter_set_color(struct gral_painter *painter, float red, float green, float blue, float alpha);
-void gral_painter_draw_rectangle(struct gral_painter *painter, float x, float y, float width, float height);
-
-
-/*===========
-    WINDOW
- ===========*/
-
+struct gral_text;
 struct gral_window;
 struct gral_window_interface {
 	int (*close)(void *user_data);
@@ -60,6 +38,32 @@ struct gral_window_interface {
 	void (*mouse_button_release)(int button, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
 };
+
+void gral_init(int *argc, char ***argv);
+int gral_run(void);
+
+
+/*=============
+    PAINTING
+ =============*/
+
+struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size);
+void gral_text_delete(struct gral_text *text);
+
+void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
+void gral_painter_new_path(struct gral_painter *painter);
+void gral_painter_move_to(struct gral_painter *painter, float x, float y);
+void gral_painter_close_path(struct gral_painter *painter);
+void gral_painter_line_to(struct gral_painter *painter, float x, float y);
+void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y);
+void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha);
+void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha);
+
+
+/*===========
+    WINDOW
+ ===========*/
+
 struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data);
 
 
