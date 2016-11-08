@@ -29,9 +29,9 @@ int gral_run(void) {
 }
 
 
-/*=============
-    PAINTING
- =============*/
+/*============
+    DRAWING
+ ============*/
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
 	PangoLayout *layout = gtk_widget_create_pango_layout(GTK_WIDGET(window), text);
@@ -95,13 +95,13 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
 struct _GralWindowClass {
 	GtkWindowClass parent_class;
 };
-struct _GralWindow {
+struct gral_window {
 	GtkWindow parent_instance;
 	struct gral_window_interface interface;
 	void *user_data;
 };
 typedef struct _GralWindowClass GralWindowClass;
-typedef struct _GralWindow GralWindow;
+typedef struct gral_window GralWindow;
 G_DEFINE_TYPE(GralWindow, gral_window, GTK_TYPE_WINDOW)
 
 static gboolean gral_window_delete_event(GtkWidget *widget, GdkEventAny *event) {
@@ -119,9 +119,6 @@ static void gral_window_class_init(GralWindowClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
 	widget_class->delete_event = gral_window_delete_event;
 	widget_class->destroy = gral_window_destroy;
-}
-static GralWindow *gral_window_new(void) {
-	return g_object_new(GRAL_TYPE_WINDOW, "type", GTK_WINDOW_TOPLEVEL, NULL);
 }
 
 #define GRAL_TYPE_AREA gral_area_get_type()
@@ -191,20 +188,25 @@ static void gral_area_class_init(GralAreaClass *class) {
 	widget_class->button_release_event = gral_area_button_release_event;
 	widget_class->scroll_event = gral_area_scroll_event;
 }
-static GtkWidget *gral_area_new() {
-	return g_object_new(GRAL_TYPE_AREA, NULL);
-}
 
 struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
-	GralWindow *window = gral_window_new();
+	GralWindow *window = g_object_new(GRAL_TYPE_WINDOW, "type", GTK_WINDOW_TOPLEVEL, NULL);
 	window->interface = *interface;
 	window->user_data = user_data;
 	gtk_window_set_default_size(GTK_WINDOW(window), width, height);
 	gtk_window_set_title(GTK_WINDOW(window), title);
-	GtkWidget *area = gral_area_new();
+	GtkWidget *area = g_object_new(GRAL_TYPE_AREA, NULL);
 	gtk_container_add(GTK_CONTAINER(window), area);
 	gtk_widget_show_all(GTK_WIDGET(window));
-	return (struct gral_window *)window;
+	return window;
+}
+
+void gral_window_delete(struct gral_window *window) {
+	g_object_unref(window);
+}
+
+void gral_window_request_redraw(struct gral_window *window) {
+	gtk_widget_queue_draw(GTK_WIDGET(window));
 }
 
 

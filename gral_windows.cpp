@@ -92,19 +92,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_LBUTTONDOWN: {
-		window_data->i.mouse_button_press(0, window_data->user_data);
+		window_data->i.mouse_button_press(1, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONDOWN: {
-		//window_data->i.mouse_button_press(0, window_data->user_data);
+		window_data->i.mouse_button_press(3, window_data->user_data);
 		return 0;
 	}
 	case WM_LBUTTONUP: {
-		window_data->i.mouse_button_release(0, window_data->user_data);
+		window_data->i.mouse_button_release(1, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONUP: {
-		//window_data->i.mouse_button_release(0, window_data->user_data);
+		window_data->i.mouse_button_release(3, window_data->user_data);
 		return 0;
 	}
 	case WM_MOUSEWHEEL: {
@@ -161,9 +161,9 @@ int gral_run(void) {
 }
 
 
-/*=============
-    PAINTING
- =============*/
+/*============
+    DRAWING
+ ============*/
 
 static Gdiplus::Color make_color(float r, float g, float b, float a) {
 	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
@@ -228,6 +228,14 @@ gral_window *gral_window_create(int width, int height, const char *title, gral_w
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)new WindowData(i, user_data));
 	ShowWindow(hwnd, SW_SHOW);
 	return (gral_window *)hwnd;
+}
+
+void gral_window_delete(gral_window *window) {
+	
+}
+
+void gral_window_request_redraw(gral_window *window) {
+	RedrawWindow((HWND)window, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
 }
 
 

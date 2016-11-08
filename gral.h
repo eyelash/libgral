@@ -24,8 +24,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 extern "C" {
 #endif
 
-struct gral_painter;
+enum {
+	GRAL_PRIMARY_MOUSE_BUTTON = 1,
+	GRAL_SECONDARY_MOUSE_BUTTON = 3
+};
+
 struct gral_text;
+struct gral_painter;
 struct gral_window;
 struct gral_window_interface {
 	int (*close)(void *user_data);
@@ -43,9 +48,9 @@ void gral_init(int *argc, char ***argv);
 int gral_run(void);
 
 
-/*=============
-    PAINTING
- =============*/
+/*============
+    DRAWING
+ ============*/
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size);
 void gral_text_delete(struct gral_text *text);
@@ -65,6 +70,8 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
  ===========*/
 
 struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data);
+void gral_window_delete(struct gral_window *window);
+void gral_window_request_redraw(struct gral_window *window);
 
 
 /*==========

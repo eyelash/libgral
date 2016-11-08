@@ -3,6 +3,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+static struct gral_window *window;
+static int inside = 0;
 static struct gral_text *text;
 
 static int close(void *user_data) {
@@ -24,7 +26,8 @@ static void draw_star(struct gral_painter *painter, float x, float y, float size
 
 static void draw(struct gral_painter *painter, void *user_data) {
 	draw_star(painter, 20.0f, 20.0f, 160.0f);
-	gral_painter_fill(painter, 1.0f, 0.0f, 0.0f, 1.0f);
+	if (inside) gral_painter_fill(painter, 0.0f, 1.0f, 0.0f, 1.0f);
+	else gral_painter_fill(painter, 1.0f, 0.0f, 0.0f, 1.0f);
 	gral_painter_new_path(painter);
 	draw_star(painter, 220.0f, 20.0f, 160.0f);
 	gral_painter_stroke(painter, 3.0f, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -36,11 +39,13 @@ static void resize(int width, int height, void *user_data) {
 }
 
 static void mouse_enter(void *user_data) {
-	printf("mouse enter\n");
+	inside = 1;
+	gral_window_request_redraw(window);
 }
 
 static void mouse_leave(void *user_data) {
-	printf("mouse leave\n");
+	inside = 0;
+	gral_window_request_redraw(window);
 }
 
 static void mouse_move(float x, float y, void *user_data) {
@@ -72,7 +77,7 @@ int main(int argc, char **argv) {
 		&mouse_button_release,
 		&scroll
 	};
-	struct gral_window *window = gral_window_create(800, 600, "test", &interface, 0);
+	window = gral_window_create(800, 600, "test", &interface, 0);
 	text = gral_text_create(window, "Test", 16.0f);
 	return gral_run();
 }

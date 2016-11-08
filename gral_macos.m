@@ -38,9 +38,21 @@ int gral_run(void) {
 }
 
 
-/*=============
-    PAINTING
- =============*/
+/*============
+    DRAWING
+ ============*/
+
+struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
+	return NULL;
+}
+
+void gral_text_delete(struct gral_text *text) {
+	// TODO: implement
+}
+
+void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+	// TODO: implement
+}
 
 void gral_painter_new_path(struct gral_painter *painter) {
 	// TODO: implement
@@ -136,7 +148,7 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
 	interface.mouse_button_press(1, user_data);
 }
 - (void)rightMouseDown:(NSEvent *)event {
-	interface.mouse_button_press(2, user_data);
+	interface.mouse_button_press(3, user_data);
 }
 - (void)otherMouseDown:(NSEvent *)event {
 	//interface.mouse_button_press(3, user_data);
@@ -145,7 +157,7 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
 	interface.mouse_button_release(1, user_data);
 }
 - (void)rightMouseUp:(NSEvent *)event {
-	interface.mouse_button_release(2, user_data);
+	interface.mouse_button_release(3, user_data);
 }
 - (void)otherMouseUp:(NSEvent *)event {
 	//interface.mouse_button_release(3, user_data);
@@ -186,6 +198,14 @@ struct gral_window *gral_window_create(int width, int height, const char *title,
 	[window setContentView:view];
 	[window makeKeyAndOrderFront:nil];
 	return (struct gral_window *)window;
+}
+
+void gral_window_delete(struct gral_window *window) {
+	// TODO: implement
+}
+
+void gral_window_request_redraw(struct gral_window *window) {
+	// TODO: implement
 }
 
 
