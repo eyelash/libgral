@@ -26,6 +26,7 @@ extern "C" {
 
 enum {
 	GRAL_PRIMARY_MOUSE_BUTTON = 1,
+	GRAL_MIDDLE_MOUSE_BUTTON = 2,
 	GRAL_SECONDARY_MOUSE_BUTTON = 3
 };
 
@@ -42,6 +43,7 @@ struct gral_window_interface {
 	void (*mouse_button_press)(int button, void *user_data);
 	void (*mouse_button_release)(int button, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
+	void (*character)(uint32_t c, void *user_data);
 };
 
 void gral_init(int *argc, char ***argv);

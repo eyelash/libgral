@@ -128,8 +128,7 @@ struct _GralAreaClass {
 };
 struct _GralArea {
 	GtkDrawingArea parent_instance;
-	struct gral_window_interface interface;
-	void *user_data;
+	GtkIMContext *im_context;
 };
 typedef struct _GralAreaClass GralAreaClass;
 typedef struct _GralArea GralArea;
@@ -174,8 +173,33 @@ static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 	// TODO: implement
 	return GDK_EVENT_STOP;
 }
+static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
+	GralArea *area = GRAL_AREA(widget);
+	gtk_im_context_filter_keypress(area->im_context, event);
+	return GDK_EVENT_STOP;
+}
+static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *event) {
+	GralArea *area = GRAL_AREA(widget);
+	gtk_im_context_filter_keypress(area->im_context, event);
+	return GDK_EVENT_STOP;
+}
+static void gral_area_commit(GtkIMContext *context, gchar *str, gpointer user_data) {
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(GTK_WIDGET(user_data)));
+	while (*str != '\0') {
+		window->interface.character(g_utf8_get_char(str), window->user_data);
+		str = g_utf8_next_char(str);
+	}
+}
+static void gral_area_dispose(GObject *object) {
+	GralArea *area = GRAL_AREA(object);
+	g_clear_object(&area->im_context);
+	G_OBJECT_CLASS(gral_area_parent_class)->dispose(object);
+}
 static void gral_area_init(GralArea *area) {
+	area->im_context = gtk_im_multicontext_new();
+	g_signal_connect(area->im_context, "commit", G_CALLBACK(gral_area_commit), area);
 	gtk_widget_add_events(GTK_WIDGET(area), GDK_ENTER_NOTIFY_MASK|GDK_LEAVE_NOTIFY_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_SCROLL_MASK);
+	gtk_widget_set_can_focus(GTK_WIDGET(area), TRUE);
 }
 static void gral_area_class_init(GralAreaClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
@@ -187,6 +211,10 @@ static void gral_area_class_init(GralAreaClass *class) {
 	widget_class->button_press_event = gral_area_button_press_event;
 	widget_class->button_release_event = gral_area_button_release_event;
 	widget_class->scroll_event = gral_area_scroll_event;
+	widget_class->key_press_event = gral_area_key_press_event;
+	widget_class->key_release_event = gral_area_key_release_event;
+	GObjectClass *object_class = G_OBJECT_CLASS(class);
+	object_class->dispose = gral_area_dispose;
 }
 
 struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {

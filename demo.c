@@ -64,6 +64,10 @@ static void scroll(float dx, float dy, void *user_data) {
 	printf("scroll {%f, %f}\n", dx, dy);
 }
 
+static void character(uint32_t c, void *user_data) {
+	printf("character: U+%X\n", c);
+}
+
 int main(int argc, char **argv) {
 	gral_init(&argc, &argv);
 	struct gral_window_interface interface = {
@@ -75,7 +79,8 @@ int main(int argc, char **argv) {
 		&mouse_move,
 		&mouse_button_press,
 		&mouse_button_release,
-		&scroll
+		&scroll,
+		&character
 	};
 	window = gral_window_create(800, 600, "test", &interface, 0);
 	text = gral_text_create(window, "Test", 16.0f);
