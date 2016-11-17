@@ -16,7 +16,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 */
 
 #include "gral.h"
-//#define UNICODE
+#define UNICODE
+#define _UNICODE
 #include <Windows.h>
 #include <windowsx.h>
 #include <gdiplus.h>
@@ -92,26 +93,42 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_LBUTTONDOWN: {
-		window_data->i.mouse_button_press(1, window_data->user_data);
+		window_data->i.mouse_button_press(GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+		return 0;
+	}
+	case WM_MBUTTONDOWN: {
+		window_data->i.mouse_button_press(GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONDOWN: {
-		window_data->i.mouse_button_press(3, window_data->user_data);
+		window_data->i.mouse_button_press(GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_LBUTTONUP: {
-		window_data->i.mouse_button_release(1, window_data->user_data);
+		window_data->i.mouse_button_release(GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+		return 0;
+	}
+	case WM_MBUTTONUP: {
+		window_data->i.mouse_button_release(GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONUP: {
-		window_data->i.mouse_button_release(3, window_data->user_data);
+		window_data->i.mouse_button_release(GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_MOUSEWHEEL: {
 		return 0;
 	}
 	case WM_CHAR: {
-		//printf("WM_CHAR: %X\n", wParam);
+		if ((wParam & 0xFC00) == 0xD800) {
+			
+		}
+		else if ((wParam & 0xFC00) == 0xDC00) {
+			
+		}
+		else {
+			window_data->i.character(wParam, window_data->user_data);
+		}
 		return 0;
 	}
 	case WM_SIZE: {
@@ -147,7 +164,7 @@ void gral_init(int *argc, char ***argv) {
 	window_class.hCursor = LoadCursor(NULL, IDC_ARROW);
 	window_class.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
 	window_class.lpszMenuName = NULL;
-	window_class.lpszClassName = "gral_window";
+	window_class.lpszClassName = L"gral_window";
 	RegisterClass(&window_class);
 }
 
@@ -224,7 +241,7 @@ void gral_painter_stroke(gral_painter *painter, float line_width, float red, flo
  ===========*/
 
 gral_window *gral_window_create(int width, int height, const char *title, gral_window_interface *i, void *user_data) {
-	HWND hwnd = CreateWindow("gral_window", title, WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
+	HWND hwnd = CreateWindow(L"gral_window", UTF16String(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)new WindowData(i, user_data));
 	ShowWindow(hwnd, SW_SHOW);
 	return (gral_window *)hwnd;
