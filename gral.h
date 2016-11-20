@@ -30,6 +30,10 @@ enum {
 	GRAL_SECONDARY_MOUSE_BUTTON = 3
 };
 
+struct gral_application;
+struct gral_application_interface {
+	void (*initialize)(void *user_data);
+};
 struct gral_text;
 struct gral_painter;
 struct gral_window;
@@ -48,6 +52,15 @@ struct gral_window_interface {
 
 void gral_init(int *argc, char ***argv);
 int gral_run(void);
+
+
+/*================
+    APPLICATION
+ ================*/
+
+struct gral_application *gral_application_create(const char *id, struct gral_application_interface *interface, void *user_data);
+void gral_application_delete(struct gral_application *application);
+int gral_application_run(struct gral_application *application, int argc, char **argv);
 
 
 /*============
@@ -71,7 +84,7 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
     WINDOW
  ===========*/
 
-struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data);
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, struct gral_window_interface *interface, void *user_data);
 void gral_window_delete(struct gral_window *window);
 void gral_window_request_redraw(struct gral_window *window);
 

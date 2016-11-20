@@ -29,6 +29,53 @@ int gral_run(void) {
 }
 
 
+/*================
+    APPLICATION
+ ================*/
+
+#define GRAL_TYPE_APPLICATION gral_application_get_type()
+#define GRAL_APPLICATION(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), GRAL_TYPE_APPLICATION, GralApplication)
+struct _GralApplicationClass {
+	GtkApplicationClass parent_class;
+};
+struct gral_application {
+	GtkWindow parent_instance;
+	struct gral_application_interface interface;
+	void *user_data;
+};
+typedef struct _GralApplicationClass GralApplicationClass;
+typedef struct gral_application GralApplication;
+G_DEFINE_TYPE(GralApplication, gral_application, GTK_TYPE_APPLICATION)
+
+static void gral_application_activate(GApplication *gapplication) {
+	G_APPLICATION_CLASS(gral_application_parent_class)->activate(gapplication);
+	GralApplication *application = GRAL_APPLICATION(gapplication);
+	application->interface.initialize(application->user_data);
+}
+static void gral_application_init(GralApplication *application) {
+
+}
+static void gral_application_class_init(GralApplicationClass *class) {
+	GApplicationClass *application_class = G_APPLICATION_CLASS(class);
+	application_class->activate = gral_application_activate;
+}
+
+struct gral_application *gral_application_create(const char *id, struct gral_application_interface *interface, void *user_data) {
+	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, NULL);
+	application->interface = *interface;
+	application->user_data = user_data;
+	return application;
+}
+
+void gral_application_delete(struct gral_application *application) {
+	g_object_unref(application);
+}
+
+int gral_application_run(struct gral_application *application, int argc, char **argv) {
+	return g_application_run(G_APPLICATION(application), argc, argv);
+}
+
+
 /*============
     DRAWING
  ============*/
@@ -93,24 +140,20 @@ void gral_painter_stroke(struct gral_painter *painter, float line_width, float r
 #define GRAL_TYPE_WINDOW gral_window_get_type()
 #define GRAL_WINDOW(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), GRAL_TYPE_WINDOW, GralWindow)
 struct _GralWindowClass {
-	GtkWindowClass parent_class;
+	GtkApplicationWindowClass parent_class;
 };
 struct gral_window {
-	GtkWindow parent_instance;
+	GtkApplicationWindow parent_instance;
 	struct gral_window_interface interface;
 	void *user_data;
 };
 typedef struct _GralWindowClass GralWindowClass;
 typedef struct gral_window GralWindow;
-G_DEFINE_TYPE(GralWindow, gral_window, GTK_TYPE_WINDOW)
+G_DEFINE_TYPE(GralWindow, gral_window, GTK_TYPE_APPLICATION_WINDOW)
 
 static gboolean gral_window_delete_event(GtkWidget *widget, GdkEventAny *event) {
 	GralWindow *window = GRAL_WINDOW(widget);
 	return !window->interface.close(window->user_data);
-}
-static void gral_window_destroy(GtkWidget *widget) {
-	GTK_WIDGET_CLASS(gral_window_parent_class)->destroy(widget);
-	gtk_main_quit();
 }
 static void gral_window_init(GralWindow *window) {
 
@@ -118,7 +161,6 @@ static void gral_window_init(GralWindow *window) {
 static void gral_window_class_init(GralWindowClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
 	widget_class->delete_event = gral_window_delete_event;
-	widget_class->destroy = gral_window_destroy;
 }
 
 #define GRAL_TYPE_AREA gral_area_get_type()
@@ -217,8 +259,9 @@ static void gral_area_class_init(GralAreaClass *class) {
 	object_class->dispose = gral_area_dispose;
 }
 
-struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
-	GralWindow *window = g_object_new(GRAL_TYPE_WINDOW, "type", GTK_WINDOW_TOPLEVEL, NULL);
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
+	GralWindow *window = g_object_new(GRAL_TYPE_WINDOW, "application", application, NULL);
+	g_object_ref_sink(window);
 	window->interface = *interface;
 	window->user_data = user_data;
 	gtk_window_set_default_size(GTK_WINDOW(window), width, height);

@@ -57,11 +57,16 @@ struct gral_text {
 };
 
 struct WindowData {
-	gral_window_interface i;
+	gral_window_interface iface;
 	void *user_data;
 	bool mouse_inside;
-	WindowData(gral_window_interface *i, void *user_data): i(*i), user_data(user_data), mouse_inside(false) {}
+	WindowData(): mouse_inside(false) {}
 };
+
+
+/*================
+    APPLICATION
+ ================*/
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
@@ -70,50 +75,50 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
 		gral_painter painter(hdc);
-		window_data->i.draw(&painter, window_data->user_data);
+		window_data->iface.draw(&painter, window_data->user_data);
 		EndPaint(hwnd, &ps);
 		return 0;
 	}
 	case WM_MOUSEMOVE: {
 		if (!window_data->mouse_inside) {
 			window_data->mouse_inside = true;
-			window_data->i.mouse_enter(window_data->user_data);
+			window_data->iface.mouse_enter(window_data->user_data);
 			TRACKMOUSEEVENT track_mouse_event;
 			track_mouse_event.cbSize = sizeof(TRACKMOUSEEVENT);
 			track_mouse_event.dwFlags = TME_LEAVE;
 			track_mouse_event.hwndTrack = hwnd;
 			TrackMouseEvent(&track_mouse_event);
 		}
-		window_data->i.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
+		window_data->iface.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
 		return 0;
 	}
 	case WM_MOUSELEAVE: {
-		window_data->i.mouse_leave(window_data->user_data);
+		window_data->iface.mouse_leave(window_data->user_data);
 		window_data->mouse_inside = false;
 		return 0;
 	}
 	case WM_LBUTTONDOWN: {
-		window_data->i.mouse_button_press(GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_press(GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_MBUTTONDOWN: {
-		window_data->i.mouse_button_press(GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_press(GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONDOWN: {
-		window_data->i.mouse_button_press(GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_press(GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_LBUTTONUP: {
-		window_data->i.mouse_button_release(GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_release(GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_MBUTTONUP: {
-		window_data->i.mouse_button_release(GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_release(GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONUP: {
-		window_data->i.mouse_button_release(GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_release(GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_MOUSEWHEEL: {
@@ -127,16 +132,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			
 		}
 		else {
-			window_data->i.character(wParam, window_data->user_data);
+			window_data->iface.character(wParam, window_data->user_data);
 		}
 		return 0;
 	}
 	case WM_SIZE: {
-		window_data->i.resize(LOWORD(lParam), HIWORD(lParam), window_data->user_data);
+		window_data->iface.resize(LOWORD(lParam), HIWORD(lParam), window_data->user_data);
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 	case WM_CLOSE: {
-		if (window_data->i.close(window_data->user_data)) {
+		if (window_data->iface.close(window_data->user_data)) {
 			DestroyWindow(hwnd);
 		}
 		return 0;
@@ -169,6 +174,39 @@ void gral_init(int *argc, char ***argv) {
 }
 
 int gral_run(void) {
+	MSG message;
+	while (GetMessage(&message, NULL, 0, 0)) {
+		TranslateMessage(&message);
+		DispatchMessage(&message);
+	}
+	return 0;
+}
+
+gral_application *gral_application_create(const char *id, gral_application_interface *iface, void *user_data) {
+	hInstance = GetModuleHandle(NULL);
+	Gdiplus::GdiplusStartupInput startup_input;
+	Gdiplus::GdiplusStartup(&gdi_token, &startup_input, NULL);
+	WNDCLASS window_class;
+	window_class.style = 0;
+	window_class.lpfnWndProc = &WndProc;
+	window_class.cbClsExtra = 0;
+	window_class.cbWndExtra = 0;
+	window_class.hInstance = hInstance;
+	window_class.hIcon = NULL;
+	window_class.hCursor = LoadCursor(NULL, IDC_ARROW);
+	window_class.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
+	window_class.lpszMenuName = NULL;
+	window_class.lpszClassName = L"gral_window";
+	RegisterClass(&window_class);
+	iface->initialize(user_data);
+	return NULL;
+}
+
+void gral_application_delete(struct gral_application *application) {
+	Gdiplus::GdiplusShutdown(gdi_token);
+}
+
+int gral_application_run(struct gral_application *application, int argc, char **argv) {
 	MSG message;
 	while (GetMessage(&message, NULL, 0, 0)) {
 		TranslateMessage(&message);
@@ -240,15 +278,19 @@ void gral_painter_stroke(gral_painter *painter, float line_width, float red, flo
     WINDOW
  ===========*/
 
-gral_window *gral_window_create(int width, int height, const char *title, gral_window_interface *i, void *user_data) {
+gral_window *gral_window_create(gral_application *application, int width, int height, const char *title, gral_window_interface *iface, void *user_data) {
 	HWND hwnd = CreateWindow(L"gral_window", UTF16String(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
-	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)new WindowData(i, user_data));
+	WindowData *window_data = new WindowData();
+	window_data->iface = *iface;
+	window_data->user_data = user_data;
+	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)window_data);
 	ShowWindow(hwnd, SW_SHOW);
 	return (gral_window *)hwnd;
 }
 
 void gral_window_delete(gral_window *window) {
-	
+	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
+	delete window_data;
 }
 
 void gral_window_request_redraw(gral_window *window) {
