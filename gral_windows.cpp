@@ -21,6 +21,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <Windows.h>
 #include <windowsx.h>
 #include <gdiplus.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 static HINSTANCE hInstance;
 static ULONG_PTR gdi_token;
@@ -242,13 +244,13 @@ void gral_painter_new_path(gral_painter *painter) {
 	painter->path.SetFillMode(Gdiplus::FillModeWinding);
 }
 
+void gral_painter_close_path(gral_painter *painter) {
+	painter->path.CloseFigure();
+}
+
 void gral_painter_move_to(gral_painter *painter, float x, float y) {
 	painter->path.StartFigure();
 	painter->point = Gdiplus::PointF(x, y);
-}
-
-void gral_painter_close_path(gral_painter *painter) {
-	painter->path.CloseFigure();
 }
 
 void gral_painter_line_to(gral_painter *painter, float x, float y) {
@@ -259,6 +261,21 @@ void gral_painter_line_to(gral_painter *painter, float x, float y) {
 void gral_painter_curve_to(gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
 	painter->path.AddBezier(painter->point, Gdiplus::PointF(x1, y1), Gdiplus::PointF(x2, y2), Gdiplus::PointF(x, y));
 	painter->point = Gdiplus::PointF(x, y);
+}
+
+void gral_painter_add_rectangle(gral_painter *painter, float x, float y, float width, float height) {
+	painter->path.AddRectangle(Gdiplus::RectF(x, y, width, height));
+}
+
+static float degrees(float angle) {
+	return angle * (180.f / (float)M_PI);
+}
+
+void gral_painter_add_arc(gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle) {
+	float sweep_angle = degrees(end_angle - start_angle);
+	if (sweep_angle < 0.f) sweep_angle += 360.f;
+	painter->path.AddArc(Gdiplus::RectF(cx-radius, cy-radius, 2.f*radius, 2.f*radius), degrees(start_angle), sweep_angle);
+	painter->point = Gdiplus::PointF(cx+cosf(end_angle)*radius, cy+sinf(end_angle)*radius);
 }
 
 void gral_painter_fill(gral_painter *painter, float red, float green, float blue, float alpha) {
@@ -303,5 +320,16 @@ void gral_window_request_redraw(gral_window *window) {
  ==========*/
 
 void gral_audio_play(int(*callback)(int16_t *buffer, int frames)) {
-	
+	HWAVEOUT hwo;
+	WAVEFORMATEX wfx;
+	wfx.wFormatTag = WAVE_FORMAT_PCM;
+	wfx.nChannels = 2;
+	wfx.nSamplesPerSec = 44100;
+	wfx.nAvgBytesPerSec = 44100 * 2 * 2;
+	wfx.nBlockAlign = 2 * 2;
+	wfx.wBitsPerSample = 16;
+	wfx.cbSize = 0;
+	waveOutOpen(&hwo, WAVE_MAPPER, &wfx, NULL, NULL, CALLBACK_NULL);
+	// TODO: implement
+	waveOutClose(hwo);
 }

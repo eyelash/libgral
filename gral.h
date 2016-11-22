@@ -72,10 +72,12 @@ void gral_text_delete(struct gral_text *text);
 
 void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
 void gral_painter_new_path(struct gral_painter *painter);
-void gral_painter_move_to(struct gral_painter *painter, float x, float y);
 void gral_painter_close_path(struct gral_painter *painter);
+void gral_painter_move_to(struct gral_painter *painter, float x, float y);
 void gral_painter_line_to(struct gral_painter *painter, float x, float y);
 void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y);
+void gral_painter_add_rectangle(struct gral_painter *painter, float x, float y, float width, float height);
+void gral_painter_add_arc(struct gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle);
 void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha);
 void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha);
 

@@ -103,12 +103,12 @@ void gral_painter_new_path(struct gral_painter *painter) {
 	cairo_new_path((cairo_t *)painter);
 }
 
-void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
-	cairo_move_to((cairo_t *)painter, x, y);
-}
-
 void gral_painter_close_path(struct gral_painter *painter) {
 	cairo_close_path((cairo_t *)painter);
+}
+
+void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
+	cairo_move_to((cairo_t *)painter, x, y);
 }
 
 void gral_painter_line_to(struct gral_painter *painter, float x, float y) {
@@ -117,6 +117,14 @@ void gral_painter_line_to(struct gral_painter *painter, float x, float y) {
 
 void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
 	cairo_curve_to((cairo_t *)painter, x1, y1, x2, y2, x, y);
+}
+
+void gral_painter_add_rectangle(struct gral_painter *painter, float x, float y, float width, float height) {
+	cairo_rectangle((cairo_t *)painter, x, y, width, height);
+}
+
+void gral_painter_add_arc(struct gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle) {
+	cairo_arc((cairo_t *)painter, cx, cy, radius, start_angle, end_angle);
 }
 
 void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha) {

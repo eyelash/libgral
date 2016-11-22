@@ -58,11 +58,11 @@ void gral_painter_new_path(struct gral_painter *painter) {
 	// TODO: implement
 }
 
-void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
+void gral_painter_close_path(struct gral_painter *painter) {
 	// TODO: implement
 }
 
-void gral_painter_close_path(struct gral_painter *painter) {
+void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
 	// TODO: implement
 }
 
@@ -71,6 +71,14 @@ void gral_painter_line_to(struct gral_painter *painter, float x, float y) {
 }
 
 void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
+	// TODO: implement
+}
+
+void gral_painter_add_rectangle(struct gral_painter *painter, float x, float y, float width, float height) {
+	// TODO: implement
+}
+
+void gral_painter_add_arc(struct gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle) {
 	// TODO: implement
 }
 
