@@ -93,51 +93,51 @@ void gral_text_delete(struct gral_text *text) {
 	g_object_unref(text);
 }
 
-void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
-	cairo_move_to((cairo_t *)painter, x, y);
-	cairo_set_source_rgba((cairo_t *)painter, red, green, blue, alpha);
-	pango_cairo_show_layout((cairo_t *)painter, (PangoLayout *)text);
+void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+	cairo_move_to((cairo_t *)draw_context, x, y);
+	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
+	pango_cairo_show_layout((cairo_t *)draw_context, (PangoLayout *)text);
 }
 
-void gral_painter_new_path(struct gral_painter *painter) {
-	cairo_new_path((cairo_t *)painter);
+void gral_draw_context_new_path(struct gral_draw_context *draw_context) {
+	cairo_new_path((cairo_t *)draw_context);
 }
 
-void gral_painter_close_path(struct gral_painter *painter) {
-	cairo_close_path((cairo_t *)painter);
+void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
+	cairo_close_path((cairo_t *)draw_context);
 }
 
-void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
-	cairo_move_to((cairo_t *)painter, x, y);
+void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, float y) {
+	cairo_move_to((cairo_t *)draw_context, x, y);
 }
 
-void gral_painter_line_to(struct gral_painter *painter, float x, float y) {
-	cairo_line_to((cairo_t *)painter, x, y);
+void gral_draw_context_line_to(struct gral_draw_context *draw_context, float x, float y) {
+	cairo_line_to((cairo_t *)draw_context, x, y);
 }
 
-void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
-	cairo_curve_to((cairo_t *)painter, x1, y1, x2, y2, x, y);
+void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
+	cairo_curve_to((cairo_t *)draw_context, x1, y1, x2, y2, x, y);
 }
 
-void gral_painter_add_rectangle(struct gral_painter *painter, float x, float y, float width, float height) {
-	cairo_rectangle((cairo_t *)painter, x, y, width, height);
+void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
+	cairo_rectangle((cairo_t *)draw_context, x, y, width, height);
 }
 
-void gral_painter_add_arc(struct gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle) {
-	cairo_arc((cairo_t *)painter, cx, cy, radius, start_angle, end_angle);
+void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
+	cairo_arc((cairo_t *)draw_context, cx, cy, radius, start_angle, end_angle);
 }
 
-void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha) {
-	cairo_set_source_rgba((cairo_t *)painter, red, green, blue, alpha);
-	cairo_fill_preserve((cairo_t *)painter);
+void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
+	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
+	cairo_fill_preserve((cairo_t *)draw_context);
 }
 
-void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha) {
-	cairo_set_line_width((cairo_t *)painter, line_width);
-	cairo_set_line_cap((cairo_t *)painter, CAIRO_LINE_CAP_ROUND);
-	cairo_set_line_join((cairo_t *)painter, CAIRO_LINE_JOIN_ROUND);
-	cairo_set_source_rgba((cairo_t *)painter, red, green, blue, alpha);
-	cairo_stroke_preserve((cairo_t *)painter);
+void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
+	cairo_set_line_width((cairo_t *)draw_context, line_width);
+	cairo_set_line_cap((cairo_t *)draw_context, CAIRO_LINE_CAP_ROUND);
+	cairo_set_line_join((cairo_t *)draw_context, CAIRO_LINE_JOIN_ROUND);
+	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
+	cairo_stroke_preserve((cairo_t *)draw_context);
 }
 
 
@@ -186,7 +186,7 @@ G_DEFINE_TYPE(GralArea, gral_area, GTK_TYPE_DRAWING_AREA)
 
 static gboolean gral_area_draw(GtkWidget *widget, cairo_t *cr) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
-	window->interface.draw((struct gral_painter *)cr, window->user_data);
+	window->interface.draw((struct gral_draw_context *)cr, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static void gral_area_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {

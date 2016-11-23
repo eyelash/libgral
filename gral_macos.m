@@ -50,43 +50,43 @@ void gral_text_delete(struct gral_text *text) {
 	// TODO: implement
 }
 
-void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	// TODO: implement
 }
 
-void gral_painter_new_path(struct gral_painter *painter) {
+void gral_draw_context_new_path(struct gral_draw_context *draw_context) {
 	// TODO: implement
 }
 
-void gral_painter_close_path(struct gral_painter *painter) {
+void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
 	// TODO: implement
 }
 
-void gral_painter_move_to(struct gral_painter *painter, float x, float y) {
+void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, float y) {
 	// TODO: implement
 }
 
-void gral_painter_line_to(struct gral_painter *painter, float x, float y) {
+void gral_draw_context_line_to(struct gral_draw_context *draw_context, float x, float y) {
 	// TODO: implement
 }
 
-void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
+void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
 	// TODO: implement
 }
 
-void gral_painter_add_rectangle(struct gral_painter *painter, float x, float y, float width, float height) {
+void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
 	// TODO: implement
 }
 
-void gral_painter_add_arc(struct gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle) {
+void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
 	// TODO: implement
 }
 
-void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha) {
+void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	// TODO: implement
 }
 
-void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha) {
+void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
 	// TODO: implement
 }
 

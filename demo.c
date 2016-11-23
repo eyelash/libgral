@@ -14,28 +14,28 @@ static int close(void *user_data) {
 	return 1;
 }
 
-static void draw_star(struct gral_painter *painter, float x, float y, float size) {
+static void draw_star(struct gral_draw_context *draw_context, float x, float y, float size) {
 	float radius = size / 2.0f;
 	float cx = x + radius;
 	float cy = y + radius;
-	gral_painter_move_to(painter, cx, y);
+	gral_draw_context_move_to(draw_context, cx, y);
 	int i;
 	for (i = 1; i < 5; i++) {
 		float a = (float)M_PI * 3.0f / 2.0f + (float)M_PI * 2.0f * 2.0f / 5.0f * i;
-		gral_painter_line_to(painter, cx + cosf(a)*radius, cy + sinf(a)*radius);
+		gral_draw_context_line_to(draw_context, cx + cosf(a)*radius, cy + sinf(a)*radius);
 	}
-	gral_painter_close_path(painter);
+	gral_draw_context_close_path(draw_context);
 }
 
-static void draw(struct gral_painter *painter, void *user_data) {
+static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	struct gral_demo *demo = user_data;
-	draw_star(painter, 20.0f, 20.0f, 160.0f);
-	if (demo->mouse_inside) gral_painter_fill(painter, 0.0f, 1.0f, 0.0f, 1.0f);
-	else gral_painter_fill(painter, 1.0f, 0.0f, 0.0f, 1.0f);
-	gral_painter_new_path(painter);
-	draw_star(painter, 220.0f, 20.0f, 160.0f);
-	gral_painter_stroke(painter, 3.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-	gral_painter_draw_text(painter, demo->text, 50.0f, 50.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+	draw_star(draw_context, 20.0f, 20.0f, 160.0f);
+	if (demo->mouse_inside) gral_draw_context_fill(draw_context, 0.0f, 1.0f, 0.0f, 1.0f);
+	else gral_draw_context_fill(draw_context, 1.0f, 0.0f, 0.0f, 1.0f);
+	gral_draw_context_new_path(draw_context);
+	draw_star(draw_context, 220.0f, 20.0f, 160.0f);
+	gral_draw_context_stroke(draw_context, 3.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	gral_draw_context_draw_text(draw_context, demo->text, 50.0f, 50.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 }
 
 static void resize(int width, int height, void *user_data) {

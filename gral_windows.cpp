@@ -27,11 +27,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 static HINSTANCE hInstance;
 static ULONG_PTR gdi_token;
 
-struct gral_painter {
+struct gral_draw_context {
 	Gdiplus::Graphics graphics;
 	Gdiplus::GraphicsPath path;
 	Gdiplus::PointF point;
-	gral_painter(HDC hdc): graphics(hdc), path(Gdiplus::FillModeWinding) {
+	gral_draw_context(HDC hdc): graphics(hdc), path(Gdiplus::FillModeWinding) {
 		graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 	}
 };
@@ -76,8 +76,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
-		gral_painter painter(hdc);
-		window_data->iface.draw(&painter, window_data->user_data);
+		gral_draw_context draw_context(hdc);
+		window_data->iface.draw(&draw_context, window_data->user_data);
 		EndPaint(hwnd, &ps);
 		return 0;
 	}
@@ -204,11 +204,11 @@ gral_application *gral_application_create(const char *id, gral_application_inter
 	return NULL;
 }
 
-void gral_application_delete(struct gral_application *application) {
+void gral_application_delete(gral_application *application) {
 	Gdiplus::GdiplusShutdown(gdi_token);
 }
 
-int gral_application_run(struct gral_application *application, int argc, char **argv) {
+int gral_application_run(gral_application *application, int argc, char **argv) {
 	MSG message;
 	while (GetMessage(&message, NULL, 0, 0)) {
 		TranslateMessage(&message);
@@ -226,68 +226,68 @@ static Gdiplus::Color make_color(float r, float g, float b, float a) {
 	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
 }
 
-gral_text *gral_text_create(struct gral_window *window, const char *utf8, float size) {
+gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 	return new gral_text(utf8, size);
 }
 
-void gral_text_delete(struct gral_text *text) {
+void gral_text_delete(gral_text *text) {
 	delete text;
 }
 
-void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	Gdiplus::SolidBrush brush(make_color(red, green, blue, alpha));
-	painter->graphics.DrawString(text->string, -1, &text->font, Gdiplus::PointF(x, y), &brush);
+	draw_context->graphics.DrawString(text->string, -1, &text->font, Gdiplus::PointF(x, y), &brush);
 }
 
-void gral_painter_new_path(gral_painter *painter) {
-	painter->path.Reset();
-	painter->path.SetFillMode(Gdiplus::FillModeWinding);
+void gral_draw_context_new_path(gral_draw_context *draw_context) {
+	draw_context->path.Reset();
+	draw_context->path.SetFillMode(Gdiplus::FillModeWinding);
 }
 
-void gral_painter_close_path(gral_painter *painter) {
-	painter->path.CloseFigure();
+void gral_draw_context_close_path(gral_draw_context *draw_context) {
+	draw_context->path.CloseFigure();
 }
 
-void gral_painter_move_to(gral_painter *painter, float x, float y) {
-	painter->path.StartFigure();
-	painter->point = Gdiplus::PointF(x, y);
+void gral_draw_context_move_to(gral_draw_context *draw_context, float x, float y) {
+	draw_context->path.StartFigure();
+	draw_context->point = Gdiplus::PointF(x, y);
 }
 
-void gral_painter_line_to(gral_painter *painter, float x, float y) {
-	painter->path.AddLine(painter->point, Gdiplus::PointF(x, y));
-	painter->point = Gdiplus::PointF(x, y);
+void gral_draw_context_line_to(gral_draw_context *draw_context, float x, float y) {
+	draw_context->path.AddLine(draw_context->point, Gdiplus::PointF(x, y));
+	draw_context->point = Gdiplus::PointF(x, y);
 }
 
-void gral_painter_curve_to(gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y) {
-	painter->path.AddBezier(painter->point, Gdiplus::PointF(x1, y1), Gdiplus::PointF(x2, y2), Gdiplus::PointF(x, y));
-	painter->point = Gdiplus::PointF(x, y);
+void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
+	draw_context->path.AddBezier(draw_context->point, Gdiplus::PointF(x1, y1), Gdiplus::PointF(x2, y2), Gdiplus::PointF(x, y));
+	draw_context->point = Gdiplus::PointF(x, y);
 }
 
-void gral_painter_add_rectangle(gral_painter *painter, float x, float y, float width, float height) {
-	painter->path.AddRectangle(Gdiplus::RectF(x, y, width, height));
+void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height) {
+	draw_context->path.AddRectangle(Gdiplus::RectF(x, y, width, height));
 }
 
 static float degrees(float angle) {
 	return angle * (180.f / (float)M_PI);
 }
 
-void gral_painter_add_arc(gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle) {
+void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
 	float sweep_angle = degrees(end_angle - start_angle);
 	if (sweep_angle < 0.f) sweep_angle += 360.f;
-	painter->path.AddArc(Gdiplus::RectF(cx-radius, cy-radius, 2.f*radius, 2.f*radius), degrees(start_angle), sweep_angle);
-	painter->point = Gdiplus::PointF(cx+cosf(end_angle)*radius, cy+sinf(end_angle)*radius);
+	draw_context->path.AddArc(Gdiplus::RectF(cx-radius, cy-radius, 2.f*radius, 2.f*radius), degrees(start_angle), sweep_angle);
+	draw_context->point = Gdiplus::PointF(cx+cosf(end_angle)*radius, cy+sinf(end_angle)*radius);
 }
 
-void gral_painter_fill(gral_painter *painter, float red, float green, float blue, float alpha) {
+void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	Gdiplus::SolidBrush brush(make_color(red, green, blue, alpha));
-	painter->graphics.FillPath(&brush, &painter->path);
+	draw_context->graphics.FillPath(&brush, &draw_context->path);
 }
 
-void gral_painter_stroke(gral_painter *painter, float line_width, float red, float green, float blue, float alpha) {
+void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
 	Gdiplus::Pen pen(make_color(red, green, blue, alpha), line_width);
 	pen.SetLineCap(Gdiplus::LineCapRound, Gdiplus::LineCapRound, Gdiplus::DashCapRound);
 	pen.SetLineJoin(Gdiplus::LineJoinRound);
-	painter->graphics.DrawPath(&pen, &painter->path);
+	draw_context->graphics.DrawPath(&pen, &draw_context->path);
 }
 
 

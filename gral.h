@@ -35,11 +35,11 @@ struct gral_application_interface {
 	void (*initialize)(void *user_data);
 };
 struct gral_text;
-struct gral_painter;
+struct gral_draw_context;
 struct gral_window;
 struct gral_window_interface {
 	int (*close)(void *user_data);
-	void (*draw)(struct gral_painter *painter, void *user_data);
+	void (*draw)(struct gral_draw_context *draw_context, void *user_data);
 	void (*resize)(int width, int height, void *user_data);
 	void (*mouse_enter)(void *user_data);
 	void (*mouse_leave)(void *user_data);
@@ -70,16 +70,16 @@ int gral_application_run(struct gral_application *application, int argc, char **
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size);
 void gral_text_delete(struct gral_text *text);
 
-void gral_painter_draw_text(struct gral_painter *painter, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
-void gral_painter_new_path(struct gral_painter *painter);
-void gral_painter_close_path(struct gral_painter *painter);
-void gral_painter_move_to(struct gral_painter *painter, float x, float y);
-void gral_painter_line_to(struct gral_painter *painter, float x, float y);
-void gral_painter_curve_to(struct gral_painter *painter, float x1, float y1, float x2, float y2, float x, float y);
-void gral_painter_add_rectangle(struct gral_painter *painter, float x, float y, float width, float height);
-void gral_painter_add_arc(struct gral_painter *painter, float cx, float cy, float radius, float start_angle, float end_angle);
-void gral_painter_fill(struct gral_painter *painter, float red, float green, float blue, float alpha);
-void gral_painter_stroke(struct gral_painter *painter, float line_width, float red, float green, float blue, float alpha);
+void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
+void gral_draw_context_new_path(struct gral_draw_context *draw_context);
+void gral_draw_context_close_path(struct gral_draw_context *draw_context);
+void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, float y);
+void gral_draw_context_line_to(struct gral_draw_context *draw_context, float x, float y);
+void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y);
+void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height);
+void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle);
+void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha);
+void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha);
 
 
 /*===========
