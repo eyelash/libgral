@@ -89,6 +89,8 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, struct gral_window_interface *interface, void *user_data);
 void gral_window_delete(struct gral_window *window);
 void gral_window_request_redraw(struct gral_window *window);
+void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
+void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 
 
 /*==========
