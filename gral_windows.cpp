@@ -36,20 +36,40 @@ struct gral_draw_context {
 	}
 };
 
-class UTF16String {
-	wchar_t *data;
+template <class T> class ArrayPointer {
+	T *data;
+	ArrayPointer(const ArrayPointer &);
+	ArrayPointer &operator =(const ArrayPointer &);
 public:
-	UTF16String(const char *utf8) {
-		int length = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
-		data = new wchar_t[length];
-		MultiByteToWideChar(CP_UTF8, 0, utf8, -1, data, length);
-	}
-	~UTF16String() {
+	ArrayPointer(T *data): data(data) {}
+	~ArrayPointer() {
 		delete[] data;
 	}
-	operator const WCHAR*() const {
+	operator const T *() const {
 		return data;
 	}
+};
+
+class UTF16String: public ArrayPointer<wchar_t> {
+	static wchar_t *convert(const char *utf8) {
+		int length = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
+		wchar_t *utf16 = new wchar_t[length];
+		MultiByteToWideChar(CP_UTF8, 0, utf8, -1, utf16, length);
+		return utf16;
+	}
+public:
+	UTF16String(const char *utf8): ArrayPointer(convert(utf8)) {}
+};
+
+class UTF8String: public ArrayPointer<char> {
+	static char *convert(const wchar_t *utf16) {
+		int length = WideCharToMultiByte(CP_UTF8, 0, utf16, -1, NULL, 0, NULL, NULL);
+		char *utf8 = new char[length];
+		WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, length, NULL, NULL);
+		return utf8;
+	}
+public:
+	UTF8String(const wchar_t *utf16): ArrayPointer(convert(utf16)) {}
 };
 
 struct gral_text {
@@ -312,6 +332,36 @@ void gral_window_delete(gral_window *window) {
 
 void gral_window_request_redraw(gral_window *window) {
 	RedrawWindow((HWND)window, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
+}
+
+void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+	wchar_t file_name[MAX_PATH];
+	file_name[0] = '\0';
+	OPENFILENAME ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = (HWND)window;
+	ofn.lpstrFile = file_name;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+	if (GetOpenFileName(&ofn)) {
+		callback(UTF8String(file_name), user_data);
+	}
+}
+
+void gral_window_show_save_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+	wchar_t file_name[MAX_PATH];
+	file_name[0] = '\0';
+	OPENFILENAME ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = (HWND)window;
+	ofn.lpstrFile = file_name;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_OVERWRITEPROMPT;
+	if (GetSaveFileName(&ofn)) {
+		callback(UTF8String(file_name), user_data);
+	}
 }
 
 
