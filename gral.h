@@ -48,6 +48,7 @@ struct gral_window_interface {
 	void (*mouse_button_release)(int button, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
 	void (*character)(uint32_t c, void *user_data);
+	void (*paste)(const char *text, void *user_data);
 };
 
 void gral_init(int *argc, char ***argv);
@@ -91,6 +92,8 @@ void gral_window_delete(struct gral_window *window);
 void gral_window_request_redraw(struct gral_window *window);
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
+void gral_window_clipboard_copy(struct gral_window *window, const char *text);
+void gral_window_clipboard_request_paste(struct gral_window *window);
 
 
 /*==========

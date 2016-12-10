@@ -74,6 +74,10 @@ static void character(uint32_t c, void *user_data) {
 	printf("character: U+%X\n", c);
 }
 
+static void paste(const char *text, void *user_data) {
+	printf("paste: %s\n", text);
+}
+
 static void initialize(void *user_data) {
 	struct gral_demo *demo = user_data;
 	struct gral_window_interface interface = {
@@ -86,7 +90,8 @@ static void initialize(void *user_data) {
 		&mouse_button_press,
 		&mouse_button_release,
 		&scroll,
-		&character
+		&character,
+		&paste
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "test", &interface, demo);
 	demo->mouse_inside = 0;

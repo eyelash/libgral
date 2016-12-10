@@ -309,6 +309,20 @@ void gral_window_show_save_file_dialog(struct gral_window *window, void (*callba
 	gtk_widget_destroy(dialog);
 }
 
+void gral_window_clipboard_copy(struct gral_window *window, const char *text) {
+	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(window), GDK_SELECTION_CLIPBOARD);
+	gtk_clipboard_set_text(clipboard, text, -1);
+}
+
+static void gral_window_text_received(GtkClipboard *clipboard, const gchar *text, gpointer data) {
+	GralWindow *window = GRAL_WINDOW(data);
+	window->interface.paste(text, window->user_data);
+}
+void gral_window_clipboard_request_paste(struct gral_window *window) {
+	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(window), GDK_SELECTION_CLIPBOARD);
+	gtk_clipboard_request_text(clipboard, gral_window_text_received, window);
+}
+
 
 /*==========
     AUDIO
