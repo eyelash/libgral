@@ -364,6 +364,30 @@ void gral_window_show_save_file_dialog(gral_window *window, void (*callback)(con
 	}
 }
 
+void gral_window_clipboard_copy(gral_window *window, const char *text) {
+	OpenClipboard((HWND)window);
+	EmptyClipboard();
+	int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
+	HGLOBAL handle = GlobalAlloc(GMEM_MOVEABLE, length*sizeof(WCHAR));
+	LPWSTR pointer = (LPWSTR)GlobalLock(handle);
+	MultiByteToWideChar(CP_UTF8, 0, text, -1, pointer, length);
+	GlobalUnlock(handle);
+	SetClipboardData(CF_UNICODETEXT, handle);
+	CloseClipboard();
+}
+
+void gral_window_clipboard_request_paste(gral_window *window) {
+	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
+	OpenClipboard((HWND)window);
+	if (IsClipboardFormatAvailable(CF_UNICODETEXT)) {
+		HGLOBAL handle = GetClipboardData(CF_UNICODETEXT);
+		LPWSTR text = (LPWSTR)GlobalLock(handle);
+		window_data->iface.paste(UTF8String(text), window_data->user_data);
+		GlobalUnlock(handle);
+	}
+	CloseClipboard();
+}
+
 
 /*==========
     AUDIO
