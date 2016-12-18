@@ -19,20 +19,40 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #import <Cocoa/Cocoa.h>
 #import <AudioToolbox/AudioToolbox.h>
 
-@interface GralApplicationDelegate: NSObject<NSApplicationDelegate>
+
+/*================
+    APPLICATION
+ ================*/
+
+@interface GralApplicationDelegate: NSObject<NSApplicationDelegate> {
+@public
+	struct gral_application_interface interface;
+	void *user_data;
+}
 @end
 @implementation GralApplicationDelegate
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
 	return YES;
 }
+- (void)applicationDidFinishLaunching:(NSNotification *) notification {
+	interface.initialize(user_data);
+}
 @end
 
-void gral_init(int *argc, char ***argv) {
-	[NSApplication sharedApplication];
-	[NSApp setDelegate:[[GralApplicationDelegate alloc] init]];
+struct gral_application *gral_application_create(const char *id, struct gral_application_interface *interface, void *user_data) {
+	NSApplication *application = [NSApplication sharedApplication];
+	GralApplicationDelegate *delegate = [[GralApplicationDelegate alloc] init];
+	delegate->interface = *interface;
+	delegate->user_data = user_data;
+	[application setDelegate:delegate];
+	return (struct gral_application *)application;
 }
 
-int gral_run(void) {
+void gral_application_delete(struct gral_application *application) {
+
+}
+
+int gral_application_run(struct gral_application *application, int argc, char **argv) {
 	[NSApp run];
 	return 0;
 }
@@ -101,9 +121,9 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 @end
 
 @interface GralWindowDelegate: NSObject<NSWindowDelegate> {
-	@public
-		struct gral_window_interface interface;
-		void *user_data;
+@public
+	struct gral_window_interface interface;
+	void *user_data;
 }
 @end
 @implementation GralWindowDelegate
@@ -113,9 +133,9 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 @end
 
 @interface GralView: NSView {
-	@public
-		struct gral_window_interface interface;
-		void *user_data;
+@public
+	struct gral_window_interface interface;
+	void *user_data;
 }
 @end
 @implementation GralView
@@ -153,19 +173,19 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	[self mouseMoved:event];
 }
 - (void)mouseDown:(NSEvent *)event {
-	interface.mouse_button_press(1, user_data);
+	interface.mouse_button_press(GRAL_PRIMARY_MOUSE_BUTTON, user_data);
 }
 - (void)rightMouseDown:(NSEvent *)event {
-	interface.mouse_button_press(3, user_data);
+	interface.mouse_button_press(GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseDown:(NSEvent *)event {
 	//interface.mouse_button_press(3, user_data);
 }
 - (void)mouseUp:(NSEvent *)event {
-	interface.mouse_button_release(1, user_data);
+	interface.mouse_button_release(GRAL_PRIMARY_MOUSE_BUTTON, user_data);
 }
 - (void)rightMouseUp:(NSEvent *)event {
-	interface.mouse_button_release(3, user_data);
+	interface.mouse_button_release(GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseUp:(NSEvent *)event {
 	//interface.mouse_button_release(3, user_data);
@@ -181,7 +201,7 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 }
 @end
 
-struct gral_window *gral_window_create(int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
 	GralWindow *window = [[GralWindow alloc]
 		initWithContentRect:CGRectMake(0, 0, width, height)
 		styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
