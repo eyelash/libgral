@@ -238,6 +238,20 @@ void gral_window_request_redraw(struct gral_window *window) {
 	// TODO: implement
 }
 
+void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+	NSOpenPanel *panel = [NSOpenPanel openPanel];
+	if ([panel runModal] == NSFileHandlingPanelOKButton) {
+		callback([[[panel URL] path] UTF8String], user_data);
+	}
+}
+
+void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+	NSSavePanel *panel = [NSSavePanel savePanel];
+	if ([panel runModal] == NSFileHandlingPanelOKButton) {
+		callback([[[panel URL] path] UTF8String], user_data);
+	}
+}
+
 void gral_window_clipboard_copy(struct gral_window *window, const char *text) {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	[pasteboard clearContents];
