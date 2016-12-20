@@ -212,7 +212,7 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	delegate->interface = *interface;
 	delegate->user_data = user_data;
 	[window setDelegate:delegate];
-	[window setTitle:[[NSString alloc] initWithUTF8String:title]];
+	[window setTitle:[NSString stringWithUTF8String:title]];
 	GralView *view = [[GralView alloc] init];
 	view->interface = *interface;
 	view->user_data = user_data;
@@ -223,17 +223,33 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 		userInfo:nil
 	];
 	[view addTrackingArea:trackingArea];
+	[trackingArea release];
 	[window setContentView:view];
+	[view release];
 	[window makeKeyAndOrderFront:nil];
 	return (struct gral_window *)window;
 }
 
 void gral_window_delete(struct gral_window *window) {
-	// TODO: implement
+	[(GralWindow *)window release];
 }
 
 void gral_window_request_redraw(struct gral_window *window) {
 	// TODO: implement
+}
+
+void gral_window_clipboard_copy(struct gral_window *window, const char *text) {
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	[pasteboard clearContents];
+	[pasteboard setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString];
+}
+
+void gral_window_clipboard_request_paste(struct gral_window *window) {
+	NSString *text = [[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
+	if (text) {
+		GralView *view = (GralView *)[(GralWindow *)window contentView];
+		view->interface.paste([text UTF8String], view->user_data);
+	}
 }
 
 
