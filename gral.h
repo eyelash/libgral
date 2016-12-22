@@ -51,9 +51,6 @@ struct gral_window_interface {
 	void (*paste)(const char *text, void *user_data);
 };
 
-void gral_init(int *argc, char ***argv);
-int gral_run(void);
-
 
 /*================
     APPLICATION

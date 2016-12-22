@@ -19,15 +19,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <gtk/gtk.h>
 #include <alsa/asoundlib.h>
 
-void gral_init(int *argc, char ***argv) {
-	gtk_init(argc, argv);
-}
-
-int gral_run(void) {
-	gtk_main();
-	return 0;
-}
-
 
 /*================
     APPLICATION
@@ -129,7 +120,7 @@ void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx,
 
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
-	cairo_fill_preserve((cairo_t *)draw_context);
+	cairo_fill((cairo_t *)draw_context);
 }
 
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
@@ -137,7 +128,19 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	cairo_set_line_cap((cairo_t *)draw_context, CAIRO_LINE_CAP_ROUND);
 	cairo_set_line_join((cairo_t *)draw_context, CAIRO_LINE_JOIN_ROUND);
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
-	cairo_stroke_preserve((cairo_t *)draw_context);
+	cairo_stroke((cairo_t *)draw_context);
+}
+
+void gral_draw_context_clip(struct gral_draw_context *draw_context) {
+	cairo_clip((cairo_t *)draw_context);
+}
+
+void gral_draw_context_save(struct gral_draw_context *draw_context) {
+	cairo_save((cairo_t *)draw_context);
+}
+
+void gral_draw_context_restore(struct gral_draw_context *draw_context) {
+	cairo_restore((cairo_t *)draw_context);
 }
 
 
