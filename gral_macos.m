@@ -79,35 +79,40 @@ void gral_draw_context_new_path(struct gral_draw_context *draw_context) {
 }
 
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
-	// TODO: implement
+	CGContextClosePath((CGContextRef)draw_context);
 }
 
 void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, float y) {
-	// TODO: implement
+	CGContextMoveToPoint((CGContextRef)draw_context, x, y);
 }
 
 void gral_draw_context_line_to(struct gral_draw_context *draw_context, float x, float y) {
-	// TODO: implement
+	CGContextAddLineToPoint((CGContextRef)draw_context, x, y);
 }
 
 void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
-	// TODO: implement
+	CGContextAddCurveToPoint((CGContextRef)draw_context, x1, y1, x2, y2, x, y);
 }
 
 void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
-	// TODO: implement
+	CGContextAddRect((CGContextRef)draw_context, CGRectMake(x, y, width, height));
 }
 
 void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
-	// TODO: implement
+	CGContextAddArc((CGContextRef)draw_context, cx, cy, radius, start_angle, end_angle, 0);
 }
 
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
-	// TODO: implement
+	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
+	CGContextFillPath((CGContextRef)draw_context);
 }
 
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
-	// TODO: implement
+	CGContextSetLineWidth((CGContextRef)draw_context, line_width);
+	CGContextSetLineCap((CGContextRef)draw_context, kCGLineCapRound);
+	CGContextSetLineJoin((CGContextRef)draw_context, kCGLineJoinRound);
+	CGContextSetStrokeColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
+	CGContextStrokePath((CGContextRef)draw_context);
 }
 
 
@@ -146,7 +151,8 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	return YES;
 }
 - (void)drawRect:(NSRect)rect {
-	interface.draw(NULL, user_data);
+	CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
+	interface.draw((struct gral_draw_context *)context, user_data);
 }
 - (void)setFrameSize:(NSSize)size {
 	[super setFrameSize:size];
@@ -218,7 +224,7 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	view->user_data = user_data;
 	NSTrackingArea *trackingArea = [[NSTrackingArea alloc]
 		initWithRect:CGRectMake(0, 0, width, height)
-		options:NSTrackingMouseEnteredAndExited|NSTrackingMouseMoved|NSTrackingActiveInKeyWindow|NSTrackingInVisibleRect
+		options:NSTrackingMouseEnteredAndExited|NSTrackingMouseMoved|NSTrackingActiveAlways|NSTrackingInVisibleRect
 		owner:view
 		userInfo:nil
 	];
@@ -235,7 +241,7 @@ void gral_window_delete(struct gral_window *window) {
 }
 
 void gral_window_request_redraw(struct gral_window *window) {
-	// TODO: implement
+	[[(GralWindow *)window contentView] setNeedsDisplay:YES];
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {

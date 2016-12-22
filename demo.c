@@ -32,7 +32,6 @@ static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	draw_star(draw_context, 20.0f, 20.0f, 160.0f);
 	if (demo->mouse_inside) gral_draw_context_fill(draw_context, 0.0f, 1.0f, 0.0f, 1.0f);
 	else gral_draw_context_fill(draw_context, 1.0f, 0.0f, 0.0f, 1.0f);
-	gral_draw_context_new_path(draw_context);
 	draw_star(draw_context, 220.0f, 20.0f, 160.0f);
 	gral_draw_context_stroke(draw_context, 3.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	gral_draw_context_draw_text(draw_context, demo->text, 50.0f, 50.0f, 0.0f, 0.0f, 1.0f, 1.0f);
