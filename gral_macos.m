@@ -115,6 +115,18 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	CGContextStrokePath((CGContextRef)draw_context);
 }
 
+void gral_draw_context_clip(struct gral_draw_context *draw_context) {
+	CGContextClip((CGContextRef)draw_context);
+}
+
+void gral_draw_context_save(struct gral_draw_context *draw_context) {
+	CGContextSaveGState((CGContextRef)draw_context);
+}
+
+void gral_draw_context_restore(struct gral_draw_context *draw_context) {
+	CGContextRestoreGState((CGContextRef)draw_context);
+}
+
 
 /*===========
     WINDOW
