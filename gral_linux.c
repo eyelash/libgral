@@ -84,6 +84,19 @@ void gral_text_delete(struct gral_text *text) {
 	g_object_unref(text);
 }
 
+struct gral_gradient *gral_gradient_create_linear(struct gral_gradient_stop *stops, int count) {
+	cairo_pattern_t *gradient = cairo_pattern_create_linear(0.f, 0.f, 1.f, 0.f);
+	int i;
+	for (i = 0; i < count; i++) {
+		cairo_pattern_add_color_stop_rgba(gradient, stops[i].position, stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
+	}
+	return (struct gral_gradient *)gradient;
+}
+
+void gral_gradient_delete(struct gral_gradient *gradient) {
+	cairo_pattern_destroy((cairo_pattern_t *)gradient);
+}
+
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	cairo_move_to((cairo_t *)draw_context, x, y);
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
@@ -120,6 +133,17 @@ void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx,
 
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
+	cairo_fill((cairo_t *)draw_context);
+}
+
+void gral_draw_context_fill_gradient(struct gral_draw_context *draw_context, struct gral_gradient *gradient, float start_x, float start_y, float end_x, float end_y) {
+	float dx = end_x - start_x;
+	float dy = end_y - start_y;
+	cairo_matrix_t matrix;
+	cairo_matrix_init(&matrix, dx, dy, -dy, dx, start_x, start_y);
+	cairo_matrix_invert(&matrix);
+	cairo_pattern_set_matrix((cairo_pattern_t *)gradient, &matrix);
+	cairo_set_source((cairo_t *)draw_context, (cairo_pattern_t *)gradient);
 	cairo_fill((cairo_t *)draw_context);
 }
 

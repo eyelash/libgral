@@ -35,6 +35,14 @@ struct gral_application_interface {
 	void (*initialize)(void *user_data);
 };
 struct gral_text;
+struct gral_gradient;
+struct gral_gradient_stop {
+	float position;
+	float red;
+	float green;
+	float blue;
+	float alpha;
+};
 struct gral_draw_context;
 struct gral_window;
 struct gral_window_interface {
@@ -68,6 +76,9 @@ int gral_application_run(struct gral_application *application, int argc, char **
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size);
 void gral_text_delete(struct gral_text *text);
 
+struct gral_gradient *gral_gradient_create_linear(struct gral_gradient_stop *stops, int count);
+void gral_gradient_delete(struct gral_gradient *gradient);
+
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
 void gral_draw_context_new_path(struct gral_draw_context *draw_context);
 void gral_draw_context_close_path(struct gral_draw_context *draw_context);
@@ -77,6 +88,7 @@ void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1
 void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height);
 void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle);
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha);
+void gral_draw_context_fill_gradient(struct gral_draw_context *draw_context, struct gral_gradient *gradient, float start_x, float start_y, float end_x, float end_y);
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha);
 void gral_draw_context_clip(struct gral_draw_context *draw_context);
 void gral_draw_context_save(struct gral_draw_context *draw_context);
