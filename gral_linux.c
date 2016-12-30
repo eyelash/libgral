@@ -100,7 +100,8 @@ void gral_gradient_delete(struct gral_gradient *gradient) {
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	cairo_move_to((cairo_t *)draw_context, x, y);
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
-	pango_cairo_show_layout((cairo_t *)draw_context, (PangoLayout *)text);
+	PangoLayoutLine *line = pango_layout_get_line_readonly((PangoLayout *)text, 0);
+	pango_cairo_show_layout_line((cairo_t *)draw_context, line);
 }
 
 void gral_draw_context_new_path(struct gral_draw_context *draw_context) {
