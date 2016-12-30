@@ -63,7 +63,11 @@ int gral_application_run(struct gral_application *application, int argc, char **
  ============*/
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
-	return NULL;
+	NSFont *font = [NSFont systemFontOfSize:size];
+	NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:[NSString stringWithUTF8String:text] attributes:@{NSFontAttributeName:font}];
+	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attributedString);
+	[attributedString release];
+	return (struct gral_text *)line;
 }
 
 void gral_text_delete(struct gral_text *text) {
@@ -87,7 +91,20 @@ void gral_gradient_delete(struct gral_gradient *gradient) {
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
-	// TODO: implement
+	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
+	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
+	CGContextSetTextMatrix((CGContextRef)draw_context, CGAffineTransformMakeScale(1.f, -1.f));
+	CFArrayRef glyphRuns = CTLineGetGlyphRuns((CTLineRef)text);
+	for (int i = 0; i < CFArrayGetCount(glyphRuns); i++) {
+		CTRunRef run = CFArrayGetValueAtIndex(glyphRuns, i);
+		const CGPoint *positions = CTRunGetPositionsPtr(run);
+		const CGGlyph *glyphs = CTRunGetGlyphsPtr(run);
+		int count = CTRunGetGlyphCount(run);
+		CFDictionaryRef attributes = CTRunGetAttributes(run);
+		CTFontRef font = CFDictionaryGetValue(attributes, kCTFontAttributeName);
+		CTFontDrawGlyphs(font, glyphs, positions, count, (CGContextRef)draw_context);
+	}
+	CGContextTranslateCTM((CGContextRef)draw_context, -x, -y);
 }
 
 void gral_draw_context_new_path(struct gral_draw_context *draw_context) {
