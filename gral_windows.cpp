@@ -177,33 +177,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 }
 
-void gral_init(int *argc, char ***argv) {
-	hInstance = GetModuleHandle(NULL);
-	Gdiplus::GdiplusStartupInput startup_input;
-	Gdiplus::GdiplusStartup(&gdi_token, &startup_input, NULL);
-	WNDCLASS window_class;
-	window_class.style = 0;
-	window_class.lpfnWndProc = &WndProc;
-	window_class.cbClsExtra = 0;
-	window_class.cbWndExtra = 0;
-	window_class.hInstance = hInstance;
-	window_class.hIcon = NULL;
-	window_class.hCursor = LoadCursor(NULL, IDC_ARROW);
-	window_class.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-	window_class.lpszMenuName = NULL;
-	window_class.lpszClassName = L"gral_window";
-	RegisterClass(&window_class);
-}
-
-int gral_run(void) {
-	MSG message;
-	while (GetMessage(&message, NULL, 0, 0)) {
-		TranslateMessage(&message);
-		DispatchMessage(&message);
-	}
-	return 0;
-}
-
 gral_application *gral_application_create(const char *id, gral_application_interface *iface, void *user_data) {
 	hInstance = GetModuleHandle(NULL);
 	Gdiplus::GdiplusStartupInput startup_input;
@@ -252,6 +225,14 @@ gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 
 void gral_text_delete(gral_text *text) {
 	delete text;
+}
+
+gral_gradient *gral_gradient_create_linear(gral_gradient_stop *stops, int count) {
+	return 0;
+}
+
+void gral_gradient_delete(gral_gradient *gradient) {
+	// TODO: implement
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
@@ -303,11 +284,27 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 	draw_context->graphics.FillPath(&brush, &draw_context->path);
 }
 
+void gral_draw_context_fill_gradient(gral_draw_context *draw_context, gral_gradient *gradient, float start_x, float start_y, float end_x, float end_y) {
+	// TODO: implement
+}
+
 void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
 	Gdiplus::Pen pen(make_color(red, green, blue, alpha), line_width);
 	pen.SetLineCap(Gdiplus::LineCapRound, Gdiplus::LineCapRound, Gdiplus::DashCapRound);
 	pen.SetLineJoin(Gdiplus::LineJoinRound);
 	draw_context->graphics.DrawPath(&pen, &draw_context->path);
+}
+
+void gral_draw_context_clip(gral_draw_context *draw_context) {
+	// TODO: implement
+}
+
+void gral_draw_context_save(gral_draw_context *draw_context) {
+	// TODO: implement
+}
+
+void gral_draw_context_restore(gral_draw_context *draw_context) {
+	// TODO: implement
 }
 
 
