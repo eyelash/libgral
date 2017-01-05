@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -20,19 +20,29 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #define _UNICODE
 #include <Windows.h>
 #include <windowsx.h>
-#include <gdiplus.h>
+#include <d2d1.h>
+#include <dwrite.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
 static HINSTANCE hInstance;
-static ULONG_PTR gdi_token;
+static ID2D1Factory *factory;
+static ID2D1StrokeStyle *stroke_style;
 
 struct gral_draw_context {
-	Gdiplus::Graphics graphics;
-	Gdiplus::GraphicsPath path;
-	Gdiplus::PointF point;
-	gral_draw_context(HDC hdc): graphics(hdc), path(Gdiplus::FillModeWinding) {
-		graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+	ID2D1HwndRenderTarget *target;
+	ID2D1PathGeometry *path;
+	ID2D1GeometrySink *sink;
+	gral_draw_context(ID2D1Factory *factory, const D2D1_HWND_RENDER_TARGET_PROPERTIES &properties) {
+		factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), properties, &target);
+		factory->CreatePathGeometry(&path);
+		path->Open(&sink);
+		sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+	}
+	~gral_draw_context() {
+		target->Release();
+		path->Release();
+		sink->Release();
 	}
 };
 
@@ -73,9 +83,7 @@ public:
 };
 
 struct gral_text {
-	UTF16String string;
-	Gdiplus::Font font;
-	gral_text(const char *utf8, float size): string(utf8), font(Gdiplus::FontFamily::GenericSansSerif(), size, 0, Gdiplus::UnitPixel) {}
+
 };
 
 struct WindowData {
@@ -94,11 +102,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 	case WM_PAINT: {
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hwnd, &ps);
-		gral_draw_context draw_context(hdc);
+		RECT rc;
+		GetClientRect(hwnd, &rc);
+		D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+		gral_draw_context draw_context(factory, D2D1::HwndRenderTargetProperties(hwnd, size));
+		draw_context.target->BeginDraw();
+		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
 		window_data->iface.draw(&draw_context, window_data->user_data);
-		EndPaint(hwnd, &ps);
+		draw_context.target->EndDraw();
+		ValidateRect(hwnd, NULL);
 		return 0;
 	}
 	case WM_MOUSEMOVE: {
@@ -179,8 +191,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 gral_application *gral_application_create(const char *id, gral_application_interface *iface, void *user_data) {
 	hInstance = GetModuleHandle(NULL);
-	Gdiplus::GdiplusStartupInput startup_input;
-	Gdiplus::GdiplusStartup(&gdi_token, &startup_input, NULL);
+	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
+	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
 	WNDCLASS window_class;
 	window_class.style = 0;
 	window_class.lpfnWndProc = &WndProc;
@@ -198,7 +210,8 @@ gral_application *gral_application_create(const char *id, gral_application_inter
 }
 
 void gral_application_delete(gral_application *application) {
-	Gdiplus::GdiplusShutdown(gdi_token);
+	factory->Release();
+	stroke_style->Release();
 }
 
 int gral_application_run(gral_application *application, int argc, char **argv) {
@@ -215,16 +228,12 @@ int gral_application_run(gral_application *application, int argc, char **argv) {
     DRAWING
  ============*/
 
-static Gdiplus::Color make_color(float r, float g, float b, float a) {
-	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
-}
-
 gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
-	return new gral_text(utf8, size);
+	return NULL;
 }
 
 void gral_text_delete(gral_text *text) {
-	delete text;
+
 }
 
 gral_gradient *gral_gradient_create_linear(gral_gradient_stop *stops, int count) {
@@ -236,36 +245,31 @@ void gral_gradient_delete(gral_gradient *gradient) {
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
-	Gdiplus::SolidBrush brush(make_color(red, green, blue, alpha));
-	draw_context->graphics.DrawString(text->string, -1, &text->font, Gdiplus::PointF(x, y), &brush);
+	// TODO: implement
 }
 
 void gral_draw_context_new_path(gral_draw_context *draw_context) {
-	draw_context->path.Reset();
-	draw_context->path.SetFillMode(Gdiplus::FillModeWinding);
+
 }
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
-	draw_context->path.CloseFigure();
+	draw_context->sink->EndFigure(D2D1_FIGURE_END_CLOSED);
 }
 
 void gral_draw_context_move_to(gral_draw_context *draw_context, float x, float y) {
-	draw_context->path.StartFigure();
-	draw_context->point = Gdiplus::PointF(x, y);
+	draw_context->sink->BeginFigure(D2D1::Point2F(x, y), D2D1_FIGURE_BEGIN_FILLED);
 }
 
 void gral_draw_context_line_to(gral_draw_context *draw_context, float x, float y) {
-	draw_context->path.AddLine(draw_context->point, Gdiplus::PointF(x, y));
-	draw_context->point = Gdiplus::PointF(x, y);
+	draw_context->sink->AddLine(D2D1::Point2F(x, y));
 }
 
 void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
-	draw_context->path.AddBezier(draw_context->point, Gdiplus::PointF(x1, y1), Gdiplus::PointF(x2, y2), Gdiplus::PointF(x, y));
-	draw_context->point = Gdiplus::PointF(x, y);
+	draw_context->sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), D2D1::Point2F(x, y)));
 }
 
 void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height) {
-	draw_context->path.AddRectangle(Gdiplus::RectF(x, y, width, height));
+
 }
 
 static float degrees(float angle) {
@@ -273,15 +277,23 @@ static float degrees(float angle) {
 }
 
 void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
-	float sweep_angle = degrees(end_angle - start_angle);
+	/*float sweep_angle = degrees(end_angle - start_angle);
 	if (sweep_angle < 0.f) sweep_angle += 360.f;
 	draw_context->path.AddArc(Gdiplus::RectF(cx-radius, cy-radius, 2.f*radius, 2.f*radius), degrees(start_angle), sweep_angle);
-	draw_context->point = Gdiplus::PointF(cx+cosf(end_angle)*radius, cy+sinf(end_angle)*radius);
+	draw_context->point = Gdiplus::PointF(cx+cosf(end_angle)*radius, cy+sinf(end_angle)*radius);*/
 }
 
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
-	Gdiplus::SolidBrush brush(make_color(red, green, blue, alpha));
-	draw_context->graphics.FillPath(&brush, &draw_context->path);
+	draw_context->sink->Close();
+	ID2D1SolidColorBrush *brush;
+	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
+	draw_context->target->FillGeometry(draw_context->path, brush);
+	brush->Release();
+	draw_context->sink->Release();
+	draw_context->path->Release();
+	factory->CreatePathGeometry(&draw_context->path);
+	draw_context->path->Open(&draw_context->sink);
+	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
 void gral_draw_context_fill_gradient(gral_draw_context *draw_context, gral_gradient *gradient, float start_x, float start_y, float end_x, float end_y) {
@@ -289,10 +301,16 @@ void gral_draw_context_fill_gradient(gral_draw_context *draw_context, gral_gradi
 }
 
 void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
-	Gdiplus::Pen pen(make_color(red, green, blue, alpha), line_width);
-	pen.SetLineCap(Gdiplus::LineCapRound, Gdiplus::LineCapRound, Gdiplus::DashCapRound);
-	pen.SetLineJoin(Gdiplus::LineJoinRound);
-	draw_context->graphics.DrawPath(&pen, &draw_context->path);
+	draw_context->sink->Close();
+	ID2D1SolidColorBrush *brush;
+	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
+	draw_context->target->DrawGeometry(draw_context->path, brush, line_width, stroke_style);
+	brush->Release();
+	draw_context->sink->Release();
+	draw_context->path->Release();
+	factory->CreatePathGeometry(&draw_context->path);
+	draw_context->path->Open(&draw_context->sink);
+	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
 void gral_draw_context_clip(gral_draw_context *draw_context) {
