@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -102,6 +102,12 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
 	PangoLayoutLine *line = pango_layout_get_line_readonly((PangoLayout *)text, 0);
 	pango_cairo_show_layout_line((cairo_t *)draw_context, line);
+}
+
+void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha) {
+	cairo_rectangle((cairo_t *)draw_context, x, y, width, height);
+	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
+	cairo_fill((cairo_t *)draw_context);
 }
 
 void gral_draw_context_new_path(struct gral_draw_context *draw_context) {

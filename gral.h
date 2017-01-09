@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -80,6 +80,7 @@ struct gral_gradient *gral_gradient_create_linear(struct gral_gradient_stop *sto
 void gral_gradient_delete(struct gral_gradient *gradient);
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
+void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha);
 void gral_draw_context_new_path(struct gral_draw_context *draw_context);
 void gral_draw_context_close_path(struct gral_draw_context *draw_context);
 void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, float y);

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Elias Aebi
+Copyright (c) 2016-2017, Elias Aebi
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -105,6 +105,12 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 		CTFontDrawGlyphs(font, glyphs, positions, count, (CGContextRef)draw_context);
 	}
 	CGContextTranslateCTM((CGContextRef)draw_context, -x, -y);
+}
+
+void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha) {
+	CGContextAddRect((CGContextRef)draw_context, CGRectMake(x, y, width, height));
+	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
+	CGContextFillPath((CGContextRef)draw_context);
 }
 
 void gral_draw_context_new_path(struct gral_draw_context *draw_context) {

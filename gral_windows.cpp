@@ -254,9 +254,20 @@ void gral_gradient_delete(gral_gradient *gradient) {
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
+	DWRITE_LINE_METRICS line_metrics;
+	UINT32 count = 1;
+	layout->GetLineMetrics(&line_metrics, count, &count);
 	ID2D1SolidColorBrush *brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
-	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y), (IDWriteTextLayout *)text, brush);
+	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y-line_metrics.baseline), layout, brush);
+	brush->Release();
+}
+
+void gral_draw_context_fill_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha) {
+	ID2D1SolidColorBrush *brush;
+	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
+	draw_context->target->FillRectangle(D2D1::RectF(x, y, x+width, y+height), brush);
 	brush->Release();
 }
 
