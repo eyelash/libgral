@@ -28,12 +28,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 static HINSTANCE hInstance;
 static ID2D1Factory *factory;
 static ID2D1StrokeStyle *stroke_style;
+static IDWriteFactory *dwrite_factory;
 
 struct gral_draw_context {
 	ID2D1HwndRenderTarget *target;
 	ID2D1PathGeometry *path;
 	ID2D1GeometrySink *sink;
-	gral_draw_context(ID2D1Factory *factory, const D2D1_HWND_RENDER_TARGET_PROPERTIES &properties) {
+	bool in_figure;
+	gral_draw_context(ID2D1Factory *factory, const D2D1_HWND_RENDER_TARGET_PROPERTIES &properties): in_figure(false) {
 		factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), properties, &target);
 		factory->CreatePathGeometry(&path);
 		path->Open(&sink);
@@ -80,10 +82,6 @@ class UTF8String: public ArrayPointer<char> {
 	}
 public:
 	UTF8String(const wchar_t *utf16): ArrayPointer(convert(utf16)) {}
-};
-
-struct gral_text {
-
 };
 
 struct WindowData {
@@ -194,6 +192,7 @@ gral_application *gral_application_create(const char *id, gral_application_inter
 	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
 	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
 	WNDCLASS window_class;
+	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&dwrite_factory);
 	window_class.style = 0;
 	window_class.lpfnWndProc = &WndProc;
 	window_class.cbClsExtra = 0;
@@ -212,6 +211,7 @@ gral_application *gral_application_create(const char *id, gral_application_inter
 void gral_application_delete(gral_application *application) {
 	factory->Release();
 	stroke_style->Release();
+	dwrite_factory->Release();
 }
 
 int gral_application_run(gral_application *application, int argc, char **argv) {
@@ -229,11 +229,20 @@ int gral_application_run(gral_application *application, int argc, char **argv) {
  ============*/
 
 gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
-	return NULL;
+	NONCLIENTMETRICS ncm;
+	ncm.cbSize = sizeof(NONCLIENTMETRICS);
+	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
+	IDWriteTextFormat *format;
+	dwrite_factory->CreateTextFormat(ncm.lfMessageFont.lfFaceName, NULL, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size, L"en", &format);
+	IDWriteTextLayout *layout;
+	UTF16String utf16(utf8);
+	dwrite_factory->CreateTextLayout(utf16, wcslen(utf16), format, INFINITY, INFINITY, &layout);
+	format->Release();
+	return (gral_text *)layout;
 }
 
 void gral_text_delete(gral_text *text) {
-
+	((IDWriteTextLayout *)text)->Release();
 }
 
 gral_gradient *gral_gradient_create_linear(gral_gradient_stop *stops, int count) {
@@ -245,7 +254,10 @@ void gral_gradient_delete(gral_gradient *gradient) {
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
-	// TODO: implement
+	ID2D1SolidColorBrush *brush;
+	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
+	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y), (IDWriteTextLayout *)text, brush);
+	brush->Release();
 }
 
 void gral_draw_context_new_path(gral_draw_context *draw_context) {
@@ -254,10 +266,15 @@ void gral_draw_context_new_path(gral_draw_context *draw_context) {
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
 	draw_context->sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+	draw_context->in_figure = false;
 }
 
 void gral_draw_context_move_to(gral_draw_context *draw_context, float x, float y) {
+	if (draw_context->in_figure) {
+		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
+	}
 	draw_context->sink->BeginFigure(D2D1::Point2F(x, y), D2D1_FIGURE_BEGIN_FILLED);
+	draw_context->in_figure = true;
 }
 
 void gral_draw_context_line_to(gral_draw_context *draw_context, float x, float y) {
@@ -276,14 +293,29 @@ static float degrees(float angle) {
 	return angle * (180.f / (float)M_PI);
 }
 
+static float fractf(float x) {
+	return x - floorf(x);
+}
+
 void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
-	/*float sweep_angle = degrees(end_angle - start_angle);
-	if (sweep_angle < 0.f) sweep_angle += 360.f;
-	draw_context->path.AddArc(Gdiplus::RectF(cx-radius, cy-radius, 2.f*radius, 2.f*radius), degrees(start_angle), sweep_angle);
-	draw_context->point = Gdiplus::PointF(cx+cosf(end_angle)*radius, cy+sinf(end_angle)*radius);*/
+	D2D1_POINT_2F start_point = D2D1::Point2F(cx + cosf(start_angle) * radius, cy + sinf(start_angle) * radius);
+	if (draw_context->in_figure) {
+		draw_context->sink->AddLine(start_point);
+	}
+	else {
+		draw_context->sink->BeginFigure(start_point, D2D1_FIGURE_BEGIN_FILLED);
+		draw_context->in_figure = true;
+	}
+	D2D1_POINT_2F end_point = D2D1::Point2F(cx + cosf(end_angle) * radius, cy + sinf(end_angle) * radius);
+	D2D1_ARC_SIZE arc_size = fractf((end_angle - start_angle) / (2.f * (float)M_PI)) < .5f ? D2D1_ARC_SIZE_SMALL : D2D1_ARC_SIZE_LARGE;
+	draw_context->sink->AddArc(D2D1::ArcSegment(end_point, D2D1::SizeF(radius, radius), 0.f, D2D1_SWEEP_DIRECTION_CLOCKWISE, arc_size));
 }
 
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
+	if (draw_context->in_figure) {
+		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
+		draw_context->in_figure = false;
+	}
 	draw_context->sink->Close();
 	ID2D1SolidColorBrush *brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
@@ -301,6 +333,10 @@ void gral_draw_context_fill_gradient(gral_draw_context *draw_context, gral_gradi
 }
 
 void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
+	if (draw_context->in_figure) {
+		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
+		draw_context->in_figure = false;
+	}
 	draw_context->sink->Close();
 	ID2D1SolidColorBrush *brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
