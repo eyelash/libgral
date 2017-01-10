@@ -3,17 +3,28 @@
 struct gral_demo {
 	struct gral_application *application;
 	struct gral_window *window;
-	struct gral_gradient *gradient;
 };
 
 static int close(void *user_data) {
 	return 1;
 }
 
+static void add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
+	gral_draw_context_move_to(draw_context, x, y);
+	gral_draw_context_line_to(draw_context, x+width, y);
+	gral_draw_context_line_to(draw_context, x+width, y+height);
+	gral_draw_context_line_to(draw_context, x, y+height);
+	gral_draw_context_close_path(draw_context);
+}
+
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	struct gral_demo *demo = user_data;
-	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f, 200.f, 200.f);
-	gral_draw_context_fill_gradient(draw_context, demo->gradient, 50.f, 250.f, 150.f, 50.f);
+	struct gral_gradient_stop stops[] = {
+		{0.f, 1.f, 0.f, 0.f, 1.f},
+		{1.f, 0.f, 1.f, 0.f, 1.f}
+	};
+	add_rectangle(draw_context, 50.f, 50.f, 200.f, 200.f);
+	gral_draw_context_fill_linear_gradient(draw_context, 50.f, 250.f, 150.f, 50.f, stops, 2);
 }
 
 static void resize(int width, int height, void *user_data) {
@@ -68,11 +79,6 @@ static void initialize(void *user_data) {
 		&paste
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral gradients demo", &interface, demo);
-	struct gral_gradient_stop stops[] = {
-		{0.f, 1.f, 0.f, 0.f, 1.f},
-		{1.f, 0.f, 1.f, 0.f, 1.f}
-	};
-	demo->gradient = gral_gradient_create_linear(stops, 2);
 }
 
 int main(int argc, char **argv) {
@@ -80,7 +86,6 @@ int main(int argc, char **argv) {
 	struct gral_application_interface interface = {&initialize};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demo", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
-	gral_gradient_delete(demo.gradient);
 	gral_window_delete(demo.window);
 	gral_application_delete(demo.application);
 	return result;

@@ -74,22 +74,6 @@ void gral_text_delete(struct gral_text *text) {
 	// TODO: implement
 }
 
-struct gral_gradient *gral_gradient_create_linear(struct gral_gradient_stop *stops, int count) {
-	CGFloat *locations = malloc(count*sizeof(CGFloat));
-	CFMutableArrayRef colorArray = CFArrayCreateMutable(kCFAllocatorDefault, count, &kCFTypeArrayCallBacks);
-	for (int i = 0; i < count; i++) {
-		locations[i] = stops[i].position;
-		CFArrayAppendValue(colorArray, [[NSColor colorWithRed:stops[i].red green:stops[i].green blue:stops[i].blue alpha:stops[i].alpha] CGColor]);
-	}
-	CGGradientRef gradient = CGGradientCreateWithColors(NULL, colorArray, locations);
-	free(locations);
-	return (struct gral_gradient *)gradient;
-}
-
-void gral_gradient_delete(struct gral_gradient *gradient) {
-	CGGradientRelease((CGGradientRef)gradient);
-}
-
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
 	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
@@ -146,11 +130,21 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	CGContextFillPath((CGContextRef)draw_context);
 }
 
-void gral_draw_context_fill_gradient(struct gral_draw_context *draw_context, struct gral_gradient *gradient, float start_x, float start_y, float end_x, float end_y) {
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop *stops, int count) {
+	CGFloat *locations = malloc(count*sizeof(CGFloat));
+	CFMutableArrayRef colorArray = CFArrayCreateMutable(kCFAllocatorDefault, count, &kCFTypeArrayCallBacks);
+	for (int i = 0; i < count; i++) {
+		locations[i] = stops[i].position;
+		CFArrayAppendValue(colorArray, [[NSColor colorWithRed:stops[i].red green:stops[i].green blue:stops[i].blue alpha:stops[i].alpha] CGColor]);
+	}
+	CGGradientRef gradient = CGGradientCreateWithColors(NULL, colorArray, locations);
+	free(locations);
+	// TODO: release array
 	CGContextSaveGState((CGContextRef)draw_context);
 	CGContextClip((CGContextRef)draw_context);
-	CGContextDrawLinearGradient((CGContextRef)draw_context, (CGGradientRef)gradient, CGPointMake(start_x, start_y), CGPointMake(end_x, end_y), kCGGradientDrawsBeforeStartLocation|kCGGradientDrawsAfterEndLocation);
+	CGContextDrawLinearGradient((CGContextRef)draw_context, gradient, CGPointMake(start_x, start_y), CGPointMake(end_x, end_y), kCGGradientDrawsBeforeStartLocation|kCGGradientDrawsAfterEndLocation);
 	CGContextRestoreGState((CGContextRef)draw_context);
+	CGGradientRelease(gradient);
 }
 
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {

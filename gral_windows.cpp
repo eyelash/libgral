@@ -245,14 +245,6 @@ void gral_text_delete(gral_text *text) {
 	((IDWriteTextLayout *)text)->Release();
 }
 
-gral_gradient *gral_gradient_create_linear(gral_gradient_stop *stops, int count) {
-	return 0;
-}
-
-void gral_gradient_delete(gral_gradient *gradient) {
-	// TODO: implement
-}
-
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	DWRITE_LINE_METRICS line_metrics;
@@ -300,10 +292,6 @@ void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, f
 
 }
 
-static float degrees(float angle) {
-	return angle * (180.f / (float)M_PI);
-}
-
 static float fractf(float x) {
 	return x - floorf(x);
 }
@@ -339,8 +327,32 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
-void gral_draw_context_fill_gradient(gral_draw_context *draw_context, gral_gradient *gradient, float start_x, float start_y, float end_x, float end_y) {
-	// TODO: implement
+void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, gral_gradient_stop *stops, int count) {
+	if (draw_context->in_figure) {
+		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
+		draw_context->in_figure = false;
+	}
+	draw_context->sink->Close();
+
+	D2D1_GRADIENT_STOP *gradient_stops = new D2D1_GRADIENT_STOP[count];
+	for (int i = 0; i < count; i++) {
+		gradient_stops[i].position = stops[i].position;
+		gradient_stops[i].color = D2D1::ColorF(stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
+	}
+	ID2D1GradientStopCollection *gradient_stop_collection;
+	draw_context->target->CreateGradientStopCollection(gradient_stops, count, &gradient_stop_collection);
+	ID2D1LinearGradientBrush *brush;
+	draw_context->target->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(start_x, start_y), D2D1::Point2F(end_x, end_y)), gradient_stop_collection, &brush);
+	draw_context->target->FillGeometry(draw_context->path, brush);
+	brush->Release();
+	gradient_stop_collection->Release();
+	delete[] gradient_stops;
+
+	draw_context->sink->Release();
+	draw_context->path->Release();
+	factory->CreatePathGeometry(&draw_context->path);
+	draw_context->path->Open(&draw_context->sink);
+	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
 void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
