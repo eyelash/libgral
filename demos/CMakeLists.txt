@@ -1,3 +1,6 @@
+add_executable(clipboard clipboard.c)
+target_link_libraries(clipboard gral)
+
 add_executable(file_dialogs file_dialogs.c)
 target_link_libraries(file_dialogs gral)
 
