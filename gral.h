@@ -87,9 +87,8 @@ void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx,
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha);
 void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop *stops, int count);
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha);
-void gral_draw_context_clip(struct gral_draw_context *draw_context);
-void gral_draw_context_save(struct gral_draw_context *draw_context);
-void gral_draw_context_restore(struct gral_draw_context *draw_context);
+void gral_draw_context_push_clip(struct gral_draw_context *draw_context);
+void gral_draw_context_pop_clip(struct gral_draw_context *draw_context);
 
 
 /*===========

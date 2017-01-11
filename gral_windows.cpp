@@ -289,7 +289,11 @@ void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float
 }
 
 void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height) {
-
+	gral_draw_context_move_to(draw_context, x, y);
+	gral_draw_context_line_to(draw_context, x+width, y);
+	gral_draw_context_line_to(draw_context, x+width, y+height);
+	gral_draw_context_line_to(draw_context, x, y+height);
+	gral_draw_context_close_path(draw_context);
 }
 
 static float fractf(float x) {
@@ -316,10 +320,12 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 		draw_context->in_figure = false;
 	}
 	draw_context->sink->Close();
+
 	ID2D1SolidColorBrush *brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
 	draw_context->target->FillGeometry(draw_context->path, brush);
 	brush->Release();
+
 	draw_context->sink->Release();
 	draw_context->path->Release();
 	factory->CreatePathGeometry(&draw_context->path);
@@ -361,10 +367,12 @@ void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width,
 		draw_context->in_figure = false;
 	}
 	draw_context->sink->Close();
+
 	ID2D1SolidColorBrush *brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
 	draw_context->target->DrawGeometry(draw_context->path, brush, line_width, stroke_style);
 	brush->Release();
+
 	draw_context->sink->Release();
 	draw_context->path->Release();
 	factory->CreatePathGeometry(&draw_context->path);
@@ -372,16 +380,27 @@ void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width,
 	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
-void gral_draw_context_clip(gral_draw_context *draw_context) {
-	// TODO: implement
+void gral_draw_context_push_clip(gral_draw_context *draw_context) {
+	if (draw_context->in_figure) {
+		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
+		draw_context->in_figure = false;
+	}
+	draw_context->sink->Close();
+
+	ID2D1Layer *layer;
+	draw_context->target->CreateLayer(&layer);
+	draw_context->target->PushLayer(D2D1::LayerParameters(D2D1::InfiniteRect(), draw_context->path), layer);
+	layer->Release();
+
+	draw_context->sink->Release();
+	draw_context->path->Release();
+	factory->CreatePathGeometry(&draw_context->path);
+	draw_context->path->Open(&draw_context->sink);
+	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
-void gral_draw_context_save(gral_draw_context *draw_context) {
-	// TODO: implement
-}
-
-void gral_draw_context_restore(gral_draw_context *draw_context) {
-	// TODO: implement
+void gral_draw_context_pop_clip(gral_draw_context *draw_context) {
+	draw_context->target->PopLayer();
 }
 
 

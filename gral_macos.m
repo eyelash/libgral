@@ -167,6 +167,14 @@ void gral_draw_context_restore(struct gral_draw_context *draw_context) {
 	CGContextRestoreGState((CGContextRef)draw_context);
 }
 
+void gral_draw_context_push_clip(struct gral_draw_context *draw_context) {
+	// TODO: implement
+}
+
+void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
+	// TODO: implement
+}
+
 
 /*===========
     WINDOW
