@@ -239,7 +239,10 @@ static gboolean gral_area_button_release_event(GtkWidget *widget, GdkEventButton
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event) {
-	// TODO: implement
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
+	gdouble delta_x, delta_y;
+	gdk_event_get_scroll_deltas((GdkEvent *)event, &delta_x, &delta_y);
+	window->interface.scroll(delta_x, delta_y, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
@@ -267,7 +270,7 @@ static void gral_area_dispose(GObject *object) {
 static void gral_area_init(GralArea *area) {
 	area->im_context = gtk_im_multicontext_new();
 	g_signal_connect(area->im_context, "commit", G_CALLBACK(gral_area_commit), area);
-	gtk_widget_add_events(GTK_WIDGET(area), GDK_ENTER_NOTIFY_MASK|GDK_LEAVE_NOTIFY_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_SCROLL_MASK);
+	gtk_widget_add_events(GTK_WIDGET(area), GDK_ENTER_NOTIFY_MASK|GDK_LEAVE_NOTIFY_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_SCROLL_MASK|GDK_SMOOTH_SCROLL_MASK);
 	gtk_widget_set_can_focus(GTK_WIDGET(area), TRUE);
 }
 static void gral_area_class_init(GralAreaClass *class) {
