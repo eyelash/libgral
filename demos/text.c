@@ -12,7 +12,9 @@ static int close(void *user_data) {
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	struct gral_demo *demo = user_data;
-	gral_draw_context_fill_rectangle(draw_context, 50.f, 50.f, 200.f, 1.f, 1.f, 0.f, 0.f, 1.f);
+	float width = gral_text_get_width(demo->text);
+	gral_draw_context_fill_rectangle(draw_context, 50.f, 50.f, width, 1.f, 1.f, 0.f, 0.f, 1.f);
+	gral_draw_context_fill_rectangle(draw_context, 50.f, 35.f, width, 25.f, 1.f, 0.f, 0.f, .2f);
 	gral_draw_context_draw_text(draw_context, demo->text, 50.f, 50.f, 0.f, 0.f, 1.f, 1.f);
 }
 

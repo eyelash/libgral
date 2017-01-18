@@ -246,6 +246,13 @@ void gral_text_delete(gral_text *text) {
 	((IDWriteTextLayout *)text)->Release();
 }
 
+float gral_text_get_width(gral_text *text) {
+	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
+	DWRITE_TEXT_METRICS metrics;
+	layout->GetMetrics(&metrics);
+	return metrics.width;
+}
+
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	DWRITE_LINE_METRICS line_metrics;

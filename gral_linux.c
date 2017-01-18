@@ -84,6 +84,12 @@ void gral_text_delete(struct gral_text *text) {
 	g_object_unref(text);
 }
 
+float gral_text_get_width(struct gral_text *text) {
+	PangoRectangle extents;
+	pango_layout_get_extents((PangoLayout *)text, NULL, &extents);
+	return pango_units_to_double(extents.width);
+}
+
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	cairo_move_to((cairo_t *)draw_context, x, y);
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
