@@ -32,11 +32,11 @@ static void mouse_move(float x, float y, void *user_data) {
 
 }
 
-static void mouse_button_press(int button, void *user_data) {
+static void mouse_button_press(float x, float y, int button, void *user_data) {
 
 }
 
-static void mouse_button_release(int button, void *user_data) {
+static void mouse_button_release(float x, float y, int button, void *user_data) {
 
 }
 

@@ -230,12 +230,12 @@ static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion 
 }
 static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
-	window->interface.mouse_button_press(event->button, window->user_data);
+	window->interface.mouse_button_press(event->x, event->y, event->button, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_button_release_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
-	window->interface.mouse_button_release(event->button, window->user_data);
+	window->interface.mouse_button_release(event->x, event->y, event->button, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event) {

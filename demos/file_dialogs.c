@@ -34,7 +34,7 @@ static void file_callback(const char *file, void *user_data) {
 	printf("file: %s\n", file);
 }
 
-static void mouse_button_press(int button, void *user_data) {
+static void mouse_button_press(float x, float y, int button, void *user_data) {
 	struct gral_demo *demo = user_data;
 	if (button == GRAL_PRIMARY_MOUSE_BUTTON)
 		gral_window_show_open_file_dialog(demo->window, &file_callback, demo);
@@ -42,7 +42,7 @@ static void mouse_button_press(int button, void *user_data) {
 		gral_window_show_save_file_dialog(demo->window, &file_callback, demo);
 }
 
-static void mouse_button_release(int button, void *user_data) {
+static void mouse_button_release(float x, float y, int button, void *user_data) {
 
 }
 
