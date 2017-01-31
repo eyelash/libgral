@@ -72,9 +72,11 @@ int gral_application_run(struct gral_application *application, int argc, char **
  ============*/
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
-	PangoLayout *layout = gtk_widget_create_pango_layout(GTK_WIDGET(window), text);
-	PangoFontDescription *font_description = pango_font_description_new();
-	pango_font_description_set_absolute_size(font_description, size*PANGO_SCALE);
+	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
+	PangoFontDescription *font_description = pango_font_description_copy(pango_context_get_font_description(context));
+	pango_font_description_set_absolute_size(font_description, pango_units_from_double(size));
+	PangoLayout *layout = pango_layout_new(context);
+	pango_layout_set_text(layout, text, -1);
 	pango_layout_set_font_description(layout, font_description);
 	pango_font_description_free(font_description);
 	return (struct gral_text *)layout;
@@ -88,6 +90,17 @@ float gral_text_get_width(struct gral_text *text) {
 	PangoRectangle extents;
 	pango_layout_get_extents((PangoLayout *)text, NULL, &extents);
 	return pango_units_to_double(extents.width);
+}
+
+void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
+	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
+	PangoFontDescription *font_description = pango_font_description_copy(pango_context_get_font_description(context));
+	pango_font_description_set_absolute_size(font_description, pango_units_from_double(size));
+	PangoFontMetrics *metrics = pango_context_get_metrics(context, font_description, NULL);
+	if (ascent) *ascent = pango_units_to_double(pango_font_metrics_get_ascent(metrics));
+	if (descent) *descent = pango_units_to_double(pango_font_metrics_get_descent(metrics));
+	pango_font_metrics_unref(metrics);
+	pango_font_description_free(font_description);
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {

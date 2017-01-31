@@ -35,17 +35,7 @@ struct gral_draw_context {
 	ID2D1PathGeometry *path;
 	ID2D1GeometrySink *sink;
 	bool in_figure;
-	gral_draw_context(ID2D1Factory *factory, const D2D1_HWND_RENDER_TARGET_PROPERTIES &properties): in_figure(false) {
-		factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), properties, &target);
-		factory->CreatePathGeometry(&path);
-		path->Open(&sink);
-		sink->SetFillMode(D2D1_FILL_MODE_WINDING);
-	}
-	~gral_draw_context() {
-		target->Release();
-		path->Release();
-		sink->Release();
-	}
+	gral_draw_context(): in_figure(false) {}
 };
 
 template <class T> class ArrayPointer {
@@ -103,11 +93,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		RECT rc;
 		GetClientRect(hwnd, &rc);
 		D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
-		gral_draw_context draw_context(factory, D2D1::HwndRenderTargetProperties(hwnd, size));
+		gral_draw_context draw_context;
+		factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size), &draw_context.target);
+		factory->CreatePathGeometry(&draw_context.path);
+		draw_context.path->Open(&draw_context.sink);
+		draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 		draw_context.target->BeginDraw();
 		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
 		window_data->iface.draw(&draw_context, window_data->user_data);
 		draw_context.target->EndDraw();
+		draw_context.sink->Release();
+		draw_context.path->Release();
+		draw_context.target->Release();
 		ValidateRect(hwnd, NULL);
 		return 0;
 	}
@@ -243,7 +240,8 @@ gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 }
 
 void gral_text_delete(gral_text *text) {
-	((IDWriteTextLayout *)text)->Release();
+	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
+	layout->Release();
 }
 
 float gral_text_get_width(gral_text *text) {
@@ -251,6 +249,28 @@ float gral_text_get_width(gral_text *text) {
 	DWRITE_TEXT_METRICS metrics;
 	layout->GetMetrics(&metrics);
 	return metrics.width;
+}
+
+void gral_font_get_metrics(gral_window *window, float size, float *ascent, float *descent) {
+	NONCLIENTMETRICS ncm;
+	ncm.cbSize = sizeof(NONCLIENTMETRICS);
+	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
+	IDWriteFontCollection *font_collection;
+	dwrite_factory->GetSystemFontCollection(&font_collection, false);
+	UINT32 index;
+	BOOL exists;
+	font_collection->FindFamilyName(ncm.lfMessageFont.lfFaceName, &index, &exists);
+	IDWriteFontFamily *font_family;
+	font_collection->GetFontFamily(index, &font_family);
+	IDWriteFont *font;
+	font_family->GetFirstMatchingFont(DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, &font);
+	DWRITE_FONT_METRICS metrics;
+	font->GetMetrics(&metrics);
+	if (ascent) *ascent = (float)metrics.ascent / (float)metrics.designUnitsPerEm * size;
+	if (descent) *descent = (float)metrics.descent / (float)metrics.designUnitsPerEm * size;
+	font->Release();
+	font_family->Release();
+	font_collection->Release();
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {

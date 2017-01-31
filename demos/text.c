@@ -4,6 +4,8 @@ struct gral_demo {
 	struct gral_application *application;
 	struct gral_window *window;
 	struct gral_text *text;
+	float ascent;
+	float descent;
 };
 
 static int close(void *user_data) {
@@ -13,8 +15,11 @@ static int close(void *user_data) {
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	struct gral_demo *demo = user_data;
 	float width = gral_text_get_width(demo->text);
-	gral_draw_context_fill_rectangle(draw_context, 50.f, 50.f, width, 1.f, 1.f, 0.f, 0.f, 1.f);
-	gral_draw_context_fill_rectangle(draw_context, 50.f, 35.f, width, 25.f, 1.f, 0.f, 0.f, .2f);
+	float height = demo->ascent + demo->descent;
+	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f, width, 1.f);
+	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, 1.f);
+	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f - demo->ascent, width, height);
+	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, .2f);
 	gral_draw_context_draw_text(draw_context, demo->text, 50.f, 50.f, 0.f, 0.f, 1.f, 1.f);
 }
 
@@ -71,6 +76,7 @@ static void initialize(void *user_data) {
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral text demo", &interface, demo);
 	demo->text = gral_text_create(demo->window, "gral text demo", 16.f);
+	gral_font_get_metrics(demo->window, 16.f, &demo->ascent, &demo->descent);
 }
 
 int main(int argc, char **argv) {

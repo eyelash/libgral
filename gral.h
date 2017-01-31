@@ -76,6 +76,8 @@ struct gral_text *gral_text_create(struct gral_window *window, const char *text,
 void gral_text_delete(struct gral_text *text);
 float gral_text_get_width(struct gral_text *text);
 
+void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent);
+
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
 void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha);
 void gral_draw_context_new_path(struct gral_draw_context *draw_context);
