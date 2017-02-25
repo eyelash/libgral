@@ -22,6 +22,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <windowsx.h>
 #include <d2d1.h>
 #include <dwrite.h>
+#include <mmdeviceapi.h>
+#include <audioclient.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -190,7 +192,7 @@ gral_application *gral_application_create(const char *id, gral_application_inter
 	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
 	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
 	WNDCLASS window_class;
-	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown**)&dwrite_factory);
+	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown **)&dwrite_factory);
 	window_class.style = 0;
 	window_class.lpfnWndProc = &WndProc;
 	window_class.cbClsExtra = 0;
@@ -515,7 +517,15 @@ void gral_window_clipboard_request_paste(gral_window *window) {
  ==========*/
 
 void gral_audio_play(int(*callback)(int16_t *buffer, int frames)) {
-	HWAVEOUT hwo;
+	IMMDeviceEnumerator *device_enumerator;
+	CoInitialize(NULL);
+	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
+	IMMDevice *device;
+	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
+	IAudioClient *audio_client;
+	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
+	REFERENCE_TIME default_period, min_period;
+	audio_client->GetDevicePeriod(&default_period, &min_period);
 	WAVEFORMATEX wfx;
 	wfx.wFormatTag = WAVE_FORMAT_PCM;
 	wfx.nChannels = 2;
@@ -524,7 +534,34 @@ void gral_audio_play(int(*callback)(int16_t *buffer, int frames)) {
 	wfx.nBlockAlign = 2 * 2;
 	wfx.wBitsPerSample = 16;
 	wfx.cbSize = 0;
-	waveOutOpen(&hwo, WAVE_MAPPER, &wfx, NULL, NULL, CALLBACK_NULL);
-	// TODO: implement
-	waveOutClose(hwo);
+	audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, default_period, 0, &wfx, NULL);
+	UINT32 buffer_size;
+	audio_client->GetBufferSize(&buffer_size);
+	IAudioRenderClient *render_client;
+	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
+	HANDLE event = CreateEvent(NULL, false, false, NULL);
+	audio_client->SetEventHandle(event);
+	BYTE *buffer;
+	render_client->GetBuffer(buffer_size, &buffer);
+	callback((int16_t *)buffer, buffer_size);
+	render_client->ReleaseBuffer(buffer_size, 0);
+	audio_client->Start();
+	while (true) {
+		WaitForSingleObject(event, INFINITE);
+		UINT32 padding;
+		audio_client->GetCurrentPadding(&padding);
+		render_client->GetBuffer(buffer_size-padding, &buffer);
+		if (!callback((int16_t *)buffer, buffer_size-padding)) {
+			render_client->ReleaseBuffer(0, 0);
+			break;
+		}
+		render_client->ReleaseBuffer(buffer_size-padding, 0);
+	}
+	//audio_client->Stop();
+	CloseHandle(event);
+	render_client->Release();
+	audio_client->Release();
+	device->Release();
+	device_enumerator->Release();
+	CoUninitialize();
 }

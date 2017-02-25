@@ -3,7 +3,7 @@ project(libgral)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	add_library(gral gral_windows.cpp)
-	target_link_libraries(gral d2d1 dwrite WinMM)
+	target_link_libraries(gral d2d1 dwrite)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	find_library(COCOA Cocoa)
 	find_library(AUDIO_TOOLBOX AudioToolbox)
