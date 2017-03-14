@@ -187,12 +187,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 }
 
-gral_application *gral_application_create(const char *id, gral_application_interface *iface, void *user_data) {
+gral_application *gral_application_create(const char *id, const gral_application_interface *iface, void *user_data) {
 	hInstance = GetModuleHandle(NULL);
 	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
 	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
-	WNDCLASS window_class;
 	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown **)&dwrite_factory);
+	WNDCLASS window_class;
 	window_class.style = 0;
 	window_class.lpfnWndProc = &WndProc;
 	window_class.cbClsExtra = 0;
@@ -363,7 +363,7 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
-void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, gral_gradient_stop *stops, int count) {
+void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const gral_gradient_stop *stops, int count) {
 	if (draw_context->in_figure) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
 		draw_context->in_figure = false;
@@ -438,7 +438,7 @@ void gral_draw_context_pop_clip(gral_draw_context *draw_context) {
     WINDOW
  ===========*/
 
-gral_window *gral_window_create(gral_application *application, int width, int height, const char *title, gral_window_interface *iface, void *user_data) {
+gral_window *gral_window_create(gral_application *application, int width, int height, const char *title, const gral_window_interface *iface, void *user_data) {
 	HWND hwnd = CreateWindow(L"gral_window", UTF16String(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
 	WindowData *window_data = new WindowData();
 	window_data->iface = *iface;

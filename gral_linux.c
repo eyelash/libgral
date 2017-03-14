@@ -17,6 +17,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "gral.h"
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "gtk30"
+#include <glib/gi18n-lib.h>
 #include <alsa/asoundlib.h>
 
 
@@ -51,7 +53,7 @@ static void gral_application_class_init(GralApplicationClass *class) {
 	application_class->activate = gral_application_activate;
 }
 
-struct gral_application *gral_application_create(const char *id, struct gral_application_interface *interface, void *user_data) {
+struct gral_application *gral_application_create(const char *id, const struct gral_application_interface *interface, void *user_data) {
 	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, NULL);
 	application->interface = *interface;
 	application->user_data = user_data;
@@ -149,7 +151,7 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	cairo_fill((cairo_t *)draw_context);
 }
 
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop *stops, int count) {
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count) {
 	cairo_pattern_t *gradient = cairo_pattern_create_linear(start_x, start_y, end_x, end_y);
 	int i;
 	for (i = 0; i < count; i++) {
@@ -308,7 +310,7 @@ static void gral_area_class_init(GralAreaClass *class) {
 	object_class->dispose = gral_area_dispose;
 }
 
-struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, const struct gral_window_interface *interface, void *user_data) {
 	GralWindow *window = g_object_new(GRAL_TYPE_WINDOW, "application", application, NULL);
 	g_object_ref_sink(window);
 	window->interface = *interface;
@@ -330,7 +332,7 @@ void gral_window_request_redraw(struct gral_window *window) {
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
-	GtkWidget *dialog = gtk_file_chooser_dialog_new("Open", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, "Cancel", GTK_RESPONSE_CANCEL, "Open", GTK_RESPONSE_ACCEPT, NULL);
+	GtkWidget *dialog = gtk_file_chooser_dialog_new("Open", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT, NULL);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		callback(filename, user_data);
@@ -340,7 +342,7 @@ void gral_window_show_open_file_dialog(struct gral_window *window, void (*callba
 }
 
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
-	GtkWidget *dialog = gtk_file_chooser_dialog_new("Save", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SAVE, "Cancel", GTK_RESPONSE_CANCEL, "Save", GTK_RESPONSE_ACCEPT, NULL);
+	GtkWidget *dialog = gtk_file_chooser_dialog_new("Save", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SAVE, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"), GTK_RESPONSE_ACCEPT, NULL);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));

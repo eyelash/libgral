@@ -63,7 +63,7 @@ struct gral_window_interface {
     APPLICATION
  ================*/
 
-struct gral_application *gral_application_create(const char *id, struct gral_application_interface *interface, void *user_data);
+struct gral_application *gral_application_create(const char *id, const struct gral_application_interface *interface, void *user_data);
 void gral_application_delete(struct gral_application *application);
 int gral_application_run(struct gral_application *application, int argc, char **argv);
 
@@ -88,7 +88,7 @@ void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1
 void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height);
 void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle);
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha);
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop *stops, int count);
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count);
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha);
 void gral_draw_context_push_clip(struct gral_draw_context *draw_context);
 void gral_draw_context_pop_clip(struct gral_draw_context *draw_context);
@@ -98,7 +98,7 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context);
     WINDOW
  ===========*/
 
-struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, struct gral_window_interface *interface, void *user_data);
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, const struct gral_window_interface *interface, void *user_data);
 void gral_window_delete(struct gral_window *window);
 void gral_window_request_redraw(struct gral_window *window);
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);

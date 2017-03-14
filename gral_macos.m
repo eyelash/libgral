@@ -39,7 +39,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 }
 @end
 
-struct gral_application *gral_application_create(const char *id, struct gral_application_interface *interface, void *user_data) {
+struct gral_application *gral_application_create(const char *id, const struct gral_application_interface *interface, void *user_data) {
 	NSApplication *application = [NSApplication sharedApplication];
 	GralApplicationDelegate *delegate = [[GralApplicationDelegate alloc] init];
 	delegate->interface = *interface;
@@ -130,7 +130,7 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	CGContextFillPath((CGContextRef)draw_context);
 }
 
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop *stops, int count) {
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count) {
 	CGFloat *locations = malloc(count*sizeof(CGFloat));
 	CFMutableArrayRef colorArray = CFArrayCreateMutable(kCFAllocatorDefault, count, &kCFTypeArrayCallBacks);
 	for (int i = 0; i < count; i++) {
@@ -262,7 +262,7 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 }
 @end
 
-struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, struct gral_window_interface *interface, void *user_data) {
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, const struct gral_window_interface *interface, void *user_data) {
 	GralWindow *window = [[GralWindow alloc]
 		initWithContentRect:CGRectMake(0, 0, width, height)
 		styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
