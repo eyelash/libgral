@@ -71,7 +71,7 @@ static void initialize(void *user_data) {
 int main(int argc, char **argv) {
 	struct gral_demo demo;
 	struct gral_application_interface interface = {&initialize};
-	demo.application = gral_application_create("com.github.eyelash.libgral.demo", &interface, &demo);
+	demo.application = gral_application_create("com.github.eyelash.libgral.demos.events", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
 	gral_window_delete(demo.window);
 	gral_application_delete(demo.application);
