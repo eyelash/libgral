@@ -1,3 +1,6 @@
+add_executable(audio audio.c)
+target_link_libraries(audio gral)
+
 add_executable(clipboard clipboard.c)
 target_link_libraries(clipboard gral)
 

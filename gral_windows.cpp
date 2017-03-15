@@ -543,21 +543,24 @@ void gral_audio_play(int(*callback)(int16_t *buffer, int frames)) {
 	audio_client->SetEventHandle(event);
 	BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);
-	callback((int16_t *)buffer, buffer_size);
-	render_client->ReleaseBuffer(buffer_size, 0);
+	int frames = callback((int16_t *)buffer, buffer_size);
+	render_client->ReleaseBuffer(frames, 0);
 	audio_client->Start();
-	while (true) {
+	UINT32 padding;
+	while (frames > 0) {
 		WaitForSingleObject(event, INFINITE);
-		UINT32 padding;
 		audio_client->GetCurrentPadding(&padding);
-		render_client->GetBuffer(buffer_size-padding, &buffer);
-		if (!callback((int16_t *)buffer, buffer_size-padding)) {
-			render_client->ReleaseBuffer(0, 0);
-			break;
+		if (buffer_size - padding > 0) {
+			render_client->GetBuffer(buffer_size-padding, &buffer);
+			frames = callback((int16_t *)buffer, buffer_size-padding);
+			render_client->ReleaseBuffer(frames, 0);
 		}
-		render_client->ReleaseBuffer(buffer_size-padding, 0);
 	}
-	//audio_client->Stop();
+	do {
+		WaitForSingleObject(event, INFINITE);
+		audio_client->GetCurrentPadding(&padding);
+	} while (padding > 0);
+	audio_client->Stop();
 	CloseHandle(event);
 	render_client->Release();
 	audio_client->Release();
