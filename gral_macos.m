@@ -74,6 +74,17 @@ void gral_text_delete(struct gral_text *text) {
 	// TODO: implement
 }
 
+float gral_text_get_width(struct gral_text *text) {
+	// TODO: implement
+	return 0.f;
+}
+
+void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
+	// TODO: implement
+	if (ascent) *ascent = 0.f;
+	if (descent) *descent = 0.f;
+}
+
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
 	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
@@ -139,7 +150,7 @@ void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_conte
 	}
 	CGGradientRef gradient = CGGradientCreateWithColors(NULL, colorArray, locations);
 	free(locations);
-	// TODO: release array
+	CFRelease(colorArray);
 	CGContextSaveGState((CGContextRef)draw_context);
 	CGContextClip((CGContextRef)draw_context);
 	CGContextDrawLinearGradient((CGContextRef)draw_context, gradient, CGPointMake(start_x, start_y), CGPointMake(end_x, end_y), kCGGradientDrawsBeforeStartLocation|kCGGradientDrawsAfterEndLocation);
@@ -155,24 +166,13 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	CGContextStrokePath((CGContextRef)draw_context);
 }
 
-void gral_draw_context_clip(struct gral_draw_context *draw_context) {
+void gral_draw_context_push_clip(struct gral_draw_context *draw_context) {
+	CGContextSaveGState((CGContextRef)draw_context);
 	CGContextClip((CGContextRef)draw_context);
 }
 
-void gral_draw_context_save(struct gral_draw_context *draw_context) {
-	CGContextSaveGState((CGContextRef)draw_context);
-}
-
-void gral_draw_context_restore(struct gral_draw_context *draw_context) {
-	CGContextRestoreGState((CGContextRef)draw_context);
-}
-
-void gral_draw_context_push_clip(struct gral_draw_context *draw_context) {
-	// TODO: implement
-}
-
 void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
-	// TODO: implement
+	CGContextRestoreGState((CGContextRef)draw_context);
 }
 
 
@@ -234,25 +234,33 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 	[self mouseMoved:event];
 }
 - (void)mouseDown:(NSEvent *)event {
-	interface.mouse_button_press(GRAL_PRIMARY_MOUSE_BUTTON, user_data);
+	NSPoint location = [event locationInWindow];
+	location = [self convertPoint:location fromView:nil];
+	interface.mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
 }
 - (void)rightMouseDown:(NSEvent *)event {
-	interface.mouse_button_press(GRAL_SECONDARY_MOUSE_BUTTON, user_data);
+	NSPoint location = [event locationInWindow];
+	location = [self convertPoint:location fromView:nil];
+	interface.mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseDown:(NSEvent *)event {
 	//interface.mouse_button_press(3, user_data);
 }
 - (void)mouseUp:(NSEvent *)event {
-	interface.mouse_button_release(GRAL_PRIMARY_MOUSE_BUTTON, user_data);
+	NSPoint location = [event locationInWindow];
+	location = [self convertPoint:location fromView:nil];
+	interface.mouse_button_release(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
 }
 - (void)rightMouseUp:(NSEvent *)event {
-	interface.mouse_button_release(GRAL_SECONDARY_MOUSE_BUTTON, user_data);
+	NSPoint location = [event locationInWindow];
+	location = [self convertPoint:location fromView:nil];
+	interface.mouse_button_release(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseUp:(NSEvent *)event {
 	//interface.mouse_button_release(3, user_data);
 }
 - (void)scrollWheel:(NSEvent *)event {
-	//interface.scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
+	interface.scroll(-[event scrollingDeltaX], -[event scrollingDeltaY], user_data);
 }
 - (void)keyDown:(NSEvent *)event {
 
