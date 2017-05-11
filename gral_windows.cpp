@@ -246,7 +246,7 @@ void gral_text_delete(gral_text *text) {
 	layout->Release();
 }
 
-float gral_text_get_width(gral_text *text) {
+float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
 	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	DWRITE_TEXT_METRICS metrics;
 	layout->GetMetrics(&metrics);
@@ -291,10 +291,6 @@ void gral_draw_context_fill_rectangle(gral_draw_context *draw_context, float x, 
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
 	draw_context->target->FillRectangle(D2D1::RectF(x, y, x+width, y+height), brush);
 	brush->Release();
-}
-
-void gral_draw_context_new_path(gral_draw_context *draw_context) {
-
 }
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {

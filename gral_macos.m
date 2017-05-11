@@ -74,7 +74,7 @@ void gral_text_delete(struct gral_text *text) {
 	// TODO: implement
 }
 
-float gral_text_get_width(struct gral_text *text) {
+float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
 	// TODO: implement
 	return 0.f;
 }
@@ -106,10 +106,6 @@ void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, fl
 	CGContextAddRect((CGContextRef)draw_context, CGRectMake(x, y, width, height));
 	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
 	CGContextFillPath((CGContextRef)draw_context);
-}
-
-void gral_draw_context_new_path(struct gral_draw_context *draw_context) {
-	// TODO: implement
 }
 
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {

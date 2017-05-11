@@ -14,7 +14,7 @@ static int close(void *user_data) {
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	struct gral_demo *demo = user_data;
-	float width = gral_text_get_width(demo->text);
+	float width = gral_text_get_width(demo->text, draw_context);
 	float height = demo->ascent + demo->descent;
 	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f, width, 1.f);
 	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, 1.f);
