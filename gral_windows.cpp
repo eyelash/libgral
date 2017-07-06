@@ -444,7 +444,13 @@ void gral_draw_context_pop_clip(gral_draw_context *draw_context) {
  ===========*/
 
 gral_window *gral_window_create(gral_application *application, int width, int height, const char *title, const gral_window_interface *iface, void *user_data) {
-	HWND hwnd = CreateWindow(L"gral_window", utf8_to_utf16(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
+	RECT rect;
+	rect.left = 0;
+	rect.top = 0;
+	rect.right = width;
+	rect.bottom = height;
+	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, false);
+	HWND hwnd = CreateWindow(L"gral_window", utf8_to_utf16(title), WS_OVERLAPPEDWINDOW, 0, 0, rect.right - rect.left, rect.bottom - rect.top, NULL, NULL, hInstance, NULL);
 	WindowData *window_data = new WindowData();
 	window_data->iface = *iface;
 	window_data->user_data = user_data;
