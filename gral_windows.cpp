@@ -40,41 +40,51 @@ struct gral_draw_context {
 	gral_draw_context(): in_figure(false) {}
 };
 
-template <class T> class ArrayPointer {
+template <class T> class Buffer {
+	size_t length;
 	T *data;
-	ArrayPointer(const ArrayPointer &);
-	ArrayPointer &operator =(const ArrayPointer &);
 public:
-	ArrayPointer(T *data): data(data) {}
-	~ArrayPointer() {
+	Buffer(size_t length): length(length), data(new T[length]) {}
+	Buffer(const Buffer &buffer): length(buffer.length), data(new T[length]) {
+		for (size_t i = 0; i < length; i++) {
+			data[i] = buffer.data[i];
+		}
+	}
+	~Buffer() {
 		delete[] data;
 	}
-	operator const T *() const {
+	Buffer &operator =(const Buffer &buffer) {
+		if (buffer.length != length) {
+			delete[] data;
+			length = buffer.length;
+			data = new T[length];
+		}
+		for (size_t i = 0; i < length; i++) {
+			data[i] = buffer.data[i];
+		}
+		return *this;
+	}
+	size_t get_length() const {
+		return length;
+	}
+	operator T *() const {
 		return data;
 	}
 };
 
-class UTF16String: public ArrayPointer<wchar_t> {
-	static wchar_t *convert(const char *utf8) {
-		int length = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
-		wchar_t *utf16 = new wchar_t[length];
-		MultiByteToWideChar(CP_UTF8, 0, utf8, -1, utf16, length);
-		return utf16;
-	}
-public:
-	UTF16String(const char *utf8): ArrayPointer(convert(utf8)) {}
-};
+static Buffer<wchar_t> utf8_to_utf16(const char *utf8) {
+	int length = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
+	Buffer<wchar_t> utf16(length);
+	MultiByteToWideChar(CP_UTF8, 0, utf8, -1, utf16, length);
+	return utf16;
+}
 
-class UTF8String: public ArrayPointer<char> {
-	static char *convert(const wchar_t *utf16) {
-		int length = WideCharToMultiByte(CP_UTF8, 0, utf16, -1, NULL, 0, NULL, NULL);
-		char *utf8 = new char[length];
-		WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, length, NULL, NULL);
-		return utf8;
-	}
-public:
-	UTF8String(const wchar_t *utf16): ArrayPointer(convert(utf16)) {}
-};
+static Buffer<char> utf16_to_utf8(const wchar_t *utf16) {
+	int length = WideCharToMultiByte(CP_UTF8, 0, utf16, -1, NULL, 0, NULL, NULL);
+	Buffer<char> utf8(length);
+	WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, length, NULL, NULL);
+	return utf8;
+}
 
 struct WindowData {
 	gral_window_interface iface;
@@ -235,8 +245,8 @@ gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 	IDWriteTextFormat *format;
 	dwrite_factory->CreateTextFormat(ncm.lfMessageFont.lfFaceName, NULL, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size, L"en", &format);
 	IDWriteTextLayout *layout;
-	UTF16String utf16(utf8);
-	dwrite_factory->CreateTextLayout(utf16, wcslen(utf16), format, INFINITY, INFINITY, &layout);
+	Buffer<wchar_t> utf16 = utf8_to_utf16(utf8);
+	dwrite_factory->CreateTextLayout(utf16, utf16.get_length(), format, INFINITY, INFINITY, &layout);
 	format->Release();
 	return (gral_text *)layout;
 }
@@ -366,7 +376,7 @@ void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, flo
 	}
 	draw_context->sink->Close();
 
-	D2D1_GRADIENT_STOP *gradient_stops = new D2D1_GRADIENT_STOP[count];
+	Buffer<D2D1_GRADIENT_STOP> gradient_stops(count);
 	for (int i = 0; i < count; i++) {
 		gradient_stops[i].position = stops[i].position;
 		gradient_stops[i].color = D2D1::ColorF(stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
@@ -378,7 +388,6 @@ void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, flo
 	draw_context->target->FillGeometry(draw_context->path, brush);
 	brush->Release();
 	gradient_stop_collection->Release();
-	delete[] gradient_stops;
 
 	draw_context->sink->Release();
 	draw_context->path->Release();
@@ -435,7 +444,7 @@ void gral_draw_context_pop_clip(gral_draw_context *draw_context) {
  ===========*/
 
 gral_window *gral_window_create(gral_application *application, int width, int height, const char *title, const gral_window_interface *iface, void *user_data) {
-	HWND hwnd = CreateWindow(L"gral_window", UTF16String(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
+	HWND hwnd = CreateWindow(L"gral_window", utf8_to_utf16(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
 	WindowData *window_data = new WindowData();
 	window_data->iface = *iface;
 	window_data->user_data = user_data;
@@ -464,7 +473,7 @@ void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(con
 	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 	if (GetOpenFileName(&ofn)) {
-		callback(UTF8String(file_name), user_data);
+		callback(utf16_to_utf8(file_name), user_data);
 	}
 }
 
@@ -479,7 +488,7 @@ void gral_window_show_save_file_dialog(gral_window *window, void (*callback)(con
 	ofn.nMaxFile = MAX_PATH;
 	ofn.Flags = OFN_OVERWRITEPROMPT;
 	if (GetSaveFileName(&ofn)) {
-		callback(UTF8String(file_name), user_data);
+		callback(utf16_to_utf8(file_name), user_data);
 	}
 }
 
@@ -501,7 +510,7 @@ void gral_window_clipboard_request_paste(gral_window *window) {
 	if (IsClipboardFormatAvailable(CF_UNICODETEXT)) {
 		HGLOBAL handle = GetClipboardData(CF_UNICODETEXT);
 		LPWSTR text = (LPWSTR)GlobalLock(handle);
-		window_data->iface.paste(UTF8String(text), window_data->user_data);
+		window_data->iface.paste(utf16_to_utf8(text), window_data->user_data);
 		GlobalUnlock(handle);
 	}
 	CloseClipboard();
