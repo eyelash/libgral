@@ -36,8 +36,9 @@ struct gral_draw_context {
 	ID2D1HwndRenderTarget *target;
 	ID2D1PathGeometry *path;
 	ID2D1GeometrySink *sink;
-	bool in_figure;
-	gral_draw_context(): in_figure(false) {}
+	bool closed;
+	D2D1_POINT_2F current_point;
+	gral_draw_context(): closed(true) {}
 };
 
 template <class T> class Buffer {
@@ -303,25 +304,36 @@ void gral_draw_context_fill_rectangle(gral_draw_context *draw_context, float x, 
 	brush->Release();
 }
 
+void gral_draw_context_get_current_point(gral_draw_context *draw_context, float *x, float *y) {
+	if (x) *x = draw_context->current_point.x;
+	if (y) *y = draw_context->current_point.y;
+}
+
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
 	draw_context->sink->EndFigure(D2D1_FIGURE_END_CLOSED);
-	draw_context->in_figure = false;
+	draw_context->closed = true;
 }
 
 void gral_draw_context_move_to(gral_draw_context *draw_context, float x, float y) {
-	if (draw_context->in_figure) {
+	D2D1_POINT_2F point = D2D1::Point2F(x, y);
+	if (!draw_context->closed) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
 	}
-	draw_context->sink->BeginFigure(D2D1::Point2F(x, y), D2D1_FIGURE_BEGIN_FILLED);
-	draw_context->in_figure = true;
+	draw_context->sink->BeginFigure(point, D2D1_FIGURE_BEGIN_FILLED);
+	draw_context->closed = false;
+	draw_context->current_point = point;
 }
 
 void gral_draw_context_line_to(gral_draw_context *draw_context, float x, float y) {
-	draw_context->sink->AddLine(D2D1::Point2F(x, y));
+	D2D1_POINT_2F point = D2D1::Point2F(x, y);
+	draw_context->sink->AddLine(point);
+	draw_context->current_point = point;
 }
 
 void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
-	draw_context->sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), D2D1::Point2F(x, y)));
+	D2D1_POINT_2F point = D2D1::Point2F(x, y);
+	draw_context->sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), point));
+	draw_context->current_point = point;
 }
 
 void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height) {
@@ -338,12 +350,12 @@ static float fractf(float x) {
 
 void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
 	D2D1_POINT_2F start_point = D2D1::Point2F(cx + cosf(start_angle) * radius, cy + sinf(start_angle) * radius);
-	if (draw_context->in_figure) {
+	if (!draw_context->closed) {
 		draw_context->sink->AddLine(start_point);
 	}
 	else {
 		draw_context->sink->BeginFigure(start_point, D2D1_FIGURE_BEGIN_FILLED);
-		draw_context->in_figure = true;
+		draw_context->closed = false;
 	}
 	D2D1_POINT_2F end_point = D2D1::Point2F(cx + cosf(end_angle) * radius, cy + sinf(end_angle) * radius);
 	D2D1_ARC_SIZE arc_size = fractf((end_angle - start_angle) / (2.f * (float)M_PI)) < .5f ? D2D1_ARC_SIZE_SMALL : D2D1_ARC_SIZE_LARGE;
@@ -351,9 +363,9 @@ void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float 
 }
 
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
-	if (draw_context->in_figure) {
+	if (!draw_context->closed) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->in_figure = false;
+		draw_context->closed = true;
 	}
 	draw_context->sink->Close();
 
@@ -370,9 +382,9 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 }
 
 void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const gral_gradient_stop *stops, int count) {
-	if (draw_context->in_figure) {
+	if (!draw_context->closed) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->in_figure = false;
+		draw_context->closed = true;
 	}
 	draw_context->sink->Close();
 
@@ -397,9 +409,9 @@ void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, flo
 }
 
 void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
-	if (draw_context->in_figure) {
+	if (!draw_context->closed) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->in_figure = false;
+		draw_context->closed = true;
 	}
 	draw_context->sink->Close();
 
@@ -416,9 +428,9 @@ void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width,
 }
 
 void gral_draw_context_push_clip(gral_draw_context *draw_context) {
-	if (draw_context->in_figure) {
+	if (!draw_context->closed) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->in_figure = false;
+		draw_context->closed = true;
 	}
 	draw_context->sink->Close();
 

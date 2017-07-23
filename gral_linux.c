@@ -118,6 +118,13 @@ void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, fl
 	cairo_fill((cairo_t *)draw_context);
 }
 
+void gral_draw_context_get_current_point(struct gral_draw_context *draw_context, float *x, float *y) {
+	double _x, _y;
+	cairo_get_current_point((cairo_t *)draw_context, &_x, &_y);
+	if (x) *x = _x;
+	if (y) *y = _y;
+}
+
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
 	cairo_close_path((cairo_t *)draw_context);
 }
