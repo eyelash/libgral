@@ -344,11 +344,7 @@ void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, f
 	gral_draw_context_close_path(draw_context);
 }
 
-static float fractf(float x) {
-	return x - floorf(x);
-}
-
-void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
+void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float sweep_angle) {
 	D2D1_POINT_2F start_point = D2D1::Point2F(cx + cosf(start_angle) * radius, cy + sinf(start_angle) * radius);
 	if (!draw_context->closed) {
 		draw_context->sink->AddLine(start_point);
@@ -357,9 +353,11 @@ void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float 
 		draw_context->sink->BeginFigure(start_point, D2D1_FIGURE_BEGIN_FILLED);
 		draw_context->closed = false;
 	}
+	float end_angle = start_angle + sweep_angle;
 	D2D1_POINT_2F end_point = D2D1::Point2F(cx + cosf(end_angle) * radius, cy + sinf(end_angle) * radius);
-	D2D1_ARC_SIZE arc_size = fractf((end_angle - start_angle) / (2.f * (float)M_PI)) < .5f ? D2D1_ARC_SIZE_SMALL : D2D1_ARC_SIZE_LARGE;
-	draw_context->sink->AddArc(D2D1::ArcSegment(end_point, D2D1::SizeF(radius, radius), 0.f, D2D1_SWEEP_DIRECTION_CLOCKWISE, arc_size));
+	D2D1_SWEEP_DIRECTION sweep_direction = sweep_angle < 0.f ? D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE : D2D1_SWEEP_DIRECTION_CLOCKWISE;
+	D2D1_ARC_SIZE arc_size = fabsf(sweep_angle) < M_PI ? D2D1_ARC_SIZE_SMALL : D2D1_ARC_SIZE_LARGE;
+	draw_context->sink->AddArc(D2D1::ArcSegment(end_point, D2D1::SizeF(radius, radius), 0.f, sweep_direction, arc_size));
 }
 
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {

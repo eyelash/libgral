@@ -145,8 +145,13 @@ void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, flo
 	cairo_rectangle((cairo_t *)draw_context, x, y, width, height);
 }
 
-void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float end_angle) {
-	cairo_arc((cairo_t *)draw_context, cx, cy, radius, start_angle, end_angle);
+void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float sweep_angle) {
+	if (sweep_angle < 0.f) {
+		cairo_arc_negative((cairo_t *)draw_context, cx, cy, radius, start_angle, start_angle + sweep_angle);
+	}
+	else {
+		cairo_arc((cairo_t *)draw_context, cx, cy, radius, start_angle, start_angle + sweep_angle);
+	}
 }
 
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
