@@ -87,11 +87,23 @@ static Buffer<char> utf16_to_utf8(const wchar_t *utf16) {
 	return utf8;
 }
 
+static void adjust_window_size(int &width, int &height) {
+	RECT rect;
+	rect.left = 0;
+	rect.top = 0;
+	rect.right = width;
+	rect.bottom = height;
+	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, false);
+	width = rect.right - rect.left;
+	height = rect.bottom - rect.top;
+}
+
 struct WindowData {
 	gral_window_interface iface;
 	void *user_data;
 	bool mouse_inside;
-	WindowData(): mouse_inside(false) {}
+	int minimum_width, minimum_height;
+	WindowData(): mouse_inside(false), minimum_width(0), minimum_height(0) {}
 };
 
 
@@ -182,6 +194,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_SIZE: {
 		window_data->iface.resize(LOWORD(lParam), HIWORD(lParam), window_data->user_data);
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
+	case WM_GETMINMAXINFO: {
+		if (window_data) {
+			MINMAXINFO *mmi = (MINMAXINFO *)lParam;
+			mmi->ptMinTrackSize.x = window_data->minimum_width;
+			mmi->ptMinTrackSize.y = window_data->minimum_height;
+		}
+		return 0;
 	}
 	case WM_CLOSE: {
 		if (window_data->iface.close(window_data->user_data)) {
@@ -454,13 +474,8 @@ void gral_draw_context_pop_clip(gral_draw_context *draw_context) {
  ===========*/
 
 gral_window *gral_window_create(gral_application *application, int width, int height, const char *title, const gral_window_interface *iface, void *user_data) {
-	RECT rect;
-	rect.left = 0;
-	rect.top = 0;
-	rect.right = width;
-	rect.bottom = height;
-	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, false);
-	HWND hwnd = CreateWindow(L"gral_window", utf8_to_utf16(title), WS_OVERLAPPEDWINDOW, 0, 0, rect.right - rect.left, rect.bottom - rect.top, NULL, NULL, hInstance, NULL);
+	adjust_window_size(width, height);
+	HWND hwnd = CreateWindow(L"gral_window", utf8_to_utf16(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
 	WindowData *window_data = new WindowData();
 	window_data->iface = *iface;
 	window_data->user_data = user_data;
@@ -476,6 +491,13 @@ void gral_window_delete(gral_window *window) {
 
 void gral_window_request_redraw(gral_window *window) {
 	RedrawWindow((HWND)window, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
+}
+
+void gral_window_set_minimum_size(gral_window *window, int minimum_width, int minimum_height) {
+	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
+	adjust_window_size(minimum_width, minimum_height);
+	window_data->minimum_width = minimum_width;
+	window_data->minimum_height = minimum_height;
 }
 
 void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
