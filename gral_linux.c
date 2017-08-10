@@ -90,7 +90,7 @@ void gral_text_delete(struct gral_text *text) {
 
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
 	PangoRectangle extents;
-	pango_layout_get_extents((PangoLayout *)text, NULL, &extents);
+	pango_layout_get_extents((PangoLayout *)text, &extents, NULL);
 	return pango_units_to_double(extents.width);
 }
 

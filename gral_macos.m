@@ -71,18 +71,18 @@ struct gral_text *gral_text_create(struct gral_window *window, const char *text,
 }
 
 void gral_text_delete(struct gral_text *text) {
-	// TODO: implement
+	CFRelease((CTLineRef)text);
 }
 
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
-	// TODO: implement
-	return 0.f;
+	CGRect bounds = CTLineGetImageBounds((CTLineRef)text, (CGContextRef)draw_context);
+	return bounds.size.width;
 }
 
 void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
-	// TODO: implement
-	if (ascent) *ascent = 0.f;
-	if (descent) *descent = 0.f;
+	NSFont *font = [NSFont systemFontOfSize:size];
+	if (ascent) *ascent = font.ascender;
+	if (descent) *descent = -font.descender;
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
