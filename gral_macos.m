@@ -109,7 +109,9 @@ void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, fl
 }
 
 void gral_draw_context_get_current_point(struct gral_draw_context *draw_context, float *x, float *y) {
-	// TODO: implement
+	CGPoint current_point = CGContextGetPathCurrentPoint((CGContextRef)draw_context);
+	if (x) *x = current_point.x;
+	if (y) *y = current_point.y;
 }
 
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
