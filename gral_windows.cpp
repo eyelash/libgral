@@ -111,6 +111,11 @@ struct WindowData {
     APPLICATION
  ================*/
 
+struct gral_application {
+	gral_application_interface iface;
+	void *user_data;
+};
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
@@ -235,8 +240,10 @@ gral_application *gral_application_create(const char *id, const gral_application
 	window_class.lpszMenuName = NULL;
 	window_class.lpszClassName = L"gral_window";
 	RegisterClass(&window_class);
-	iface->initialize(user_data);
-	return NULL;
+	static gral_application application;
+	application.iface = *iface;
+	application.user_data = user_data;
+	return &application;
 }
 
 void gral_application_delete(gral_application *application) {
@@ -246,6 +253,7 @@ void gral_application_delete(gral_application *application) {
 }
 
 int gral_application_run(gral_application *application, int argc, char **argv) {
+	application->iface.initialize(application->user_data);
 	MSG message;
 	while (GetMessage(&message, NULL, 0, 0)) {
 		TranslateMessage(&message);
