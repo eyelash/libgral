@@ -112,12 +112,6 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 	pango_cairo_show_layout_line((cairo_t *)draw_context, line);
 }
 
-void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha) {
-	cairo_rectangle((cairo_t *)draw_context, x, y, width, height);
-	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
-	cairo_fill((cairo_t *)draw_context);
-}
-
 void gral_draw_context_get_current_point(struct gral_draw_context *draw_context, float *x, float *y) {
 	double _x, _y;
 	cairo_get_current_point((cairo_t *)draw_context, &_x, &_y);

@@ -325,13 +325,6 @@ void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *tex
 	brush->Release();
 }
 
-void gral_draw_context_fill_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha) {
-	ID2D1SolidColorBrush *brush;
-	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
-	draw_context->target->FillRectangle(D2D1::RectF(x, y, x+width, y+height), brush);
-	brush->Release();
-}
-
 void gral_draw_context_get_current_point(gral_draw_context *draw_context, float *x, float *y) {
 	if (x) *x = draw_context->current_point.x;
 	if (y) *y = draw_context->current_point.y;

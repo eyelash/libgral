@@ -102,12 +102,6 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 	CGContextTranslateCTM((CGContextRef)draw_context, -x, -y);
 }
 
-void gral_draw_context_fill_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height, float red, float green, float blue, float alpha) {
-	CGContextAddRect((CGContextRef)draw_context, CGRectMake(x, y, width, height));
-	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
-	CGContextFillPath((CGContextRef)draw_context);
-}
-
 void gral_draw_context_get_current_point(struct gral_draw_context *draw_context, float *x, float *y) {
 	CGPoint current_point = CGContextGetPathCurrentPoint((CGContextRef)draw_context);
 	if (x) *x = current_point.x;
