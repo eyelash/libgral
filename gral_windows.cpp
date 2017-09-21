@@ -36,9 +36,9 @@ struct gral_draw_context {
 	ID2D1HwndRenderTarget *target;
 	ID2D1PathGeometry *path;
 	ID2D1GeometrySink *sink;
-	bool closed;
+	bool open;
 	D2D1_POINT_2F current_point;
-	gral_draw_context(): closed(true) {}
+	gral_draw_context(): open(false) {}
 };
 
 template <class T> class Buffer {
@@ -198,6 +198,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_SIZE: {
 		window_data->iface.resize(LOWORD(lParam), HIWORD(lParam), window_data->user_data);
+		RedrawWindow(hwnd, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
 	case WM_GETMINMAXINFO: {
@@ -332,16 +333,16 @@ void gral_draw_context_get_current_point(gral_draw_context *draw_context, float 
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
 	draw_context->sink->EndFigure(D2D1_FIGURE_END_CLOSED);
-	draw_context->closed = true;
+	draw_context->open = false;
 }
 
 void gral_draw_context_move_to(gral_draw_context *draw_context, float x, float y) {
 	D2D1_POINT_2F point = D2D1::Point2F(x, y);
-	if (!draw_context->closed) {
+	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
 	}
 	draw_context->sink->BeginFigure(point, D2D1_FIGURE_BEGIN_FILLED);
-	draw_context->closed = false;
+	draw_context->open = true;
 	draw_context->current_point = point;
 }
 
@@ -367,12 +368,12 @@ void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, f
 
 void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float sweep_angle) {
 	D2D1_POINT_2F start_point = D2D1::Point2F(cx + cosf(start_angle) * radius, cy + sinf(start_angle) * radius);
-	if (!draw_context->closed) {
+	if (draw_context->open) {
 		draw_context->sink->AddLine(start_point);
 	}
 	else {
 		draw_context->sink->BeginFigure(start_point, D2D1_FIGURE_BEGIN_FILLED);
-		draw_context->closed = false;
+		draw_context->open = true;
 	}
 	float end_angle = start_angle + sweep_angle;
 	D2D1_POINT_2F end_point = D2D1::Point2F(cx + cosf(end_angle) * radius, cy + sinf(end_angle) * radius);
@@ -382,9 +383,9 @@ void gral_draw_context_add_arc(gral_draw_context *draw_context, float cx, float 
 }
 
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
-	if (!draw_context->closed) {
+	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->closed = true;
+		draw_context->open = false;
 	}
 	draw_context->sink->Close();
 
@@ -401,9 +402,9 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 }
 
 void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const gral_gradient_stop *stops, int count) {
-	if (!draw_context->closed) {
+	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->closed = true;
+		draw_context->open = false;
 	}
 	draw_context->sink->Close();
 
@@ -428,9 +429,9 @@ void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, flo
 }
 
 void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
-	if (!draw_context->closed) {
+	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->closed = true;
+		draw_context->open = false;
 	}
 	draw_context->sink->Close();
 
@@ -447,9 +448,9 @@ void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width,
 }
 
 void gral_draw_context_push_clip(gral_draw_context *draw_context) {
-	if (!draw_context->closed) {
+	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->closed = true;
+		draw_context->open = false;
 	}
 	draw_context->sink->Close();
 
