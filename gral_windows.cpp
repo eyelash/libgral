@@ -176,7 +176,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_MOUSEWHEEL: {
-		window_data->iface.scroll(0.f, -(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
+		window_data->iface.scroll(0.f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
+		return 0;
+	}
+	case WM_MOUSEHWHEEL: {
+		window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.f, window_data->user_data);
 		return 0;
 	}
 	case WM_CHAR: {

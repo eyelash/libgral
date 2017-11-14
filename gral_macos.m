@@ -251,7 +251,7 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 	//interface.mouse_button_release(3, user_data);
 }
 - (void)scrollWheel:(NSEvent *)event {
-	interface.scroll(-[event scrollingDeltaX], -[event scrollingDeltaY], user_data);
+	interface.scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
 }
 - (void)keyDown:(NSEvent *)event {
 

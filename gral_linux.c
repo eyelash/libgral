@@ -260,7 +260,7 @@ static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
 	gdouble delta_x, delta_y;
 	gdk_event_get_scroll_deltas((GdkEvent *)event, &delta_x, &delta_y);
-	window->interface.scroll(delta_x, delta_y, window->user_data);
+	window->interface.scroll(-delta_x, -delta_y, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
