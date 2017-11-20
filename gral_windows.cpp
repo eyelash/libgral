@@ -32,7 +32,6 @@ struct gral_draw_context {
 	ID2D1PathGeometry *path;
 	ID2D1GeometrySink *sink;
 	bool open;
-	D2D1_POINT_2F current_point;
 	gral_draw_context(): open(false) {}
 };
 
@@ -325,11 +324,6 @@ void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *tex
 	brush->Release();
 }
 
-void gral_draw_context_get_current_point(gral_draw_context *draw_context, float *x, float *y) {
-	if (x) *x = draw_context->current_point.x;
-	if (y) *y = draw_context->current_point.y;
-}
-
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
 	draw_context->sink->EndFigure(D2D1_FIGURE_END_CLOSED);
 	draw_context->open = false;
@@ -342,19 +336,16 @@ void gral_draw_context_move_to(gral_draw_context *draw_context, float x, float y
 	}
 	draw_context->sink->BeginFigure(point, D2D1_FIGURE_BEGIN_FILLED);
 	draw_context->open = true;
-	draw_context->current_point = point;
 }
 
 void gral_draw_context_line_to(gral_draw_context *draw_context, float x, float y) {
 	D2D1_POINT_2F point = D2D1::Point2F(x, y);
 	draw_context->sink->AddLine(point);
-	draw_context->current_point = point;
 }
 
 void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
 	D2D1_POINT_2F point = D2D1::Point2F(x, y);
 	draw_context->sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), point));
-	draw_context->current_point = point;
 }
 
 void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height) {

@@ -107,13 +107,6 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 	pango_cairo_show_layout_line((cairo_t *)draw_context, line);
 }
 
-void gral_draw_context_get_current_point(struct gral_draw_context *draw_context, float *x, float *y) {
-	double _x, _y;
-	cairo_get_current_point((cairo_t *)draw_context, &_x, &_y);
-	if (x) *x = _x;
-	if (y) *y = _y;
-}
-
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
 	cairo_close_path((cairo_t *)draw_context);
 }
