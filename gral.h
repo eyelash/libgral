@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #ifndef GRAL_H
 #define GRAL_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -99,6 +100,14 @@ void gral_window_show_open_file_dialog(struct gral_window *window, void (*callba
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, const char *text);
 void gral_window_clipboard_request_paste(struct gral_window *window);
+
+
+/*=========
+    FILE
+ =========*/
+
+void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data);
+void gral_file_write(const char *file, const char *data, size_t size);
 
 
 /*==========

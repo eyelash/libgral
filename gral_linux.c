@@ -364,6 +364,24 @@ void gral_window_clipboard_request_paste(struct gral_window *window) {
 }
 
 
+/*=========
+    FILE
+ =========*/
+
+void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data) {
+	gchar *contents;
+	gsize length;
+	if (g_file_get_contents(file, &contents, &length, NULL)) {
+		callback(contents, length, user_data);
+		g_free(contents);
+	}
+}
+
+void gral_file_write(const char *file, const char *data, size_t size) {
+	g_file_set_contents(file, data, size, NULL);
+}
+
+
 /*==========
     AUDIO
  ==========*/
