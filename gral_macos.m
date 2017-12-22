@@ -324,6 +324,22 @@ void gral_window_clipboard_request_paste(struct gral_window *window) {
 }
 
 
+/*=========
+    FILE
+ =========*/
+
+void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data) {
+	NSData *data = [NSData dataWithContentsOfFile:[NSString stringWithUTF8String:file]];
+	if (data) {
+		callback(data.bytes, data.length, user_data);
+	}
+}
+
+void gral_file_write(const char *file, const char *data, size_t size) {
+	[[NSData dataWithBytesNoCopy:(char *)data length:size freeWhenDone:NO] writeToFile:[NSString stringWithUTF8String:file] atomically:YES];
+}
+
+
 /*==========
     AUDIO
  ==========*/
