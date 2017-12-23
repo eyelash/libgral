@@ -547,6 +547,34 @@ void gral_window_clipboard_request_paste(gral_window *window) {
 }
 
 
+/*=========
+    FILE
+ =========*/
+
+void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data) {
+	HANDLE handle = CreateFile(utf8_to_utf16(file), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (handle == INVALID_HANDLE_VALUE) {
+		return;
+	}
+	DWORD size = GetFileSize(handle, NULL);
+	Buffer<char> buffer(size);
+	DWORD bytes_read;
+	ReadFile(handle, buffer, size, &bytes_read, NULL);
+	CloseHandle(handle);
+	callback(buffer, size, user_data);
+}
+
+void gral_file_write(const char *file, const char *data, size_t size) {
+	HANDLE handle = CreateFile(utf8_to_utf16(file), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (handle == INVALID_HANDLE_VALUE) {
+		return;
+	}
+	DWORD bytes_written;
+	WriteFile(handle, data, size, &bytes_written, NULL);
+	CloseHandle(handle);
+}
+
+
 /*==========
     AUDIO
  ==========*/
