@@ -95,6 +95,7 @@ static void adjust_window_size(int &width, int &height) {
 struct WindowData {
 	gral_window_interface iface;
 	void *user_data;
+	ID2D1HwndRenderTarget *target;
 	bool mouse_inside;
 	int minimum_width, minimum_height;
 	WindowData(): mouse_inside(false), minimum_width(0), minimum_height(0) {}
@@ -114,21 +115,26 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 	case WM_PAINT: {
-		RECT rc;
-		GetClientRect(hwnd, &rc);
-		D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+		if (window_data->target == NULL) {
+			RECT rc;
+			GetClientRect(hwnd, &rc);
+			D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+			factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size), &window_data->target);
+		}
 		gral_draw_context draw_context;
-		factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size), &draw_context.target);
+		draw_context.target = window_data->target;
 		factory->CreatePathGeometry(&draw_context.path);
 		draw_context.path->Open(&draw_context.sink);
 		draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 		draw_context.target->BeginDraw();
 		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
 		window_data->iface.draw(&draw_context, window_data->user_data);
-		draw_context.target->EndDraw();
+		if (draw_context.target->EndDraw() == D2DERR_RECREATE_TARGET) {
+			draw_context.target->Release();
+			window_data->target = NULL;
+		}
 		draw_context.sink->Release();
 		draw_context.path->Release();
-		draw_context.target->Release();
 		ValidateRect(hwnd, NULL);
 		return 0;
 	}
@@ -205,7 +211,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_SIZE: {
-		window_data->iface.resize(LOWORD(lParam), HIWORD(lParam), window_data->user_data);
+		WORD width = LOWORD(lParam);
+		WORD height = HIWORD(lParam);
+		window_data->iface.resize(width, height, window_data->user_data);
+		if (window_data->target) {
+			window_data->target->Resize(D2D1::SizeU(width, height));
+		}
 		RedrawWindow(hwnd, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
@@ -224,6 +235,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_DESTROY: {
+		if (window_data->target) {
+			window_data->target->Release();
+		}
+		delete window_data;
 		PostQuitMessage(0);
 		return 0;
 	}
@@ -481,14 +496,14 @@ gral_window *gral_window_create(gral_application *application, int width, int he
 	WindowData *window_data = new WindowData();
 	window_data->iface = *iface;
 	window_data->user_data = user_data;
+	window_data->target = NULL;
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)window_data);
 	ShowWindow(hwnd, SW_SHOW);
 	return (gral_window *)hwnd;
 }
 
 void gral_window_delete(gral_window *window) {
-	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
-	delete window_data;
+
 }
 
 void gral_window_request_redraw(gral_window *window) {
