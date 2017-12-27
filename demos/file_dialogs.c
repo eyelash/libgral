@@ -50,7 +50,7 @@ static void scroll(float dx, float dy, void *user_data) {
 
 }
 
-static void character(uint32_t c, void *user_data) {
+static void text(const char *s, void *user_data) {
 
 }
 
@@ -70,7 +70,7 @@ static void initialize(void *user_data) {
 		&mouse_button_press,
 		&mouse_button_release,
 		&scroll,
-		&character,
+		&text,
 		&paste
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral file dialog demo", &interface, demo);

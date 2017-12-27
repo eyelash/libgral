@@ -183,14 +183,24 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_CHAR: {
+		static WCHAR utf16[3];
 		if ((wParam & 0xFC00) == 0xD800) {
-			
-		}
-		else if ((wParam & 0xFC00) == 0xDC00) {
-			
+			// high surrogate
+			utf16[0] = (WCHAR)wParam;
 		}
 		else {
-			window_data->iface.character(wParam, window_data->user_data);
+			if ((wParam & 0xFC00) == 0xDC00) {
+				// low surrogate
+				utf16[1] = (WCHAR)wParam;
+				utf16[2] = 0;
+			}
+			else {
+				utf16[0] = (WCHAR)wParam;
+				utf16[1] = 0;
+			}
+			char utf8[5];
+			WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, 5, NULL, NULL);
+			window_data->iface.text(utf8, window_data->user_data);
 		}
 		return 0;
 	}

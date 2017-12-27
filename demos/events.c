@@ -42,8 +42,32 @@ static void scroll(float dx, float dy, void *user_data) {
 	printf("scroll {%f, %f}\n", dx, dy);
 }
 
-static void character(uint32_t c, void *user_data) {
-	printf("character: U+%X\n", c);
+static uint32_t utf8_get_next(const char **utf8) {
+	const char *c = *utf8;
+	if ((c[0] & 0x80) == 0x00) {
+		*utf8 += 1;
+		return c[0];
+	}
+	if ((c[0] & 0xE0) == 0xC0) {
+		*utf8 += 2;
+		return (c[0] & 0x1F) << 6 | (c[1] & 0x3F);
+	}
+	if ((c[0] & 0xF0) == 0xE0) {
+		*utf8 += 3;
+		return (c[0] & 0x0F) << 12 | (c[1] & 0x3F) << 6 | (c[2] & 0x3F);
+	}
+	if ((c[0] & 0xF8) == 0xF0) {
+		*utf8 += 4;
+		return (c[0] & 0x07) << 18 | (c[1] & 0x3F) << 12 | (c[2] & 0x3F) << 6 | (c[3] & 0x3F);
+	}
+	fprintf(stderr, "invalid UTF-8\n");
+	return 0;
+}
+
+static void text(const char *s, void *user_data) {
+	while (*s) {
+		printf("text: U+%X\n", utf8_get_next(&s));
+	}
 }
 
 static void paste(const char *text, void *user_data) {
@@ -62,7 +86,7 @@ static void initialize(void *user_data) {
 		&mouse_button_press,
 		&mouse_button_release,
 		&scroll,
-		&character,
+		&text,
 		&paste
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral events demo", &interface, demo);

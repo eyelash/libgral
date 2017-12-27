@@ -268,10 +268,7 @@ static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *even
 }
 static void gral_area_commit(GtkIMContext *context, gchar *str, gpointer user_data) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(GTK_WIDGET(user_data)));
-	while (*str != '\0') {
-		window->interface.character(g_utf8_get_char(str), window->user_data);
-		str = g_utf8_next_char(str);
-	}
+	window->interface.text(str, window->user_data);
 }
 static void gral_area_dispose(GObject *object) {
 	GralArea *area = GRAL_AREA(object);

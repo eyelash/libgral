@@ -50,7 +50,7 @@ struct gral_window_interface {
 	void (*mouse_button_press)(float x, float y, int button, void *user_data);
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
-	void (*character)(uint32_t c, void *user_data);
+	void (*text)(const char *s, void *user_data);
 	void (*paste)(const char *text, void *user_data);
 };
 
