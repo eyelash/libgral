@@ -52,6 +52,7 @@ struct gral_window_interface {
 	void (*scroll)(float dx, float dy, void *user_data);
 	void (*text)(const char *s, void *user_data);
 	void (*paste)(const char *text, void *user_data);
+	int (*timer)(void *user_data);
 };
 
 
@@ -102,6 +103,7 @@ void gral_window_show_open_file_dialog(struct gral_window *window, void (*callba
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, const char *text);
 void gral_window_clipboard_request_paste(struct gral_window *window);
+void gral_window_set_timer(struct gral_window *window, int milliseconds);
 
 
 /*=========

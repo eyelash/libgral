@@ -379,6 +379,14 @@ void gral_window_clipboard_request_paste(struct gral_window *window) {
 	gtk_clipboard_request_text(clipboard, gral_window_text_received, window);
 }
 
+static gboolean gral_window_timeout(gpointer user_data) {
+	GralWindow *window = GRAL_WINDOW(user_data);
+	return window->interface.timer(window->user_data);
+}
+void gral_window_set_timer(struct gral_window *window, int milliseconds) {
+	g_timeout_add(milliseconds, gral_window_timeout, window);
+}
+
 
 /*=========
     FILE
