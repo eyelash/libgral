@@ -1,4 +1,5 @@
 #include <gral.h>
+#include <stdio.h>
 
 struct gral_demo {
 	struct gral_application *application;
@@ -21,6 +22,9 @@ static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f - demo->ascent, width, height);
 	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, .2f);
 	gral_draw_context_draw_text(draw_context, demo->text, 50.f, 50.f, 0.f, 0.f, 1.f, 1.f);
+	float x = gral_text_index_to_x(demo->text, 4);
+	gral_draw_context_add_rectangle(draw_context, 50.f + x, 50.f - demo->ascent, 1.f, height);
+	gral_draw_context_fill(draw_context, 0.f, 0.f, 1.f, .5f);
 }
 
 static void resize(int width, int height, void *user_data) {
@@ -40,7 +44,9 @@ static void mouse_move(float x, float y, void *user_data) {
 }
 
 static void mouse_button_press(float x, float y, int button, void *user_data) {
-
+	struct gral_demo *demo = user_data;
+	int index = gral_text_x_to_index(demo->text, x - 50.f);
+	printf("index = %d\n", index);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
@@ -74,7 +80,7 @@ static void initialize(void *user_data) {
 		&text,
 		&paste
 	};
-	demo->window = gral_window_create(demo->application, 800, 600, "gral text demo", &interface, demo);
+	demo->window = gral_window_create(demo->application, 600, 400, "gral text demo", &interface, demo);
 	demo->text = gral_text_create(demo->window, "gral text demo", 16.f);
 	gral_font_get_metrics(demo->window, 16.f, &demo->ascent, &demo->descent);
 }

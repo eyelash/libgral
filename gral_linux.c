@@ -85,8 +85,27 @@ void gral_text_delete(struct gral_text *text) {
 
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
 	PangoRectangle extents;
-	pango_layout_get_extents((PangoLayout *)text, &extents, NULL);
+	pango_layout_get_extents(PANGO_LAYOUT(text), &extents, NULL);
 	return pango_units_to_double(extents.width);
+}
+
+float gral_text_index_to_x(struct gral_text *text, int index) {
+	PangoLayoutLine *line = pango_layout_get_line_readonly(PANGO_LAYOUT(text), 0);
+	int x;
+	pango_layout_line_index_to_x(line, index, FALSE, &x);
+	return pango_units_to_double(x);
+}
+
+int gral_text_x_to_index(struct gral_text *text, float x) {
+	PangoLayoutLine *line = pango_layout_get_line_readonly(PANGO_LAYOUT(text), 0);
+	int index, trailing;
+	pango_layout_line_x_to_index(line, pango_units_from_double(x), &index, &trailing);
+	const char *s = pango_layout_get_text(PANGO_LAYOUT(text));
+	const char *i = s + index;
+	for (; trailing > 0; trailing--) {
+		i = g_utf8_next_char(i);
+	}
+	return i - s;
 }
 
 void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {

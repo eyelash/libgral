@@ -73,7 +73,7 @@ static void initialize(void *user_data) {
 		&text,
 		&paste
 	};
-	demo->window = gral_window_create(demo->application, 800, 600, "gral file dialog demo", &interface, demo);
+	demo->window = gral_window_create(demo->application, 600, 400, "gral file dialog demo", &interface, demo);
 }
 
 int main(int argc, char **argv) {
