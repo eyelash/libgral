@@ -177,7 +177,7 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 }
 @end
 
-@interface GralView: NSView {
+@interface GralView: NSView<NSTextInputClient> {
 @public
 	struct gral_window_interface interface;
 	void *user_data;
@@ -248,9 +248,45 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 	interface.scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
 }
 - (void)keyDown:(NSEvent *)event {
-
+	[[self inputContext] handleEvent:event];
 }
 - (void)keyUp:(NSEvent *)event {
+
+}
+// NSTextInputClient implementation
+- (BOOL)hasMarkedText {
+	return NO;
+}
+- (NSRange)markedRange {
+	return NSMakeRange(NSNotFound, 0);
+}
+- (NSRange)selectedRange {
+	return NSMakeRange(NSNotFound, 0);
+}
+- (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange {
+
+}
+- (void)unmarkText {
+
+}
+- (NSArray *)validAttributesForMarkedText {
+	return [NSArray array];
+}
+- (NSAttributedString *)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+	return nil;
+}
+- (void)insertText:(id)string replacementRange:(NSRange)replacementRange {
+	if ([string isKindOfClass:[NSString class]]) {
+		interface.text([(NSString *)string UTF8String], user_data);
+	}
+}
+- (NSUInteger)characterIndexForPoint:(NSPoint)point {
+	return NSNotFound;
+}
+- (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actualRange {
+	return NSMakeRect(0, 0, 0, 0);
+}
+- (void)doCommandBySelector:(SEL)selector {
 
 }
 @end
