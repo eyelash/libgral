@@ -59,19 +59,74 @@ int gral_application_run(struct gral_application *application, int argc, char **
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
 	NSFont *font = [NSFont systemFontOfSize:size];
-	NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:[NSString stringWithUTF8String:text] attributes:@{NSFontAttributeName:font}];
-	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attributedString);
-	[attributedString release];
-	return (struct gral_text *)line;
+	NSAttributedString *attributedString = [[NSAttributedString alloc]
+		initWithString:[NSString stringWithUTF8String:text]
+		attributes:[NSDictionary dictionaryWithObject:font forKey:NSFontAttributeName]
+	];
+	return (struct gral_text *)attributedString;
 }
 
 void gral_text_delete(struct gral_text *text) {
-	CFRelease((CTLineRef)text);
+	[(NSAttributedString *)text release];
 }
 
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
-	CGRect bounds = CTLineGetImageBounds((CTLineRef)text, (CGContextRef)draw_context);
+	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
+	CGRect bounds = CTLineGetImageBounds(line, (CGContextRef)draw_context);
+	CFRelease(line);
 	return bounds.size.width;
+}
+
+float gral_text_index_to_x(struct gral_text *text, int index) {
+	// convert UTF-8 index to UTF-16
+	NSUInteger i16 = 0;
+	NSString *string = [(NSAttributedString *)text string];
+	for (int i8 = 0; i8 < index; i16++) {
+		unichar c1 = [string characterAtIndex:i16];
+		uint32_t c; // UTF-32 code point
+		if ((c1 & 0xFC00) == 0xD800) {
+			i16++;
+			unichar c2 = [string characterAtIndex:i16];
+			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
+		}
+		else {
+			c = c1;
+		}
+		if (c <= 0x7F) i8 += 1;
+		else if (c <= 0x7FF) i8 += 2;
+		else if (c <= 0xFFFF) i8 += 3;
+		else i8 += 4;
+	}
+	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
+	CGFloat offset = CTLineGetOffsetForStringIndex(line, i16, NULL);
+	CFRelease(line);
+	return offset;
+}
+
+int gral_text_x_to_index(struct gral_text *text, float x) {
+	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
+	CFIndex index = CTLineGetStringIndexForPosition(line, CGPointMake(x, 0.f));
+	CFRelease(line);
+	// convert UTF-16 index to UTF-8
+	int i8 = 0;
+	NSString *string = [(NSAttributedString *)text string];
+	for (NSUInteger i16 = 0; i16 < index; i16++) {
+		unichar c1 = [string characterAtIndex:i16];
+		uint32_t c; // UTF-32 code point
+		if ((c1 & 0xFC00) == 0xD800) {
+			i16++;
+			unichar c2 = [string characterAtIndex:i16];
+			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
+		}
+		else {
+			c = c1;
+		}
+		if (c <= 0x7F) i8 += 1;
+		else if (c <= 0x7FF) i8 += 2;
+		else if (c <= 0xFFFF) i8 += 3;
+		else i8 += 4;
+	}
+	return i8;
 }
 
 void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
@@ -81,10 +136,11 @@ void gral_font_get_metrics(struct gral_window *window, float size, float *ascent
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
+	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
 	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
 	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
 	CGContextSetTextMatrix((CGContextRef)draw_context, CGAffineTransformMakeScale(1.f, -1.f));
-	CFArrayRef glyphRuns = CTLineGetGlyphRuns((CTLineRef)text);
+	CFArrayRef glyphRuns = CTLineGetGlyphRuns(line);
 	for (int i = 0; i < CFArrayGetCount(glyphRuns); i++) {
 		CTRunRef run = CFArrayGetValueAtIndex(glyphRuns, i);
 		const CGPoint *positions = CTRunGetPositionsPtr(run);
@@ -95,6 +151,7 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 		CTFontDrawGlyphs(font, glyphs, positions, count, (CGContextRef)draw_context);
 	}
 	CGContextTranslateCTM((CGContextRef)draw_context, -x, -y);
+	CFRelease(line);
 }
 
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
