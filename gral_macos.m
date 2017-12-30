@@ -310,6 +310,11 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 - (void)keyUp:(NSEvent *)event {
 
 }
+- (void)timer:(NSTimer *)timer {
+	if (!interface.timer(user_data)) {
+		[timer invalidate];
+	}
+}
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
 	return NO;
@@ -414,6 +419,11 @@ void gral_window_clipboard_request_paste(struct gral_window *window) {
 		GralView *view = (GralView *)[(GralWindow *)window contentView];
 		view->interface.paste([text UTF8String], view->user_data);
 	}
+}
+
+void gral_window_set_timer(struct gral_window *window, int milliseconds) {
+	GralView *view = [(GralWindow *)window contentView];
+	[NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:view selector:@selector(timer:) userInfo:nil repeats:YES];
 }
 
 

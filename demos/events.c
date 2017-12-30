@@ -74,6 +74,11 @@ static void paste(const char *text, void *user_data) {
 
 }
 
+static int timer(void *user_data) {
+	printf("timer\n");
+	return 1;
+}
+
 static void initialize(void *user_data) {
 	struct gral_demo *demo = user_data;
 	struct gral_window_interface interface = {
@@ -87,9 +92,11 @@ static void initialize(void *user_data) {
 		&mouse_button_release,
 		&scroll,
 		&text,
-		&paste
+		&paste,
+		&timer
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &interface, demo);
+	gral_window_set_timer(demo->window, 1000);
 }
 
 int main(int argc, char **argv) {
