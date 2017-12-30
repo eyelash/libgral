@@ -210,6 +210,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		}
 		return 0;
 	}
+	case WM_TIMER: {
+		if (!window_data->iface.timer(window_data->user_data)) {
+			KillTimer(hwnd, wParam);
+		}
+		return 0;
+	}
 	case WM_SIZE: {
 		WORD width = LOWORD(lParam);
 		WORD height = HIWORD(lParam);
@@ -569,6 +575,10 @@ void gral_window_clipboard_request_paste(gral_window *window) {
 		GlobalUnlock(handle);
 	}
 	CloseClipboard();
+}
+
+void gral_window_set_timer(gral_window *window, int milliseconds) {
+	SetTimer((HWND)window, 0, milliseconds, NULL);
 }
 
 
