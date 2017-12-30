@@ -322,6 +322,24 @@ float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
 	return metrics.width;
 }
 
+float gral_text_index_to_x(gral_text *text, int index) {
+	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
+	float x, y;
+	DWRITE_HIT_TEST_METRICS metrics;
+	// TODO: convert UTF-8 index to UTF-16
+	layout->HitTestTextPosition(index, false, &x, &y, &metrics);
+	return x;
+}
+
+int gral_text_x_to_index(gral_text *text, float x) {
+	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
+	BOOL trailing, inside;
+	DWRITE_HIT_TEST_METRICS metrics;
+	layout->HitTestPoint(x, 0.f, &trailing, &inside, &metrics);
+	// TODO: convert UTF-16 index to UTF-8
+	return inside && trailing ? metrics.textPosition + metrics.length : metrics.textPosition;
+}
+
 void gral_font_get_metrics(gral_window *window, float size, float *ascent, float *descent) {
 	NONCLIENTMETRICS ncm;
 	ncm.cbSize = sizeof(NONCLIENTMETRICS);
