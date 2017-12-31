@@ -137,7 +137,7 @@ void gral_font_get_metrics(struct gral_window *window, float size, float *ascent
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
-	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
+	CGContextSetRGBFillColor((CGContextRef)draw_context, red, green, blue, alpha);
 	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
 	CGContextSetTextMatrix((CGContextRef)draw_context, CGAffineTransformMakeScale(1.f, -1.f));
 	CFArrayRef glyphRuns = CTLineGetGlyphRuns(line);
@@ -179,7 +179,7 @@ void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx,
 }
 
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
-	CGContextSetFillColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
+	CGContextSetRGBFillColor((CGContextRef)draw_context, red, green, blue, alpha);
 	CGContextFillPath((CGContextRef)draw_context);
 }
 
@@ -204,7 +204,7 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	CGContextSetLineWidth((CGContextRef)draw_context, line_width);
 	CGContextSetLineCap((CGContextRef)draw_context, kCGLineCapRound);
 	CGContextSetLineJoin((CGContextRef)draw_context, kCGLineJoinRound);
-	CGContextSetStrokeColorWithColor((CGContextRef)draw_context, [[NSColor colorWithRed:red green:green blue:blue alpha:alpha] CGColor]);
+	CGContextSetRGBStrokeColor((CGContextRef)draw_context, red, green, blue, alpha);
 	CGContextStrokePath((CGContextRef)draw_context);
 }
 
