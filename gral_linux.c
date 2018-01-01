@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017 Elias Aebi
+Copyright (c) 2016-2018 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -100,12 +100,8 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	PangoLayoutLine *line = pango_layout_get_line_readonly(PANGO_LAYOUT(text), 0);
 	int index, trailing;
 	pango_layout_line_x_to_index(line, pango_units_from_double(x), &index, &trailing);
-	const char *s = pango_layout_get_text(PANGO_LAYOUT(text));
-	const char *i = s + index;
-	for (; trailing > 0; trailing--) {
-		i = g_utf8_next_char(i);
-	}
-	return i - s;
+	const char *str = pango_layout_get_text(PANGO_LAYOUT(text));
+	return g_utf8_offset_to_pointer(str + index, trailing) - str;
 }
 
 void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
@@ -122,7 +118,7 @@ void gral_font_get_metrics(struct gral_window *window, float size, float *ascent
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	cairo_move_to((cairo_t *)draw_context, x, y);
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
-	PangoLayoutLine *line = pango_layout_get_line_readonly((PangoLayout *)text, 0);
+	PangoLayoutLine *line = pango_layout_get_line_readonly(PANGO_LAYOUT(text), 0);
 	pango_cairo_show_layout_line((cairo_t *)draw_context, line);
 }
 
