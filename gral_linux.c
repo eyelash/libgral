@@ -70,17 +70,26 @@ int gral_application_run(struct gral_application *application, int argc, char **
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
 	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
-	PangoFontDescription *font_description = pango_font_description_copy(pango_context_get_font_description(context));
-	pango_font_description_set_absolute_size(font_description, pango_units_from_double(size));
 	PangoLayout *layout = pango_layout_new(context);
 	pango_layout_set_text(layout, text, -1);
+	PangoFontDescription *font_description = pango_font_description_copy(pango_context_get_font_description(context));
+	pango_font_description_set_absolute_size(font_description, pango_units_from_double(size));
 	pango_layout_set_font_description(layout, font_description);
 	pango_font_description_free(font_description);
+	pango_layout_set_attributes(layout, pango_attr_list_new());
 	return (struct gral_text *)layout;
 }
 
 void gral_text_delete(struct gral_text *text) {
 	g_object_unref(text);
+}
+
+void gral_text_set_bold(struct gral_text *text, int start_index, int end_index) {
+	PangoAttribute *attribute = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
+	attribute->start_index = start_index;
+	attribute->end_index = end_index;
+	PangoAttrList *attr_list = pango_layout_get_attributes(PANGO_LAYOUT(text));
+	pango_attr_list_change(attr_list, attribute);
 }
 
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {

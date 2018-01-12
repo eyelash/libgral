@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017 Elias Aebi
+Copyright (c) 2016-2018 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -71,6 +71,7 @@ int gral_application_run(struct gral_application *application, int argc, char **
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size);
 void gral_text_delete(struct gral_text *text);
+void gral_text_set_bold(struct gral_text *text, int start_index, int end_index);
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context);
 float gral_text_index_to_x(struct gral_text *text, int index);
 int gral_text_x_to_index(struct gral_text *text, float x);

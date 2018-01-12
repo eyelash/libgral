@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2017 Elias Aebi
+Copyright (c) 2016-2018 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -313,6 +313,10 @@ gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 void gral_text_delete(gral_text *text) {
 	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	layout->Release();
+}
+
+void gral_text_set_bold(gral_text *text, int start_index, int end_index) {
+	// TODO: implement
 }
 
 float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
