@@ -22,17 +22,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  ================*/
 
 #define GRAL_TYPE_APPLICATION gral_application_get_type()
-#define GRAL_APPLICATION(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), GRAL_TYPE_APPLICATION, GralApplication)
-struct _GralApplicationClass {
-	GtkApplicationClass parent_class;
-};
-struct gral_application {
-	GtkWindow parent_instance;
+G_DECLARE_FINAL_TYPE(GralApplication, gral_application, GRAL, APPLICATION, GtkApplication)
+struct _GralApplication {
+	GtkApplication parent_instance;
 	struct gral_application_interface interface;
 	void *user_data;
 };
-typedef struct _GralApplicationClass GralApplicationClass;
-typedef struct gral_application GralApplication;
 G_DEFINE_TYPE(GralApplication, gral_application, GTK_TYPE_APPLICATION)
 
 static void gral_application_activate(GApplication *gapplication) {
@@ -52,7 +47,7 @@ struct gral_application *gral_application_create(const char *id, const struct gr
 	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, NULL);
 	application->interface = *interface;
 	application->user_data = user_data;
-	return application;
+	return (struct gral_application *)application;
 }
 
 void gral_application_delete(struct gral_application *application) {
@@ -200,17 +195,12 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
  ===========*/
 
 #define GRAL_TYPE_WINDOW gral_window_get_type()
-#define GRAL_WINDOW(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), GRAL_TYPE_WINDOW, GralWindow)
-struct _GralWindowClass {
-	GtkApplicationWindowClass parent_class;
-};
-struct gral_window {
+G_DECLARE_FINAL_TYPE(GralWindow, gral_window, GRAL, WINDOW, GtkApplicationWindow)
+struct _GralWindow {
 	GtkApplicationWindow parent_instance;
 	struct gral_window_interface interface;
 	void *user_data;
 };
-typedef struct _GralWindowClass GralWindowClass;
-typedef struct gral_window GralWindow;
 G_DEFINE_TYPE(GralWindow, gral_window, GTK_TYPE_APPLICATION_WINDOW)
 
 static gboolean gral_window_delete_event(GtkWidget *widget, GdkEventAny *event) {
@@ -226,16 +216,11 @@ static void gral_window_class_init(GralWindowClass *class) {
 }
 
 #define GRAL_TYPE_AREA gral_area_get_type()
-#define GRAL_AREA(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), GRAL_TYPE_AREA, GralArea)
-struct _GralAreaClass {
-	GtkDrawingAreaClass parent_class;
-};
+G_DECLARE_FINAL_TYPE(GralArea, gral_area, GRAL, AREA, GtkDrawingArea)
 struct _GralArea {
 	GtkDrawingArea parent_instance;
 	GtkIMContext *im_context;
 };
-typedef struct _GralAreaClass GralAreaClass;
-typedef struct _GralArea GralArea;
 G_DEFINE_TYPE(GralArea, gral_area, GTK_TYPE_DRAWING_AREA)
 
 static gboolean gral_area_draw(GtkWidget *widget, cairo_t *cr) {
@@ -301,7 +286,7 @@ static void gral_area_dispose(GObject *object) {
 }
 static void gral_area_init(GralArea *area) {
 	area->im_context = gtk_im_multicontext_new();
-	g_signal_connect(area->im_context, "commit", G_CALLBACK(gral_area_commit), area);
+	g_signal_connect_object(area->im_context, "commit", G_CALLBACK(gral_area_commit), area, 0);
 	gtk_widget_add_events(GTK_WIDGET(area), GDK_ENTER_NOTIFY_MASK|GDK_LEAVE_NOTIFY_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_SCROLL_MASK|GDK_SMOOTH_SCROLL_MASK);
 	gtk_widget_set_can_focus(GTK_WIDGET(area), TRUE);
 }
@@ -331,7 +316,7 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	GtkWidget *area = g_object_new(GRAL_TYPE_AREA, NULL);
 	gtk_container_add(GTK_CONTAINER(window), area);
 	gtk_widget_show_all(GTK_WIDGET(window));
-	return window;
+	return (struct gral_window *)window;
 }
 
 void gral_window_delete(struct gral_window *window) {
