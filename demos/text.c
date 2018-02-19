@@ -1,6 +1,6 @@
 #include <gral.h>
 
-struct gral_demo {
+struct demo {
 	struct gral_application *application;
 	struct gral_window *window;
 	struct gral_text *text;
@@ -14,7 +14,7 @@ static int close(void *user_data) {
 }
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
-	struct gral_demo *demo = user_data;
+	struct demo *demo = user_data;
 	float width = gral_text_get_width(demo->text, draw_context);
 	float height = demo->ascent + demo->descent;
 	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f, width, 1.f);
@@ -43,7 +43,7 @@ static void mouse_move(float x, float y, void *user_data) {
 }
 
 static void mouse_button_press(float x, float y, int button, void *user_data) {
-	struct gral_demo *demo = user_data;
+	struct demo *demo = user_data;
 	int index = gral_text_x_to_index(demo->text, x - 50.f);
 	demo->cursor_x = gral_text_index_to_x(demo->text, index);
 	gral_window_request_redraw(demo->window);
@@ -65,8 +65,12 @@ static void paste(const char *text, void *user_data) {
 
 }
 
+static int timer(void *user_data) {
+	return 0;
+}
+
 static void initialize(void *user_data) {
-	struct gral_demo *demo = user_data;
+	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
 		&close,
 		&draw,
@@ -78,7 +82,8 @@ static void initialize(void *user_data) {
 		&mouse_button_release,
 		&scroll,
 		&text,
-		&paste
+		&paste,
+		&timer
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral text demo", &interface, demo);
 	demo->text = gral_text_create(demo->window, "gral text demo", 16.f);
@@ -88,9 +93,9 @@ static void initialize(void *user_data) {
 }
 
 int main(int argc, char **argv) {
-	struct gral_demo demo;
+	struct demo demo;
 	struct gral_application_interface interface = {&initialize};
-	demo.application = gral_application_create("com.github.eyelash.libgral.demo", &interface, &demo);
+	demo.application = gral_application_create("com.github.eyelash.libgral.demos.text", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
 	gral_text_delete(demo.text);
 	gral_window_delete(demo.window);

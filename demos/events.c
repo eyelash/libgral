@@ -1,7 +1,7 @@
 #include <gral.h>
 #include <stdio.h>
 
-struct gral_demo {
+struct demo {
 	struct gral_application *application;
 	struct gral_window *window;
 };
@@ -80,7 +80,7 @@ static int timer(void *user_data) {
 }
 
 static void initialize(void *user_data) {
-	struct gral_demo *demo = user_data;
+	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
 		&close,
 		&draw,
@@ -100,7 +100,7 @@ static void initialize(void *user_data) {
 }
 
 int main(int argc, char **argv) {
-	struct gral_demo demo;
+	struct demo demo;
 	struct gral_application_interface interface = {&initialize};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.events", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);

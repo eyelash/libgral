@@ -4,7 +4,7 @@
 
 #define RAD(deg) ((deg) * ((float)M_PI / 180.f))
 
-struct gral_demo {
+struct demo {
 	struct gral_application *application;
 	struct gral_window *window;
 };
@@ -65,21 +65,21 @@ static void add_star(struct gral_draw_context *draw_context, float x, float y, f
 }
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
-	gral_draw_context_add_rectangle(draw_context, 10.f, 10.f, 180.f, 180.f);
-	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, 1.f);
-	gral_draw_context_add_rectangle(draw_context, 210.f, 10.f, 180.f, 180.f);
-	gral_draw_context_stroke(draw_context, 3.f, 0.f, 0.f, 1.f, 1.f);
-	gral_draw_context_add_rectangle(draw_context, 410.f, 10.f, 180.f, 180.f);
+	gral_draw_context_add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
+	gral_draw_context_fill(draw_context, .9f, .1f, .1f, 1.f);
+	gral_draw_context_add_rectangle(draw_context, 220.f, 20.f, 160.f, 160.f);
+	gral_draw_context_stroke(draw_context, 4.f, .1f, .1f, .9f, 1.f);
+	gral_draw_context_add_rectangle(draw_context, 420.f, 20.f, 160.f, 160.f);
 	struct gral_gradient_stop stops[] = {
-		{0.f, 1.f, 0.f, 0.f, 1.f},
-		{.3f, 1.f, 1.f, 0.f, 1.f},
-		{1.f, 0.f, 1.f, 0.f, 1.f}
+		{0.f, .9f, .1f, .1f, 1.f},
+		{.3f, .9f, .9f, .1f, 1.f},
+		{1.f, .1f, .9f, .1f, 1.f}
 	};
-	gral_draw_context_fill_linear_gradient(draw_context, 410.f, 10.f, 590.f, 100.f, stops, 3);
-	add_circle(draw_context, 10.f, 210.f, 180.f);
-	add_rounded_rectangle(draw_context, 210.f, 210.f, 180.f, 180.f, 20.f);
-	add_star(draw_context, 410.f, 210.f, 180.f);
-	gral_draw_context_fill(draw_context, 0.f, 0.f, 1.f, 1.f);
+	gral_draw_context_fill_linear_gradient(draw_context, 420.f, 20.f, 580.f, 100.f, stops, 3);
+	add_circle(draw_context, 20.f, 220.f, 160.f);
+	add_rounded_rectangle(draw_context, 220.f, 220.f, 160.f, 160.f, 20.f);
+	add_star(draw_context, 420.f, 220.f, 160.f);
+	gral_draw_context_fill(draw_context, .1f, .1f, .9f, 1.f);
 }
 
 static void resize(int width, int height, void *user_data) {
@@ -118,8 +118,12 @@ static void paste(const char *text, void *user_data) {
 
 }
 
+static int timer(void *user_data) {
+	return 0;
+}
+
 static void initialize(void *user_data) {
-	struct gral_demo *demo = user_data;
+	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
 		&close,
 		&draw,
@@ -131,14 +135,15 @@ static void initialize(void *user_data) {
 		&mouse_button_release,
 		&scroll,
 		&text,
-		&paste
+		&paste,
+		&timer
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral draw demo", &interface, demo);
 	gral_window_set_minimum_size(demo->window, 600, 400);
 }
 
 int main(int argc, char **argv) {
-	struct gral_demo demo;
+	struct demo demo;
 	struct gral_application_interface interface = {&initialize};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.draw", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);

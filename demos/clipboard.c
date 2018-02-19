@@ -1,7 +1,7 @@
 #include <gral.h>
 #include <stdio.h>
 
-struct gral_demo {
+struct demo {
 	struct gral_application *application;
 	struct gral_window *window;
 };
@@ -31,7 +31,7 @@ static void mouse_move(float x, float y, void *user_data) {
 }
 
 static void mouse_button_press(float x, float y, int button, void *user_data) {
-	struct gral_demo *demo = user_data;
+	struct demo *demo = user_data;
 	if (button == GRAL_PRIMARY_MOUSE_BUTTON)
 		gral_window_clipboard_copy(demo->window, "gral clipboard test");
 	else if (button == GRAL_SECONDARY_MOUSE_BUTTON)
@@ -54,8 +54,12 @@ static void paste(const char *text, void *user_data) {
 	printf("paste: %s\n", text);
 }
 
+static int timer(void *user_data) {
+	return 0;
+}
+
 static void initialize(void *user_data) {
-	struct gral_demo *demo = user_data;
+	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
 		&close,
 		&draw,
@@ -67,15 +71,16 @@ static void initialize(void *user_data) {
 		&mouse_button_release,
 		&scroll,
 		&text,
-		&paste
+		&paste,
+		&timer
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral clipboard demo", &interface, demo);
 }
 
 int main(int argc, char **argv) {
-	struct gral_demo demo;
+	struct demo demo;
 	struct gral_application_interface interface = {&initialize};
-	demo.application = gral_application_create("com.github.eyelash.libgral.demo", &interface, &demo);
+	demo.application = gral_application_create("com.github.eyelash.libgral.demos.clipboard", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
 	gral_window_delete(demo.window);
 	gral_application_delete(demo.application);
