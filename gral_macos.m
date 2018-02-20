@@ -397,6 +397,10 @@ void gral_window_set_minimum_size(struct gral_window *window, int minimum_width,
 	[(GralWindow *)window setContentMinSize:NSMakeSize(minimum_width, minimum_height)];
 }
 
+void gral_window_set_cursor(struct gral_window *window, int cursor) {
+	// TODO: implement
+}
+
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	NSOpenPanel *panel = [NSOpenPanel openPanel];
 	if ([panel runModal] == NSFileHandlingPanelOKButton) {

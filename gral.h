@@ -25,6 +25,12 @@ enum {
 	GRAL_MIDDLE_MOUSE_BUTTON = 2,
 	GRAL_SECONDARY_MOUSE_BUTTON = 3
 };
+enum {
+	GRAL_CURSOR_DEFAULT = 68,
+	GRAL_CURSOR_TEXT = 152,
+	GRAL_CURSOR_HORIZONTAL_ARROWS = 108,
+	GRAL_CURSOR_VERTICAL_ARROWS = 116
+};
 
 struct gral_application;
 struct gral_application_interface {
@@ -100,6 +106,7 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 void gral_window_delete(struct gral_window *window);
 void gral_window_request_redraw(struct gral_window *window);
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height);
+void gral_window_set_cursor(struct gral_window *window, int cursor);
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, const char *text);

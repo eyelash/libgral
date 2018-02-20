@@ -545,6 +545,10 @@ void gral_window_set_minimum_size(gral_window *window, int minimum_width, int mi
 	window_data->minimum_height = minimum_height;
 }
 
+void gral_window_set_cursor(gral_window *window, int cursor) {
+	// TODO: implement
+}
+
 void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	wchar_t file_name[MAX_PATH];
 	file_name[0] = '\0';

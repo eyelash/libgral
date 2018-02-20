@@ -334,6 +334,13 @@ void gral_window_set_minimum_size(struct gral_window *window, int minimum_width,
 	gtk_window_set_geometry_hints(GTK_WINDOW(window), NULL, &geometry, GDK_HINT_MIN_SIZE);
 }
 
+void gral_window_set_cursor(struct gral_window *window, int cursor) {
+	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
+	GdkCursor *gdk_cursor = gdk_cursor_new_for_display(gdk_window_get_display(gdk_window), cursor);
+	gdk_window_set_cursor(gdk_window, gdk_cursor);
+	g_object_unref(gdk_cursor);
+}
+
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new("Open", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT, NULL);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
