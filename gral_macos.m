@@ -178,10 +178,6 @@ void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, flo
 	CGContextAddRect((CGContextRef)draw_context, CGRectMake(x, y, width, height));
 }
 
-void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float sweep_angle) {
-	CGContextAddArc((CGContextRef)draw_context, cx, cy, radius, start_angle, start_angle + sweep_angle, sweep_angle < 0.f);
-}
-
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	CGContextSetRGBFillColor((CGContextRef)draw_context, red, green, blue, alpha);
 	CGContextFillPath((CGContextRef)draw_context);

@@ -90,7 +90,6 @@ void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, 
 void gral_draw_context_line_to(struct gral_draw_context *draw_context, float x, float y);
 void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y);
 void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height);
-void gral_draw_context_add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float sweep_angle);
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha);
 void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count);
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha);
