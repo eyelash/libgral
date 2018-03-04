@@ -91,6 +91,7 @@ static void initialize(void *user_data) {
 	};
 	demo->window = gral_window_create(demo->application, 400, 400, "gral cursors demo", &interface, demo);
 	demo->cursor = GRAL_CURSOR_DEFAULT;
+	gral_window_show(demo->window);
 }
 
 int main(int argc, char **argv) {

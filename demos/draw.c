@@ -140,6 +140,7 @@ static void initialize(void *user_data) {
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral draw demo", &interface, demo);
 	gral_window_set_minimum_size(demo->window, 600, 400);
+	gral_window_show(demo->window);
 }
 
 int main(int argc, char **argv) {
