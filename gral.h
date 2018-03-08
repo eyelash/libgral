@@ -127,7 +127,7 @@ void gral_file_write(const char *file, const char *data, size_t size);
     AUDIO
  ==========*/
 
-void gral_audio_play(int (*callback)(int16_t *buffer, int frames));
+void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data);
 
 #ifdef __cplusplus
 }

@@ -422,16 +422,16 @@ static void play_buffer(snd_pcm_t *pcm, int16_t *buffer, int frames) {
 	}
 }
 
-void gral_audio_play(int (*callback)(int16_t *buffer, int frames)) {
+void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
 	snd_pcm_t *pcm;
 	snd_pcm_open(&pcm, "default", SND_PCM_STREAM_PLAYBACK, 0);
 	snd_pcm_set_params(pcm, SND_PCM_FORMAT_S16, SND_PCM_ACCESS_RW_INTERLEAVED, 2, 44100, 1, 1000000*FRAMES/44100);
 	snd_pcm_prepare(pcm);
 	int16_t buffer[FRAMES*2];
-	int frames = callback(buffer, FRAMES);
+	int frames = callback(buffer, FRAMES, user_data);
 	while (frames > 0) {
 		play_buffer(pcm, buffer, frames);
-		frames = callback(buffer, FRAMES);
+		frames = callback(buffer, FRAMES, user_data);
 	}
 	snd_pcm_drain(pcm);
 	snd_pcm_close(pcm);

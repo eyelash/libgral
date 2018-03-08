@@ -461,7 +461,7 @@ void gral_file_write(const char *file, const char *data, size_t size) {
 static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
 	int (*callback)(int16_t *buffer, int frames) = user_data;
 	int frames = buffer->mAudioDataBytesCapacity / (2 * sizeof(int16_t));
-	if (callback(buffer->mAudioData, frames)) {
+	if (callback(buffer->mAudioData, frames, NULL)) {
 		buffer->mAudioDataByteSize = buffer->mAudioDataBytesCapacity;
 		AudioQueueEnqueueBuffer(queue, buffer, buffer->mPacketDescriptionCount, buffer->mPacketDescriptions);
 	}
@@ -471,7 +471,7 @@ static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBuffe
 	}
 }
 
-void gral_audio_play(int (*callback)(int16_t *buffer, int frames)) {
+void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
 	AudioQueueRef queue;
 	AudioStreamBasicDescription format = {
 		.mSampleRate = 44100,

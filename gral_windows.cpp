@@ -645,7 +645,7 @@ void gral_file_write(const char *file, const char *data, size_t size) {
     AUDIO
  ==========*/
 
-void gral_audio_play(int(*callback)(int16_t *buffer, int frames)) {
+void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
 	IMMDeviceEnumerator *device_enumerator;
 	CoInitialize(NULL);
 	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
@@ -672,7 +672,7 @@ void gral_audio_play(int(*callback)(int16_t *buffer, int frames)) {
 	audio_client->SetEventHandle(event);
 	BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);
-	int frames = callback((int16_t *)buffer, buffer_size);
+	int frames = callback((int16_t *)buffer, buffer_size, user_data);
 	render_client->ReleaseBuffer(frames, 0);
 	audio_client->Start();
 	UINT32 padding;
@@ -681,7 +681,7 @@ void gral_audio_play(int(*callback)(int16_t *buffer, int frames)) {
 		audio_client->GetCurrentPadding(&padding);
 		if (buffer_size - padding > 0) {
 			render_client->GetBuffer(buffer_size-padding, &buffer);
-			frames = callback((int16_t *)buffer, buffer_size-padding);
+			frames = callback((int16_t *)buffer, buffer_size-padding, user_data);
 			render_client->ReleaseBuffer(frames, 0);
 		}
 	}

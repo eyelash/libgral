@@ -8,7 +8,7 @@ static float saw(float x) {
 	return x < .5f ? x * 2.f : x * 2.f - 2.f;
 }
 
-static int callback(int16_t *buffer, int frames) {
+static int callback(int16_t *buffer, int frames, void *user_data) {
 	static float x = 0.f;
 	static float position_x = 0.f;
 	static int played_frames = 0;
@@ -29,6 +29,6 @@ static int callback(int16_t *buffer, int frames) {
 }
 
 int main() {
-	gral_audio_play(&callback);
+	gral_audio_play(&callback, NULL);
 	return 0;
 }
