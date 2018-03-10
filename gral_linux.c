@@ -142,10 +142,6 @@ void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1
 	cairo_curve_to((cairo_t *)draw_context, x1, y1, x2, y2, x, y);
 }
 
-void gral_draw_context_add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
-	cairo_rectangle((cairo_t *)draw_context, x, y, width, height);
-}
-
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	cairo_set_source_rgba((cairo_t *)draw_context, red, green, blue, alpha);
 	cairo_fill((cairo_t *)draw_context);

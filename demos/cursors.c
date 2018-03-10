@@ -11,10 +11,18 @@ static int close(void *user_data) {
 	return 1;
 }
 
+static void add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
+	gral_draw_context_move_to(draw_context, x, y);
+	gral_draw_context_line_to(draw_context, x + width, y);
+	gral_draw_context_line_to(draw_context, x + width, y + height);
+	gral_draw_context_line_to(draw_context, x, y + height);
+	gral_draw_context_close_path(draw_context);
+}
+
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
-	gral_draw_context_add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
-	gral_draw_context_add_rectangle(draw_context, 20.f, 220.f, 160.f, 160.f);
-	gral_draw_context_add_rectangle(draw_context, 220.f, 220.f, 160.f, 160.f);
+	add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
+	add_rectangle(draw_context, 20.f, 220.f, 160.f, 160.f);
+	add_rectangle(draw_context, 220.f, 220.f, 160.f, 160.f);
 	gral_draw_context_fill(draw_context, .7f, .7f, .7f, 1.f);
 }
 

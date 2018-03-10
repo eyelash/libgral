@@ -13,6 +13,14 @@ static int close(void *user_data) {
 	return 1;
 }
 
+static void add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
+	gral_draw_context_move_to(draw_context, x, y);
+	gral_draw_context_line_to(draw_context, x + width, y);
+	gral_draw_context_line_to(draw_context, x + width, y + height);
+	gral_draw_context_line_to(draw_context, x, y + height);
+	gral_draw_context_close_path(draw_context);
+}
+
 static void add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float sweep_angle) {
 	float h = 4.f / 3.f * tanf(sweep_angle / 4.f);
 	float cos_start = cosf(start_angle) * radius;
@@ -65,11 +73,11 @@ static void add_star(struct gral_draw_context *draw_context, float x, float y, f
 }
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
-	gral_draw_context_add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
+	add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
 	gral_draw_context_fill(draw_context, .9f, .1f, .1f, 1.f);
-	gral_draw_context_add_rectangle(draw_context, 220.f, 20.f, 160.f, 160.f);
+	add_rectangle(draw_context, 220.f, 20.f, 160.f, 160.f);
 	gral_draw_context_stroke(draw_context, 4.f, .1f, .1f, .9f, 1.f);
-	gral_draw_context_add_rectangle(draw_context, 420.f, 20.f, 160.f, 160.f);
+	add_rectangle(draw_context, 420.f, 20.f, 160.f, 160.f);
 	struct gral_gradient_stop stops[] = {
 		{0.f, .9f, .1f, .1f, 1.f},
 		{.3f, .9f, .9f, .1f, 1.f},

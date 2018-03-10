@@ -403,14 +403,6 @@ void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float
 	draw_context->sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), point));
 }
 
-void gral_draw_context_add_rectangle(gral_draw_context *draw_context, float x, float y, float width, float height) {
-	gral_draw_context_move_to(draw_context, x, y);
-	gral_draw_context_line_to(draw_context, x+width, y);
-	gral_draw_context_line_to(draw_context, x+width, y+height);
-	gral_draw_context_line_to(draw_context, x, y+height);
-	gral_draw_context_close_path(draw_context);
-}
-
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);

@@ -13,16 +13,24 @@ static int close(void *user_data) {
 	return 1;
 }
 
+static void add_rectangle(struct gral_draw_context *draw_context, float x, float y, float width, float height) {
+	gral_draw_context_move_to(draw_context, x, y);
+	gral_draw_context_line_to(draw_context, x + width, y);
+	gral_draw_context_line_to(draw_context, x + width, y + height);
+	gral_draw_context_line_to(draw_context, x, y + height);
+	gral_draw_context_close_path(draw_context);
+}
+
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	struct demo *demo = user_data;
 	float width = gral_text_get_width(demo->text, draw_context);
 	float height = demo->ascent + demo->descent;
-	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f, width, 1.f);
+	add_rectangle(draw_context, 50.f, 50.f, width, 1.f);
 	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, 1.f);
-	gral_draw_context_add_rectangle(draw_context, 50.f, 50.f - demo->ascent, width, height);
+	add_rectangle(draw_context, 50.f, 50.f - demo->ascent, width, height);
 	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, .2f);
 	gral_draw_context_draw_text(draw_context, demo->text, 50.f, 50.f, 0.f, 0.f, 1.f, 1.f);
-	gral_draw_context_add_rectangle(draw_context, 50.f + demo->cursor_x, 50.f - demo->ascent, 1.f, height);
+	add_rectangle(draw_context, 50.f + demo->cursor_x, 50.f - demo->ascent, 1.f, height);
 	gral_draw_context_fill(draw_context, 1.f, 0.f, 0.f, 1.f);
 }
 
