@@ -384,6 +384,17 @@ void gral_window_set_timer(struct gral_window *window, int milliseconds) {
     FILE
  =========*/
 
+FILE *gral_fopen(const char *file_name, const char *mode) {
+	return fopen(file_name, mode);
+}
+
+size_t gral_file_get_size(FILE *file) {
+	int fd = fileno(file);
+	struct stat stat;
+	fstat(fd, &stat);
+	return stat.st_size;
+}
+
 void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data) {
 	gchar *contents;
 	gsize length;

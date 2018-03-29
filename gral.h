@@ -15,6 +15,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -117,6 +118,9 @@ void gral_window_set_timer(struct gral_window *window, int milliseconds);
 /*=========
     FILE
  =========*/
+
+FILE *gral_fopen(const char *file_name, const char *mode);
+size_t gral_file_get_size(FILE *file);
 
 void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data);
 void gral_file_write(const char *file, const char *data, size_t size);
