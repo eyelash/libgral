@@ -60,6 +60,7 @@ struct gral_window_interface {
 	void (*paste)(const char *text, void *user_data);
 	int (*timer)(void *user_data);
 };
+struct gral_file;
 
 
 /*================
@@ -118,8 +119,15 @@ void gral_window_set_timer(struct gral_window *window, int milliseconds);
     FILE
  =========*/
 
-void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data);
-void gral_file_write(const char *file, const char *data, size_t size);
+struct gral_file *gral_file_open_read(const char *path);
+struct gral_file *gral_file_open_write(const char *path);
+struct gral_file *gral_file_get_stdin(void);
+struct gral_file *gral_file_get_stdout(void);
+struct gral_file *gral_file_get_stderr(void);
+void gral_file_close(struct gral_file *file);
+size_t gral_file_read(struct gral_file *file, void *buffer, size_t size);
+void gral_file_write(struct gral_file *file, const void *buffer, size_t size);
+size_t gral_file_get_size(struct gral_file *file);
 
 
 /*==========
