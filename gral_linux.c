@@ -390,12 +390,12 @@ void gral_window_set_timer(struct gral_window *window, int milliseconds) {
 
 struct gral_file *gral_file_open_read(const char *path) {
 	int fd = open(path, O_RDONLY);
-	return fd == -1 ? NULL : (struct gral_file *)fd;
+	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
 
 struct gral_file *gral_file_open_write(const char *path) {
 	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-	return fd == -1 ? NULL : (struct gral_file *)fd;
+	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
 
 struct gral_file *gral_file_get_stdin(void) {
@@ -411,20 +411,20 @@ struct gral_file *gral_file_get_stderr(void) {
 }
 
 void gral_file_close(struct gral_file *file) {
-	close((int)file);
+	close((int)(intptr_t)file);
 }
 
 size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
-	return read((int)file, buffer, size);
+	return read((int)(intptr_t)file, buffer, size);
 }
 
 void gral_file_write(struct gral_file *file, const void *buffer, size_t size) {
-	write((int)file, buffer, size);
+	write((int)(intptr_t)file, buffer, size);
 }
 
 size_t gral_file_get_size(struct gral_file *file) {
 	struct stat stat;
-	fstat((int)file, &stat);
+	fstat((int)(intptr_t)file, &stat);
 	return stat.st_size;
 }
 

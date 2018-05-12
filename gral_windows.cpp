@@ -547,7 +547,7 @@ void gral_window_set_cursor(gral_window *window, int cursor) {
 }
 
 void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
-	wchar_t file_name[MAX_PATH];
+	WCHAR file_name[MAX_PATH];
 	file_name[0] = '\0';
 	OPENFILENAME ofn;
 	ZeroMemory(&ofn, sizeof(ofn));
@@ -562,7 +562,7 @@ void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(con
 }
 
 void gral_window_show_save_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
-	wchar_t file_name[MAX_PATH];
+	WCHAR file_name[MAX_PATH];
 	file_name[0] = '\0';
 	OPENFILENAME ofn;
 	ZeroMemory(&ofn, sizeof(ofn));
@@ -609,27 +609,45 @@ void gral_window_set_timer(gral_window *window, int milliseconds) {
     FILE
  =========*/
 
-void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data) {
-	HANDLE handle = CreateFile(utf8_to_utf16(file), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (handle == INVALID_HANDLE_VALUE) {
-		return;
-	}
-	DWORD size = GetFileSize(handle, NULL);
-	Buffer<char> buffer(size);
-	DWORD bytes_read;
-	ReadFile(handle, buffer, size, &bytes_read, NULL);
-	CloseHandle(handle);
-	callback(buffer, size, user_data);
+gral_file *gral_file_open_read(const char *path) {
+	HANDLE handle = CreateFile(utf8_to_utf16(path), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	return handle == INVALID_HANDLE_VALUE ? NULL : (gral_file *)handle;
 }
 
-void gral_file_write(const char *file, const char *data, size_t size) {
-	HANDLE handle = CreateFile(utf8_to_utf16(file), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (handle == INVALID_HANDLE_VALUE) {
-		return;
-	}
+gral_file *gral_file_open_write(const char *path) {
+	HANDLE handle = CreateFile(utf8_to_utf16(path), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	return handle == INVALID_HANDLE_VALUE ? NULL : (gral_file *)handle;
+}
+
+gral_file *gral_file_get_stdin() {
+	return (gral_file *)GetStdHandle(STD_INPUT_HANDLE);
+}
+
+gral_file *gral_file_get_stdout() {
+	return (gral_file *)GetStdHandle(STD_OUTPUT_HANDLE);
+}
+
+gral_file *gral_file_get_stderr() {
+	return (gral_file *)GetStdHandle(STD_ERROR_HANDLE);
+}
+
+void gral_file_close(gral_file *file) {
+	CloseHandle(file);
+}
+
+size_t gral_file_read(gral_file *file, void *buffer, size_t size) {
+	DWORD bytes_read;
+	ReadFile(file, buffer, size, &bytes_read, NULL);
+	return bytes_read;
+}
+
+void gral_file_write(gral_file *file, const void *buffer, size_t size) {
 	DWORD bytes_written;
-	WriteFile(handle, data, size, &bytes_written, NULL);
-	CloseHandle(handle);
+	WriteFile(file, buffer, size, &bytes_written, NULL);
+}
+
+size_t gral_file_get_size(gral_file *file) {
+	return GetFileSize(file, NULL);
 }
 
 
