@@ -12,7 +12,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "gral.h"
 #import <Cocoa/Cocoa.h>
-#import <AudioToolbox/AudioToolbox.h>
 
 
 /*================
@@ -487,10 +486,17 @@ size_t gral_file_get_size(struct gral_file *file) {
     AUDIO
  ==========*/
 
+#import <AudioToolbox/AudioToolbox.h>
+
+typedef struct {
+	int (*callback)(int16_t *buffer, int frames, void *user_data);
+	void *user_data;
+} CallbackData;
+
 static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
-	int (*callback)(int16_t *buffer, int frames) = user_data;
+	CallbackData *callback_data = user_data;
 	int frames = buffer->mAudioDataBytesCapacity / (2 * sizeof(int16_t));
-	if (callback(buffer->mAudioData, frames, NULL)) {
+	if (callback_data->callback(buffer->mAudioData, frames, callback_data->user_data)) {
 		buffer->mAudioDataByteSize = buffer->mAudioDataBytesCapacity;
 		AudioQueueEnqueueBuffer(queue, buffer, buffer->mPacketDescriptionCount, buffer->mPacketDescriptions);
 	}
@@ -501,6 +507,7 @@ static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBuffe
 }
 
 void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
+	CallbackData callback_data = {callback, user_data};
 	AudioQueueRef queue;
 	AudioStreamBasicDescription format = {
 		.mSampleRate = 44100,
@@ -512,11 +519,11 @@ void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_dat
 		.mChannelsPerFrame = 2,
 		.mBitsPerChannel = sizeof(int16_t) * 8
 	};
-	AudioQueueNewOutput(&format, &audio_callback, callback, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue);
+	AudioQueueNewOutput(&format, &audio_callback, &callback_data, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue);
 	AudioQueueBufferRef buffers[3];
 	for (int i = 0; i < 3; i++) {
 		AudioQueueAllocateBuffer(queue, 1024 * 2 * sizeof(int16_t), &buffers[i]);
-		audio_callback(callback, queue, buffers[i]);
+		audio_callback(&callback_data, queue, buffers[i]);
 	}
 	AudioQueueStart(queue, NULL);
 	CFRunLoopRun();
