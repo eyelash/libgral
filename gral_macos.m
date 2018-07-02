@@ -395,8 +395,17 @@ void gral_window_set_minimum_size(struct gral_window *window, int minimum_width,
 	[(GralWindow *)window setContentMinSize:NSMakeSize(minimum_width, minimum_height)];
 }
 
+static NSCursor *get_cursor(int cursor) {
+	switch (cursor) {
+	case GRAL_CURSOR_DEFAULT: return NSCursor.arrowCursor;
+	case GRAL_CURSOR_TEXT: return NSCursor.IBeamCursor;
+	case GRAL_CURSOR_HORIZONTAL_ARROWS: return NSCursor.resizeLeftRightCursor;
+	case GRAL_CURSOR_VERTICAL_ARROWS: return NSCursor.resizeUpDownCursor;
+	default: return NULL;
+	}
+}
 void gral_window_set_cursor(struct gral_window *window, int cursor) {
-	// TODO: implement
+	[get_cursor(cursor) set];
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
