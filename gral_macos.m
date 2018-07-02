@@ -438,15 +438,48 @@ void gral_window_set_timer(struct gral_window *window, int milliseconds) {
     FILE
  =========*/
 
-void gral_file_read(const char *file, void (*callback)(const char *data, size_t size, void *user_data), void *user_data) {
-	NSData *data = [NSData dataWithContentsOfFile:[NSString stringWithUTF8String:file]];
-	if (data) {
-		callback(data.bytes, data.length, user_data);
-	}
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
+struct gral_file *gral_file_open_read(const char *path) {
+	int fd = open(path, O_RDONLY);
+	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
 
-void gral_file_write(const char *file, const char *data, size_t size) {
-	[[NSData dataWithBytesNoCopy:(char *)data length:size freeWhenDone:NO] writeToFile:[NSString stringWithUTF8String:file] atomically:YES];
+struct gral_file *gral_file_open_write(const char *path) {
+	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
+}
+
+struct gral_file *gral_file_get_stdin(void) {
+	return (struct gral_file *)STDIN_FILENO;
+}
+
+struct gral_file *gral_file_get_stdout(void) {
+	return (struct gral_file *)STDOUT_FILENO;
+}
+
+struct gral_file *gral_file_get_stderr(void) {
+	return (struct gral_file *)STDERR_FILENO;
+}
+
+void gral_file_close(struct gral_file *file) {
+	close((int)(intptr_t)file);
+}
+
+size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
+	return read((int)(intptr_t)file, buffer, size);
+}
+
+void gral_file_write(struct gral_file *file, const void *buffer, size_t size) {
+	write((int)(intptr_t)file, buffer, size);
+}
+
+size_t gral_file_get_size(struct gral_file *file) {
+	struct stat stat;
+	fstat((int)(intptr_t)file, &stat);
+	return stat.st_size;
 }
 
 
