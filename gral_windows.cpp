@@ -422,20 +422,20 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
-void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const gral_gradient_stop *stops, int count) {
+void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, float start_red, float start_green, float start_blue, float start_alpha, float end_red, float end_green, float end_blue, float end_alpha) {
 	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
 		draw_context->open = false;
 	}
 	draw_context->sink->Close();
 
-	Buffer<D2D1_GRADIENT_STOP> gradient_stops(count);
-	for (int i = 0; i < count; i++) {
-		gradient_stops[i].position = stops[i].position;
-		gradient_stops[i].color = D2D1::ColorF(stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
-	}
+	D2D1_GRADIENT_STOP gradient_stops[2];
+	gradient_stops[0].position = 0.f;
+	gradient_stops[0].color = D2D1::ColorF(start_red, start_green, start_blue, start_alpha);
+	gradient_stops[1].position = 1.f;
+	gradient_stops[1].color = D2D1::ColorF(end_red, end_green, end_blue, end_alpha);
 	ID2D1GradientStopCollection *gradient_stop_collection;
-	draw_context->target->CreateGradientStopCollection(gradient_stops, count, &gradient_stop_collection);
+	draw_context->target->CreateGradientStopCollection(gradient_stops, 2, &gradient_stop_collection);
 	ID2D1LinearGradientBrush *brush;
 	draw_context->target->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(start_x, start_y), D2D1::Point2F(end_x, end_y)), gradient_stop_collection, &brush);
 	draw_context->target->FillGeometry(draw_context->path, brush);

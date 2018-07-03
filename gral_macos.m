@@ -178,21 +178,17 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	CGContextFillPath((CGContextRef)draw_context);
 }
 
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count) {
-	CGFloat *locations = malloc(count*sizeof(CGFloat));
-	CFMutableArrayRef colorArray = CFArrayCreateMutable(kCFAllocatorDefault, count, &kCFTypeArrayCallBacks);
-	for (int i = 0; i < count; i++) {
-		locations[i] = stops[i].position;
-		CFArrayAppendValue(colorArray, [[NSColor colorWithRed:stops[i].red green:stops[i].green blue:stops[i].blue alpha:stops[i].alpha] CGColor]);
-	}
-	CGGradientRef gradient = CGGradientCreateWithColors(NULL, colorArray, locations);
-	free(locations);
-	CFRelease(colorArray);
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, float start_red, float start_green, float start_blue, float start_alpha, float end_red, float end_green, float end_blue, float end_alpha) {
+	CGFloat components[] = {start_red, start_green, start_blue, start_alpha, end_red, end_green, end_blue, end_alpha};
+	CGFloat locations[] = {0.f, 1.f};
+	CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+	CGGradientRef gradient = CGGradientCreateWithColorComponents(color_space, components, locations, 2);
 	CGContextSaveGState((CGContextRef)draw_context);
 	CGContextClip((CGContextRef)draw_context);
 	CGContextDrawLinearGradient((CGContextRef)draw_context, gradient, CGPointMake(start_x, start_y), CGPointMake(end_x, end_y), kCGGradientDrawsBeforeStartLocation|kCGGradientDrawsAfterEndLocation);
 	CGContextRestoreGState((CGContextRef)draw_context);
 	CGGradientRelease(gradient);
+	CGColorSpaceRelease(color_space);
 }
 
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {

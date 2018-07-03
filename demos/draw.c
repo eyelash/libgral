@@ -78,12 +78,13 @@ static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	add_rectangle(draw_context, 220.f, 20.f, 160.f, 160.f);
 	gral_draw_context_stroke(draw_context, 4.f, .1f, .1f, .9f, 1.f);
 	add_rectangle(draw_context, 420.f, 20.f, 160.f, 160.f);
-	struct gral_gradient_stop stops[] = {
-		{0.f, .9f, .1f, .1f, 1.f},
-		{.3f, .9f, .9f, .1f, 1.f},
-		{1.f, .1f, .9f, .1f, 1.f}
-	};
-	gral_draw_context_fill_linear_gradient(draw_context, 420.f, 20.f, 580.f, 100.f, stops, 3);
+	gral_draw_context_fill_linear_gradient(
+		draw_context,
+		450.f, 90.f,
+		550.f, 110.f,
+		.1f, .9f, .1f, 1.f,
+		.9f, .9f, .1f, 1.f
+	);
 	add_circle(draw_context, 20.f, 220.f, 160.f);
 	add_rounded_rectangle(draw_context, 220.f, 220.f, 160.f, 160.f, 20.f);
 	add_star(draw_context, 420.f, 220.f, 160.f);
