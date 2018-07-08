@@ -98,7 +98,6 @@ static void initialize(void *user_data) {
 	gral_text_set_bold(demo->text, 5, 9);
 	demo->cursor_x = 0.f;
 	gral_font_get_metrics(demo->window, 16.f, &demo->ascent, &demo->descent);
-	gral_window_show(demo->window);
 }
 
 int main(int argc, char **argv) {

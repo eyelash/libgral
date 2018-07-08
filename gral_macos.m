@@ -368,19 +368,12 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	[trackingArea release];
 	[window setContentView:view];
 	[view release];
+	[window makeKeyAndOrderFront:nil];
 	return (struct gral_window *)window;
 }
 
 void gral_window_delete(struct gral_window *window) {
 	[(GralWindow *)window release];
-}
-
-void gral_window_show(struct gral_window *window) {
-	[(GralWindow *)window makeKeyAndOrderFront:nil];
-}
-
-void gral_window_hide(struct gral_window *window) {
-	// TODO: implement
 }
 
 void gral_window_request_redraw(struct gral_window *window) {

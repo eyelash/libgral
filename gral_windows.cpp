@@ -505,19 +505,12 @@ gral_window *gral_window_create(gral_application *application, int width, int he
 	window_data->target = NULL;
 	window_data->cursor = LoadCursor(NULL, IDC_ARROW);
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)window_data);
+	ShowWindow(hwnd, SW_SHOW);
 	return (gral_window *)hwnd;
 }
 
 void gral_window_delete(gral_window *window) {
 
-}
-
-void gral_window_show(gral_window *window) {
-	ShowWindow((HWND)window, SW_SHOW);
-}
-
-void gral_window_hide(gral_window *window) {
-	// TODO: implement
 }
 
 void gral_window_request_redraw(gral_window *window) {

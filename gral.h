@@ -96,8 +96,6 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context);
 
 struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, const struct gral_window_interface *interface, void *user_data);
 void gral_window_delete(struct gral_window *window);
-void gral_window_show(struct gral_window *window);
-void gral_window_hide(struct gral_window *window);
 void gral_window_request_redraw(struct gral_window *window);
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height);
 void gral_window_set_cursor(struct gral_window *window, int cursor);

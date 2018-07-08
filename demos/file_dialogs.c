@@ -79,7 +79,6 @@ static void initialize(void *user_data) {
 		&timer
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral file dialog demo", &interface, demo);
-	gral_window_show(demo->window);
 }
 
 int main(int argc, char **argv) {

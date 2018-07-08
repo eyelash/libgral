@@ -300,20 +300,12 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	gtk_window_set_title(GTK_WINDOW(window), title);
 	GtkWidget *area = g_object_new(GRAL_TYPE_AREA, NULL);
 	gtk_container_add(GTK_CONTAINER(window), area);
-	gtk_widget_show(area);
+	gtk_widget_show_all(GTK_WIDGET(window));
 	return (struct gral_window *)window;
 }
 
 void gral_window_delete(struct gral_window *window) {
 	g_object_unref(window);
-}
-
-void gral_window_show(struct gral_window *window) {
-	gtk_widget_show(GTK_WIDGET(window));
-}
-
-void gral_window_hide(struct gral_window *window) {
-	gtk_widget_hide(GTK_WIDGET(window));
 }
 
 void gral_window_request_redraw(struct gral_window *window) {

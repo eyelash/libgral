@@ -75,7 +75,6 @@ static void initialize(void *user_data) {
 		&timer
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral clipboard demo", &interface, demo);
-	gral_window_show(demo->window);
 }
 
 int main(int argc, char **argv) {
