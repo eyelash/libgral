@@ -54,7 +54,7 @@ static void mouse_button_press(float x, float y, int button, void *user_data) {
 	struct demo *demo = user_data;
 	int index = gral_text_x_to_index(demo->text, x - 50.f);
 	demo->cursor_x = gral_text_index_to_x(demo->text, index);
-	gral_window_request_redraw(demo->window);
+	gral_window_request_redraw(demo->window, 0, 0, 600, 400);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {

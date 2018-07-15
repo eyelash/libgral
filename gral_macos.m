@@ -376,8 +376,8 @@ void gral_window_delete(struct gral_window *window) {
 	[(GralWindow *)window release];
 }
 
-void gral_window_request_redraw(struct gral_window *window) {
-	[[(GralWindow *)window contentView] setNeedsDisplay:YES];
+void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height) {
+	[[(GralWindow *)window contentView] setNeedsDisplayInRect:NSMakeRect(x, y, width, height)];
 }
 
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height) {

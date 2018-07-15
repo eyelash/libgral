@@ -513,8 +513,13 @@ void gral_window_delete(gral_window *window) {
 
 }
 
-void gral_window_request_redraw(gral_window *window) {
-	RedrawWindow((HWND)window, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
+void gral_window_request_redraw(gral_window *window, int x, int y, int width, int height) {
+	RECT rect;
+	rect.left = x;
+	rect.top = y;
+	rect.right = x + width;
+	rect.bottom = y + height;
+	RedrawWindow((HWND)window, &rect, NULL, RDW_ERASE|RDW_INVALIDATE);
 }
 
 void gral_window_set_minimum_size(gral_window *window, int minimum_width, int minimum_height) {

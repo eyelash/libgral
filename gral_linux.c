@@ -308,8 +308,8 @@ void gral_window_delete(struct gral_window *window) {
 	g_object_unref(window);
 }
 
-void gral_window_request_redraw(struct gral_window *window) {
-	gtk_widget_queue_draw(GTK_WIDGET(window));
+void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height) {
+	gtk_widget_queue_draw_area(GTK_WIDGET(window), x, y, width, height);
 }
 
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height) {
