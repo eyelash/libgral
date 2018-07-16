@@ -13,6 +13,47 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "gral.h"
 #import <Cocoa/Cocoa.h>
 
+static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
+	NSUInteger i16 = 0;
+	for (int i8 = 0; i8 < index; i16++) {
+		unichar c1 = [string characterAtIndex:i16];
+		uint32_t c; // UTF-32 code point
+		if ((c1 & 0xFC00) == 0xD800) {
+			i16++;
+			unichar c2 = [string characterAtIndex:i16];
+			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
+		}
+		else {
+			c = c1;
+		}
+		if (c <= 0x7F) i8 += 1;
+		else if (c <= 0x7FF) i8 += 2;
+		else if (c <= 0xFFFF) i8 += 3;
+		else i8 += 4;
+	}
+	return i16;
+}
+static int utf16_index_to_utf8(NSString *string, NSUInteger index) {
+	int i8 = 0;
+	for (NSUInteger i16 = 0; i16 < index; i16++) {
+		unichar c1 = [string characterAtIndex:i16];
+		uint32_t c; // UTF-32 code point
+		if ((c1 & 0xFC00) == 0xD800) {
+			i16++;
+			unichar c2 = [string characterAtIndex:i16];
+			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
+		}
+		else {
+			c = c1;
+		}
+		if (c <= 0x7F) i8 += 1;
+		else if (c <= 0x7FF) i8 += 2;
+		else if (c <= 0xFFFF) i8 += 3;
+		else i8 += 4;
+	}
+	return i8;
+}
+
 
 /*================
     APPLICATION
@@ -81,27 +122,9 @@ float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw
 }
 
 float gral_text_index_to_x(struct gral_text *text, int index) {
-	// convert UTF-8 index to UTF-16
-	NSUInteger i16 = 0;
-	NSString *string = [(NSAttributedString *)text string];
-	for (int i8 = 0; i8 < index; i16++) {
-		unichar c1 = [string characterAtIndex:i16];
-		uint32_t c; // UTF-32 code point
-		if ((c1 & 0xFC00) == 0xD800) {
-			i16++;
-			unichar c2 = [string characterAtIndex:i16];
-			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
-		}
-		else {
-			c = c1;
-		}
-		if (c <= 0x7F) i8 += 1;
-		else if (c <= 0x7FF) i8 += 2;
-		else if (c <= 0xFFFF) i8 += 3;
-		else i8 += 4;
-	}
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
-	CGFloat offset = CTLineGetOffsetForStringIndex(line, i16, NULL);
+	NSString *string = [(NSAttributedString *)text string];
+	CGFloat offset = CTLineGetOffsetForStringIndex(line, utf8_index_to_utf16(string, index), NULL);
 	CFRelease(line);
 	return offset;
 }
@@ -110,26 +133,8 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
 	CFIndex index = CTLineGetStringIndexForPosition(line, CGPointMake(x, 0.f));
 	CFRelease(line);
-	// convert UTF-16 index to UTF-8
-	int i8 = 0;
 	NSString *string = [(NSAttributedString *)text string];
-	for (NSUInteger i16 = 0; i16 < index; i16++) {
-		unichar c1 = [string characterAtIndex:i16];
-		uint32_t c; // UTF-32 code point
-		if ((c1 & 0xFC00) == 0xD800) {
-			i16++;
-			unichar c2 = [string characterAtIndex:i16];
-			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
-		}
-		else {
-			c = c1;
-		}
-		if (c <= 0x7F) i8 += 1;
-		else if (c <= 0x7FF) i8 += 2;
-		else if (c <= 0xFFFF) i8 += 3;
-		else i8 += 4;
-	}
-	return i8;
+	return utf16_index_to_utf8(string, index);
 }
 
 void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
@@ -277,7 +282,9 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 	interface.mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseDown:(NSEvent *)event {
-	//interface.mouse_button_press(3, user_data);
+	NSPoint location = [event locationInWindow];
+	location = [self convertPoint:location fromView:nil];
+	interface.mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
 }
 - (void)mouseUp:(NSEvent *)event {
 	NSPoint location = [event locationInWindow];
@@ -290,7 +297,9 @@ void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
 	interface.mouse_button_release(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseUp:(NSEvent *)event {
-	//interface.mouse_button_release(3, user_data);
+	NSPoint location = [event locationInWindow];
+	location = [self convertPoint:location fromView:nil];
+	interface.mouse_button_release(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
 }
 - (void)scrollWheel:(NSEvent *)event {
 	interface.scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
@@ -486,6 +495,8 @@ size_t gral_file_get_size(struct gral_file *file) {
 
 #import <AudioToolbox/AudioToolbox.h>
 
+#define FRAMES 1024
+
 typedef struct {
 	int (*callback)(int16_t *buffer, int frames, void *user_data);
 	void *user_data;
@@ -494,8 +505,9 @@ typedef struct {
 static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
 	CallbackData *callback_data = user_data;
 	int frames = buffer->mAudioDataBytesCapacity / (2 * sizeof(int16_t));
-	if (callback_data->callback(buffer->mAudioData, frames, callback_data->user_data)) {
-		buffer->mAudioDataByteSize = buffer->mAudioDataBytesCapacity;
+	frames = callback_data->callback(buffer->mAudioData, frames, callback_data->user_data);
+	if (frames > 0) {
+		buffer->mAudioDataByteSize = frames * 2 * sizeof(int16_t);
 		AudioQueueEnqueueBuffer(queue, buffer, buffer->mPacketDescriptionCount, buffer->mPacketDescriptions);
 	}
 	else {
@@ -520,7 +532,7 @@ void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_dat
 	AudioQueueNewOutput(&format, &audio_callback, &callback_data, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue);
 	AudioQueueBufferRef buffers[3];
 	for (int i = 0; i < 3; i++) {
-		AudioQueueAllocateBuffer(queue, 1024 * 2 * sizeof(int16_t), &buffers[i]);
+		AudioQueueAllocateBuffer(queue, FRAMES * 2 * sizeof(int16_t), &buffers[i]);
 		audio_callback(&callback_data, queue, buffers[i]);
 	}
 	AudioQueueStart(queue, NULL);
