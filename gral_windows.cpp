@@ -15,24 +15,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define _UNICODE
 #include <Windows.h>
 #include <windowsx.h>
-#include <d2d1.h>
-#include <dwrite.h>
+#include <gdiplus.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
 static HINSTANCE hInstance;
-static ID2D1Factory *factory;
-static ID2D1StrokeStyle *stroke_style;
-static IDWriteFactory *dwrite_factory;
+static ULONG_PTR gdi_token;
 
 struct gral_draw_context {
-	ID2D1HwndRenderTarget *target;
-	ID2D1PathGeometry *path;
-	ID2D1GeometrySink *sink;
-	bool open;
-	gral_draw_context(): open(false) {}
+	Gdiplus::Graphics graphics;
+	Gdiplus::GraphicsPath path;
+	Gdiplus::PointF point;
+	gral_draw_context(HDC hdc): graphics(hdc), path(Gdiplus::FillModeWinding) {
+		graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+		graphics.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHalf);
+	}
 };
 
 template <class T> class Buffer {
@@ -95,7 +94,6 @@ static void adjust_window_size(int &width, int &height) {
 struct WindowData {
 	gral_window_interface iface;
 	void *user_data;
-	ID2D1HwndRenderTarget *target;
 	bool mouse_inside;
 	int minimum_width, minimum_height;
 	HCURSOR cursor;
@@ -116,27 +114,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 	case WM_PAINT: {
-		if (window_data->target == NULL) {
-			RECT rc;
-			GetClientRect(hwnd, &rc);
-			D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
-			factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size), &window_data->target);
-		}
-		gral_draw_context draw_context;
-		draw_context.target = window_data->target;
-		factory->CreatePathGeometry(&draw_context.path);
-		draw_context.path->Open(&draw_context.sink);
-		draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
-		draw_context.target->BeginDraw();
-		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hwnd, &ps);
+		gral_draw_context draw_context(hdc);
 		window_data->iface.draw(&draw_context, window_data->user_data);
-		if (draw_context.target->EndDraw() == D2DERR_RECREATE_TARGET) {
-			draw_context.target->Release();
-			window_data->target = NULL;
-		}
-		draw_context.sink->Release();
-		draw_context.path->Release();
-		ValidateRect(hwnd, NULL);
+		EndPaint(hwnd, &ps);
 		return 0;
 	}
 	case WM_MOUSEMOVE: {
@@ -222,9 +204,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		WORD width = LOWORD(lParam);
 		WORD height = HIWORD(lParam);
 		window_data->iface.resize(width, height, window_data->user_data);
-		if (window_data->target) {
-			window_data->target->Resize(D2D1::SizeU(width, height));
-		}
 		RedrawWindow(hwnd, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
@@ -243,9 +222,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_DESTROY: {
-		if (window_data->target) {
-			window_data->target->Release();
-		}
 		delete window_data;
 		PostQuitMessage(0);
 		return 0;
@@ -257,9 +233,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 gral_application *gral_application_create(const char *id, const gral_application_interface *iface, void *user_data) {
 	hInstance = GetModuleHandle(NULL);
-	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
-	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
-	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown **)&dwrite_factory);
+	Gdiplus::GdiplusStartupInput startup_input;
+	Gdiplus::GdiplusStartup(&gdi_token, &startup_input, NULL);
 	WNDCLASS window_class;
 	window_class.style = 0;
 	window_class.lpfnWndProc = &WndProc;
@@ -279,9 +254,7 @@ gral_application *gral_application_create(const char *id, const gral_application
 }
 
 void gral_application_delete(gral_application *application) {
-	factory->Release();
-	stroke_style->Release();
-	dwrite_factory->Release();
+	Gdiplus::GdiplusShutdown(gdi_token);
 }
 
 int gral_application_run(gral_application *application, int argc, char **argv) {
@@ -299,22 +272,16 @@ int gral_application_run(gral_application *application, int argc, char **argv) {
     DRAWING
  ============*/
 
+static Gdiplus::Color make_color(float r, float g, float b, float a) {
+	return Gdiplus::Color((BYTE)(a*255), (BYTE)(r*255), (BYTE)(g*255), (BYTE)(b*255));
+}
+
 gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
-	NONCLIENTMETRICS ncm;
-	ncm.cbSize = sizeof(NONCLIENTMETRICS);
-	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
-	IDWriteTextFormat *format;
-	dwrite_factory->CreateTextFormat(ncm.lfMessageFont.lfFaceName, NULL, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size, L"en", &format);
-	IDWriteTextLayout *layout;
-	Buffer<wchar_t> utf16 = utf8_to_utf16(utf8);
-	dwrite_factory->CreateTextLayout(utf16, utf16.get_length(), format, INFINITY, INFINITY, &layout);
-	format->Release();
-	return (gral_text *)layout;
+	return NULL;
 }
 
 void gral_text_delete(gral_text *text) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
-	layout->Release();
+	
 }
 
 void gral_text_set_bold(gral_text *text, int start_index, int end_index) {
@@ -322,173 +289,73 @@ void gral_text_set_bold(gral_text *text, int start_index, int end_index) {
 }
 
 float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
-	DWRITE_TEXT_METRICS metrics;
-	layout->GetMetrics(&metrics);
-	return metrics.width;
+	return 0.f;
 }
 
 float gral_text_index_to_x(gral_text *text, int index) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
-	float x, y;
-	DWRITE_HIT_TEST_METRICS metrics;
-	// TODO: convert UTF-8 index to UTF-16
-	layout->HitTestTextPosition(index, false, &x, &y, &metrics);
-	return x;
+	return 0.f;
 }
 
 int gral_text_x_to_index(gral_text *text, float x) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
-	BOOL trailing, inside;
-	DWRITE_HIT_TEST_METRICS metrics;
-	layout->HitTestPoint(x, 0.f, &trailing, &inside, &metrics);
-	// TODO: convert UTF-16 index to UTF-8
-	return inside && trailing ? metrics.textPosition + metrics.length : metrics.textPosition;
+	return 0;
 }
 
 void gral_font_get_metrics(gral_window *window, float size, float *ascent, float *descent) {
-	NONCLIENTMETRICS ncm;
-	ncm.cbSize = sizeof(NONCLIENTMETRICS);
-	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
-	IDWriteFontCollection *font_collection;
-	dwrite_factory->GetSystemFontCollection(&font_collection, false);
-	UINT32 index;
-	BOOL exists;
-	font_collection->FindFamilyName(ncm.lfMessageFont.lfFaceName, &index, &exists);
-	IDWriteFontFamily *font_family;
-	font_collection->GetFontFamily(index, &font_family);
-	IDWriteFont *font;
-	font_family->GetFirstMatchingFont(DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, &font);
-	DWRITE_FONT_METRICS metrics;
-	font->GetMetrics(&metrics);
-	if (ascent) *ascent = (float)metrics.ascent / (float)metrics.designUnitsPerEm * size;
-	if (descent) *descent = (float)metrics.descent / (float)metrics.designUnitsPerEm * size;
-	font->Release();
-	font_family->Release();
-	font_collection->Release();
+	
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
-	DWRITE_LINE_METRICS line_metrics;
-	UINT32 count = 1;
-	layout->GetLineMetrics(&line_metrics, count, &count);
-	ID2D1SolidColorBrush *brush;
-	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
-	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y-line_metrics.baseline), layout, brush);
-	brush->Release();
+	
 }
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
-	draw_context->sink->EndFigure(D2D1_FIGURE_END_CLOSED);
-	draw_context->open = false;
+	draw_context->path.CloseFigure();
 }
 
 void gral_draw_context_move_to(gral_draw_context *draw_context, float x, float y) {
-	D2D1_POINT_2F point = D2D1::Point2F(x, y);
-	if (draw_context->open) {
-		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-	}
-	draw_context->sink->BeginFigure(point, D2D1_FIGURE_BEGIN_FILLED);
-	draw_context->open = true;
+	draw_context->path.StartFigure();
+	draw_context->point = Gdiplus::PointF(x, y);
 }
 
 void gral_draw_context_line_to(gral_draw_context *draw_context, float x, float y) {
-	D2D1_POINT_2F point = D2D1::Point2F(x, y);
-	draw_context->sink->AddLine(point);
+	draw_context->path.AddLine(draw_context->point, Gdiplus::PointF(x, y));
+	draw_context->point = Gdiplus::PointF(x, y);
 }
 
 void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y) {
-	D2D1_POINT_2F point = D2D1::Point2F(x, y);
-	draw_context->sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), point));
+	draw_context->path.AddBezier(draw_context->point, Gdiplus::PointF(x1, y1), Gdiplus::PointF(x2, y2), Gdiplus::PointF(x, y));
+	draw_context->point = Gdiplus::PointF(x, y);
 }
 
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
-	if (draw_context->open) {
-		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->open = false;
-	}
-	draw_context->sink->Close();
-
-	ID2D1SolidColorBrush *brush;
-	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
-	draw_context->target->FillGeometry(draw_context->path, brush);
-	brush->Release();
-
-	draw_context->sink->Release();
-	draw_context->path->Release();
-	factory->CreatePathGeometry(&draw_context->path);
-	draw_context->path->Open(&draw_context->sink);
-	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+	Gdiplus::SolidBrush brush(make_color(red, green, blue, alpha));
+	draw_context->graphics.FillPath(&brush, &draw_context->path);
+	draw_context->path.Reset();
+	draw_context->path.SetFillMode(Gdiplus::FillModeWinding);
 }
 
 void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, float start_red, float start_green, float start_blue, float start_alpha, float end_red, float end_green, float end_blue, float end_alpha) {
-	if (draw_context->open) {
-		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->open = false;
-	}
-	draw_context->sink->Close();
-
-	D2D1_GRADIENT_STOP gradient_stops[2];
-	gradient_stops[0].position = 0.f;
-	gradient_stops[0].color = D2D1::ColorF(start_red, start_green, start_blue, start_alpha);
-	gradient_stops[1].position = 1.f;
-	gradient_stops[1].color = D2D1::ColorF(end_red, end_green, end_blue, end_alpha);
-	ID2D1GradientStopCollection *gradient_stop_collection;
-	draw_context->target->CreateGradientStopCollection(gradient_stops, 2, &gradient_stop_collection);
-	ID2D1LinearGradientBrush *brush;
-	draw_context->target->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(start_x, start_y), D2D1::Point2F(end_x, end_y)), gradient_stop_collection, &brush);
-	draw_context->target->FillGeometry(draw_context->path, brush);
-	brush->Release();
-	gradient_stop_collection->Release();
-
-	draw_context->sink->Release();
-	draw_context->path->Release();
-	factory->CreatePathGeometry(&draw_context->path);
-	draw_context->path->Open(&draw_context->sink);
-	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+	Gdiplus::LinearGradientBrush brush(Gdiplus::PointF(start_x, start_y), Gdiplus::PointF(end_x, end_y), make_color(start_red, start_green, start_blue, start_alpha), make_color(end_red, end_green, end_blue, end_alpha));
+	draw_context->graphics.FillPath(&brush, &draw_context->path);
+	draw_context->path.Reset();
+	draw_context->path.SetFillMode(Gdiplus::FillModeWinding);
 }
 
 void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha) {
-	if (draw_context->open) {
-		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->open = false;
-	}
-	draw_context->sink->Close();
-
-	ID2D1SolidColorBrush *brush;
-	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
-	draw_context->target->DrawGeometry(draw_context->path, brush, line_width, stroke_style);
-	brush->Release();
-
-	draw_context->sink->Release();
-	draw_context->path->Release();
-	factory->CreatePathGeometry(&draw_context->path);
-	draw_context->path->Open(&draw_context->sink);
-	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+	Gdiplus::Pen pen(make_color(red, green, blue, alpha), line_width);
+	pen.SetLineCap(Gdiplus::LineCapRound, Gdiplus::LineCapRound, Gdiplus::DashCapRound);
+	pen.SetLineJoin(Gdiplus::LineJoinRound);
+	draw_context->graphics.DrawPath(&pen, &draw_context->path);
+	draw_context->path.Reset();
+	draw_context->path.SetFillMode(Gdiplus::FillModeWinding);
 }
 
 void gral_draw_context_push_clip(gral_draw_context *draw_context) {
-	if (draw_context->open) {
-		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
-		draw_context->open = false;
-	}
-	draw_context->sink->Close();
-
-	ID2D1Layer *layer;
-	draw_context->target->CreateLayer(&layer);
-	draw_context->target->PushLayer(D2D1::LayerParameters(D2D1::InfiniteRect(), draw_context->path), layer);
-	layer->Release();
-
-	draw_context->sink->Release();
-	draw_context->path->Release();
-	factory->CreatePathGeometry(&draw_context->path);
-	draw_context->path->Open(&draw_context->sink);
-	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+	
 }
 
 void gral_draw_context_pop_clip(gral_draw_context *draw_context) {
-	draw_context->target->PopLayer();
+	
 }
 
 
@@ -502,7 +369,6 @@ gral_window *gral_window_create(gral_application *application, int width, int he
 	WindowData *window_data = new WindowData();
 	window_data->iface = *iface;
 	window_data->user_data = user_data;
-	window_data->target = NULL;
 	window_data->cursor = LoadCursor(NULL, IDC_ARROW);
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)window_data);
 	ShowWindow(hwnd, SW_SHOW);
