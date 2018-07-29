@@ -164,14 +164,20 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	cairo_stroke((cairo_t *)draw_context);
 }
 
-void gral_draw_context_push_clip(struct gral_draw_context *draw_context) {
+void gral_draw_context_draw_clipped(struct gral_draw_context *draw_context, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data) {
 	cairo_save((cairo_t *)draw_context);
 	cairo_clip((cairo_t *)draw_context);
-}
-
-void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
+	callback(draw_context, user_data);
 	cairo_restore((cairo_t *)draw_context);
 	cairo_new_path((cairo_t *)draw_context);
+}
+
+void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, float a, float b, float c, float d, float e, float f, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data) {
+	cairo_save((cairo_t *)draw_context);
+	cairo_matrix_t matrix = {a, b, c, d, e, f};
+	cairo_transform((cairo_t *)draw_context, &matrix);
+	callback(draw_context, user_data);
+	cairo_restore((cairo_t *)draw_context);
 }
 
 

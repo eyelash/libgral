@@ -204,12 +204,17 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	CGContextStrokePath((CGContextRef)draw_context);
 }
 
-void gral_draw_context_push_clip(struct gral_draw_context *draw_context) {
+void gral_draw_context_draw_clipped(struct gral_draw_context *draw_context, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data) {
 	CGContextSaveGState((CGContextRef)draw_context);
 	CGContextClip((CGContextRef)draw_context);
+	callback(draw_context, user_data);
+	CGContextRestoreGState((CGContextRef)draw_context);
 }
 
-void gral_draw_context_pop_clip(struct gral_draw_context *draw_context) {
+void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, float a, float b, float c, float d, float e, float f, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data) {
+	CGContextSaveGState((CGContextRef)draw_context);
+	CGContextConcatCTM((CGContextRef)draw_context, CGAffineTransformMake(a, b, c, d, e, f));
+	callback(draw_context, user_data);
 	CGContextRestoreGState((CGContextRef)draw_context);
 }
 

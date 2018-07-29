@@ -468,7 +468,7 @@ void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width,
 	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
-void gral_draw_context_push_clip(gral_draw_context *draw_context) {
+void gral_draw_context_draw_clipped(gral_draw_context *draw_context, void (*callback)(gral_draw_context *draw_context, void *user_data), void *user_data) {
 	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
 		draw_context->open = false;
@@ -485,10 +485,18 @@ void gral_draw_context_push_clip(gral_draw_context *draw_context) {
 	factory->CreatePathGeometry(&draw_context->path);
 	draw_context->path->Open(&draw_context->sink);
 	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+
+	callback(draw_context, user_data);
+
+	draw_context->target->PopLayer();
 }
 
-void gral_draw_context_pop_clip(gral_draw_context *draw_context) {
-	draw_context->target->PopLayer();
+void gral_draw_context_draw_transformed(gral_draw_context *draw_context, float a, float b, float c, float d, float e, float f, void (*callback)(gral_draw_context *draw_context, void *user_data), void *user_data) {
+	D2D1_MATRIX_3X2_F matrix;
+	draw_context->target->GetTransform(&matrix);
+	draw_context->target->SetTransform(D2D1::Matrix3x2F(a, b, c, d, e, f) * matrix);
+	callback(draw_context, user_data);
+	draw_context->target->SetTransform(matrix);
 }
 
 
