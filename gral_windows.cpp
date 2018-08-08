@@ -159,26 +159,38 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_LBUTTONDOWN: {
+		SetCapture(hwnd);
 		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_MBUTTONDOWN: {
+		SetCapture(hwnd);
 		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONDOWN: {
+		SetCapture(hwnd);
 		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_LBUTTONUP: {
+		if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
+			ReleaseCapture();
+		}
 		window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_MBUTTONUP: {
+		if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
+			ReleaseCapture();
+		}
 		window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONUP: {
+		if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
+			ReleaseCapture();
+		}
 		window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
 		return 0;
 	}
