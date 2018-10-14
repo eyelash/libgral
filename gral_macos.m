@@ -411,6 +411,13 @@ void gral_window_set_cursor(struct gral_window *window, int cursor) {
 	[get_cursor(cursor) set];
 }
 
+void gral_window_warp_cursor(struct gral_window *window_, float x, float y) {
+	GralWindow *window = (GralWindow *)window_;
+	NSPoint point = [[window contentView] convertPoint:NSMakePoint(x, y) toView:nil];
+	point = NSMakePoint(NSMinX(window.frame) + point.x, NSMaxY(NSScreen.screens[0].frame) - (NSMinY(window.frame) + point.y));
+	CGDisplayMoveCursorToPoint(kCGDirectMainDisplay, point);
+}
+
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	NSOpenPanel *panel = [NSOpenPanel openPanel];
 	if ([panel runModal] == NSFileHandlingPanelOKButton) {

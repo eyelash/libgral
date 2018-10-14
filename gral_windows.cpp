@@ -564,6 +564,14 @@ void gral_window_set_cursor(gral_window *window, int cursor) {
 	SetCursor(window_data->cursor);
 }
 
+void gral_window_warp_cursor(gral_window *window, float x, float y) {
+	POINT point;
+	point.x = x;
+	point.y = y;
+	ClientToScreen((HWND)window, &point);
+	SetCursorPos(point.x, point.y);
+}
+
 void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	WCHAR file_name[MAX_PATH];
 	file_name[0] = '\0';

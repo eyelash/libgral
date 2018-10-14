@@ -331,6 +331,15 @@ void gral_window_set_cursor(struct gral_window *window, int cursor) {
 	g_object_unref(gdk_cursor);
 }
 
+void gral_window_warp_cursor(struct gral_window *window, float x, float y) {
+	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
+	GdkScreen *screen = gdk_window_get_screen(gdk_window);
+	GdkDevice *pointer = gdk_seat_get_pointer(gdk_display_get_default_seat(gdk_screen_get_display(screen)));
+	gint root_x, root_y;
+	gdk_window_get_root_coords(gdk_window, x, y, &root_x, &root_y);
+	gdk_device_warp(pointer, screen, root_x, root_y);
+}
+
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new("Open", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT, NULL);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
