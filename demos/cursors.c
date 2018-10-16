@@ -21,6 +21,7 @@ static void add_rectangle(struct gral_draw_context *draw_context, float x, float
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
 	add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
+	add_rectangle(draw_context, 220.f, 20.f, 160.f, 160.f);
 	add_rectangle(draw_context, 20.f, 220.f, 160.f, 160.f);
 	add_rectangle(draw_context, 220.f, 220.f, 160.f, 160.f);
 	gral_draw_context_fill(draw_context, .7f, .7f, .7f, 1.f);
@@ -47,6 +48,8 @@ static void mouse_move(float x, float y, void *user_data) {
 	int cursor = GRAL_CURSOR_DEFAULT;
 	if (point_inside_rectangle(x, y, 20, 20, 160, 160))
 		cursor = GRAL_CURSOR_TEXT;
+	if (point_inside_rectangle(x, y, 220, 20, 160, 160))
+		cursor = GRAL_CURSOR_NONE;
 	if (point_inside_rectangle(x, y, 20, 220, 160, 160))
 		cursor = GRAL_CURSOR_HORIZONTAL_ARROWS;
 	if (point_inside_rectangle(x, y, 220, 220, 160, 160))
@@ -59,19 +62,11 @@ static void mouse_move(float x, float y, void *user_data) {
 
 static void mouse_button_press(float x, float y, int button, void *user_data) {
 	struct demo *demo = user_data;
-	if (button == GRAL_PRIMARY_MOUSE_BUTTON) {
-		gral_window_warp_cursor(demo->window, 200, 200);
-	}
-	else if (button == GRAL_SECONDARY_MOUSE_BUTTON) {
-		gral_window_hide_cursor(demo->window);
-	}
+	gral_window_warp_cursor(demo->window, 200, 200);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
-	struct demo *demo = user_data;
-	if (button == GRAL_SECONDARY_MOUSE_BUTTON) {
-		gral_window_show_cursor(demo->window);
-	}
+
 }
 
 static void scroll(float dx, float dy, void *user_data) {

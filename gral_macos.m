@@ -399,12 +399,25 @@ void gral_window_set_minimum_size(struct gral_window *window, int minimum_width,
 }
 
 static NSCursor *get_cursor(int cursor) {
+	static NSCursor *transparent_cursor = NULL;
 	switch (cursor) {
-	case GRAL_CURSOR_DEFAULT: return NSCursor.arrowCursor;
-	case GRAL_CURSOR_TEXT: return NSCursor.IBeamCursor;
-	case GRAL_CURSOR_HORIZONTAL_ARROWS: return NSCursor.resizeLeftRightCursor;
-	case GRAL_CURSOR_VERTICAL_ARROWS: return NSCursor.resizeUpDownCursor;
-	default: return NULL;
+	case GRAL_CURSOR_DEFAULT:
+		return NSCursor.arrowCursor;
+	case GRAL_CURSOR_TEXT:
+		return NSCursor.IBeamCursor;
+	case GRAL_CURSOR_HORIZONTAL_ARROWS:
+		return NSCursor.resizeLeftRightCursor;
+	case GRAL_CURSOR_VERTICAL_ARROWS:
+		return NSCursor.resizeUpDownCursor;
+	case GRAL_CURSOR_NONE:
+		if (transparent_cursor == NULL) {
+			NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];
+			transparent_cursor = [[NSCursor alloc] initWithImage:image hotSpot:NSMakePoint(0, 0)];
+			[image release];
+		}
+		return transparent_cursor;
+	default:
+		return NULL;
 	}
 }
 void gral_window_set_cursor(struct gral_window *window, int cursor) {
@@ -415,15 +428,7 @@ void gral_window_warp_cursor(struct gral_window *window_, float x, float y) {
 	GralWindow *window = (GralWindow *)window_;
 	NSPoint point = [[window contentView] convertPoint:NSMakePoint(x, y) toView:nil];
 	point = NSMakePoint(NSMinX(window.frame) + point.x, NSMaxY(NSScreen.screens[0].frame) - (NSMinY(window.frame) + point.y));
-	CGDisplayMoveCursorToPoint(kCGDirectMainDisplay, point);
-}
-
-void gral_window_hide_cursor(struct gral_window *window) {
-	CGDisplayHideCursor(kCGNullDirectDisplay);
-}
-
-void gral_window_show_cursor(struct gral_window *window) {
-	CGDisplayShowCursor(kCGNullDirectDisplay);
+	CGWarpMouseCursorPosition(point);
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {

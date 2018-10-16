@@ -549,18 +549,25 @@ void gral_window_set_minimum_size(gral_window *window, int minimum_width, int mi
 	window_data->minimum_height = minimum_height;
 }
 
-static LPCTSTR get_cursor_name(int cursor) {
+static HCURSOR get_cursor(int cursor) {
 	switch (cursor) {
-	case GRAL_CURSOR_DEFAULT: return IDC_ARROW;
-	case GRAL_CURSOR_TEXT: return IDC_IBEAM;
-	case GRAL_CURSOR_HORIZONTAL_ARROWS: return IDC_SIZEWE;
-	case GRAL_CURSOR_VERTICAL_ARROWS: return IDC_SIZENS;
-	default: return NULL;
+	case GRAL_CURSOR_DEFAULT:
+		return LoadCursor(NULL, IDC_ARROW);
+	case GRAL_CURSOR_TEXT:
+		return LoadCursor(NULL, IDC_IBEAM);
+	case GRAL_CURSOR_HORIZONTAL_ARROWS:
+		return LoadCursor(NULL, IDC_SIZEWE);
+	case GRAL_CURSOR_VERTICAL_ARROWS:
+		return LoadCursor(NULL, IDC_SIZENS);
+	case GRAL_CURSOR_NONE:
+		return NULL;
+	default:
+		return NULL;
 	}
 }
 void gral_window_set_cursor(gral_window *window, int cursor) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
-	window_data->cursor = LoadCursor(NULL, get_cursor_name(cursor));
+	window_data->cursor = get_cursor(cursor);
 	SetCursor(window_data->cursor);
 }
 
@@ -570,14 +577,6 @@ void gral_window_warp_cursor(gral_window *window, float x, float y) {
 	point.y = (LONG)y;
 	ClientToScreen((HWND)window, &point);
 	SetCursorPos(point.x, point.y);
-}
-
-void gral_window_hide_cursor(gral_window *window) {
-	ShowCursor(FALSE);
-}
-
-void gral_window_show_cursor(gral_window *window) {
-	ShowCursor(TRUE);
 }
 
 void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
