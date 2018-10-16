@@ -188,6 +188,8 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
 G_DECLARE_FINAL_TYPE(GralWindow, gral_window, GRAL, WINDOW, GtkApplicationWindow)
 struct _GralWindow {
 	GtkApplicationWindow parent_instance;
+	GdkCursorType cursor;
+	int cursor_hide_count;
 	struct gral_window_interface interface;
 	void *user_data;
 };
@@ -198,7 +200,8 @@ static gboolean gral_window_delete_event(GtkWidget *widget, GdkEventAny *event) 
 	return !window->interface.close(window->user_data);
 }
 static void gral_window_init(GralWindow *window) {
-
+	window->cursor = GDK_LEFT_PTR;
+	window->cursor_hide_count = 0;
 }
 static void gral_window_class_init(GralWindowClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
@@ -240,7 +243,9 @@ static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion 
 }
 static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
-	window->interface.mouse_button_press(event->x, event->y, event->button, window->user_data);
+	if (event->type == GDK_BUTTON_PRESS) {
+		window->interface.mouse_button_press(event->x, event->y, event->button, window->user_data);
+	}
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_button_release_event(GtkWidget *widget, GdkEventButton *event) {
@@ -324,11 +329,19 @@ void gral_window_set_minimum_size(struct gral_window *window, int minimum_width,
 	gtk_window_set_geometry_hints(GTK_WINDOW(window), NULL, &geometry, GDK_HINT_MIN_SIZE);
 }
 
-void gral_window_set_cursor(struct gral_window *window, int cursor) {
+static void set_cursor(GralWindow *window, GdkCursorType cursor) {
 	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
 	GdkCursor *gdk_cursor = gdk_cursor_new_for_display(gdk_window_get_display(gdk_window), cursor);
 	gdk_window_set_cursor(gdk_window, gdk_cursor);
 	g_object_unref(gdk_cursor);
+}
+
+void gral_window_set_cursor(struct gral_window *window_, int cursor) {
+	GralWindow *window = (GralWindow *)window_;
+	window->cursor = cursor;
+	if (window->cursor_hide_count == 0) {
+		set_cursor(window, window->cursor);
+	}
 }
 
 void gral_window_warp_cursor(struct gral_window *window, float x, float y) {
@@ -338,6 +351,22 @@ void gral_window_warp_cursor(struct gral_window *window, float x, float y) {
 	gint root_x, root_y;
 	gdk_window_get_root_coords(gdk_window, x, y, &root_x, &root_y);
 	gdk_device_warp(pointer, screen, root_x, root_y);
+}
+
+void gral_window_hide_cursor(struct gral_window *window_) {
+	GralWindow *window = (GralWindow *)window_;
+	if (window->cursor_hide_count == 0) {
+		set_cursor(window, GDK_BLANK_CURSOR);
+	}
+	++window->cursor_hide_count;
+}
+
+void gral_window_show_cursor(struct gral_window *window_) {
+	GralWindow *window = (GralWindow *)window_;
+	--window->cursor_hide_count;
+	if (window->cursor_hide_count == 0) {
+		set_cursor(window, window->cursor);
+	}
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {

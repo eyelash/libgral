@@ -87,7 +87,7 @@ static void adjust_window_size(int &width, int &height) {
 	rect.top = 0;
 	rect.right = width;
 	rect.bottom = height;
-	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, false);
+	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
 	width = rect.right - rect.left;
 	height = rect.bottom - rect.top;
 }
@@ -566,10 +566,18 @@ void gral_window_set_cursor(gral_window *window, int cursor) {
 
 void gral_window_warp_cursor(gral_window *window, float x, float y) {
 	POINT point;
-	point.x = x;
-	point.y = y;
+	point.x = (LONG)x;
+	point.y = (LONG)y;
 	ClientToScreen((HWND)window, &point);
 	SetCursorPos(point.x, point.y);
+}
+
+void gral_window_hide_cursor(gral_window *window) {
+	ShowCursor(FALSE);
+}
+
+void gral_window_show_cursor(gral_window *window) {
+	ShowCursor(TRUE);
 }
 
 void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
@@ -704,7 +712,7 @@ void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_dat
 	audio_client->GetBufferSize(&buffer_size);
 	IAudioRenderClient *render_client;
 	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
-	HANDLE event = CreateEvent(NULL, false, false, NULL);
+	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	audio_client->SetEventHandle(event);
 	BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);

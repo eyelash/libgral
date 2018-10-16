@@ -59,11 +59,19 @@ static void mouse_move(float x, float y, void *user_data) {
 
 static void mouse_button_press(float x, float y, int button, void *user_data) {
 	struct demo *demo = user_data;
-	gral_window_warp_cursor(demo->window, 200, 200);
+	if (button == GRAL_PRIMARY_MOUSE_BUTTON) {
+		gral_window_warp_cursor(demo->window, 200, 200);
+	}
+	else if (button == GRAL_SECONDARY_MOUSE_BUTTON) {
+		gral_window_hide_cursor(demo->window);
+	}
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
-
+	struct demo *demo = user_data;
+	if (button == GRAL_SECONDARY_MOUSE_BUTTON) {
+		gral_window_show_cursor(demo->window);
+	}
 }
 
 static void scroll(float dx, float dy, void *user_data) {

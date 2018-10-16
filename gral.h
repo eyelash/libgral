@@ -100,6 +100,8 @@ void gral_window_request_redraw(struct gral_window *window, int x, int y, int wi
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height);
 void gral_window_set_cursor(struct gral_window *window, int cursor);
 void gral_window_warp_cursor(struct gral_window *window, float x, float y);
+void gral_window_hide_cursor(struct gral_window *window);
+void gral_window_show_cursor(struct gral_window *window);
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, const char *text);

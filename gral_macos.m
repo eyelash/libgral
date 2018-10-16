@@ -418,6 +418,14 @@ void gral_window_warp_cursor(struct gral_window *window_, float x, float y) {
 	CGDisplayMoveCursorToPoint(kCGDirectMainDisplay, point);
 }
 
+void gral_window_hide_cursor(struct gral_window *window) {
+	CGDisplayHideCursor(kCGNullDirectDisplay);
+}
+
+void gral_window_show_cursor(struct gral_window *window) {
+	CGDisplayShowCursor(kCGNullDirectDisplay);
+}
+
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	NSOpenPanel *panel = [NSOpenPanel openPanel];
 	if ([panel runModal] == NSFileHandlingPanelOKButton) {
