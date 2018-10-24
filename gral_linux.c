@@ -43,7 +43,7 @@ static void gral_application_class_init(GralApplicationClass *class) {
 }
 
 struct gral_application *gral_application_create(const char *id, const struct gral_application_interface *interface, void *user_data) {
-	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, NULL);
+	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, "flags", G_APPLICATION_NON_UNIQUE, NULL);
 	application->interface = *interface;
 	application->user_data = user_data;
 	return (struct gral_application *)application;
