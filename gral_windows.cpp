@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018 Elias Aebi
+Copyright (c) 2016-2020 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -21,6 +21,41 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <audioclient.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
+
+template <class T> class ComPointer {
+	T *pointer;
+public:
+	ComPointer(): pointer(NULL) {}
+	ComPointer(const ComPointer &com_pointer): pointer(com_pointer.pointer) {
+		if (pointer) {
+			pointer->AddRef();
+		}
+	}
+	~ComPointer() {
+		if (pointer) {
+			pointer->Release();
+		}
+	}
+	ComPointer &operator =(const ComPointer &com_pointer) {
+		if (pointer) {
+			pointer->Release();
+		}
+		pointer = com_pointer.pointer;
+		if (pointer) {
+			pointer->AddRef();
+		}
+		return *this;
+	}
+	T **operator &() {
+		return &pointer;
+	}
+	operator T *() const {
+		return pointer;
+	}
+	T *operator ->() const {
+		return pointer;
+	}
+};
 
 static HINSTANCE hInstance;
 static ID2D1Factory *factory;
@@ -315,12 +350,11 @@ gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 	NONCLIENTMETRICS ncm;
 	ncm.cbSize = sizeof(NONCLIENTMETRICS);
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
-	IDWriteTextFormat *format;
+	ComPointer<IDWriteTextFormat> format;
 	dwrite_factory->CreateTextFormat(ncm.lfMessageFont.lfFaceName, NULL, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size, L"en", &format);
 	IDWriteTextLayout *layout;
 	Buffer<wchar_t> utf16 = utf8_to_utf16(utf8);
 	dwrite_factory->CreateTextLayout(utf16, utf16.get_length(), format, INFINITY, INFINITY, &layout);
-	format->Release();
 	return (gral_text *)layout;
 }
 
@@ -362,22 +396,19 @@ void gral_font_get_metrics(gral_window *window, float size, float *ascent, float
 	NONCLIENTMETRICS ncm;
 	ncm.cbSize = sizeof(NONCLIENTMETRICS);
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
-	IDWriteFontCollection *font_collection;
+	ComPointer<IDWriteFontCollection> font_collection;
 	dwrite_factory->GetSystemFontCollection(&font_collection, false);
 	UINT32 index;
 	BOOL exists;
 	font_collection->FindFamilyName(ncm.lfMessageFont.lfFaceName, &index, &exists);
-	IDWriteFontFamily *font_family;
+	ComPointer<IDWriteFontFamily> font_family;
 	font_collection->GetFontFamily(index, &font_family);
-	IDWriteFont *font;
+	ComPointer<IDWriteFont> font;
 	font_family->GetFirstMatchingFont(DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, &font);
 	DWRITE_FONT_METRICS metrics;
 	font->GetMetrics(&metrics);
 	if (ascent) *ascent = (float)metrics.ascent / (float)metrics.designUnitsPerEm * size;
 	if (descent) *descent = (float)metrics.descent / (float)metrics.designUnitsPerEm * size;
-	font->Release();
-	font_family->Release();
-	font_collection->Release();
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
@@ -385,10 +416,9 @@ void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *tex
 	DWRITE_LINE_METRICS line_metrics;
 	UINT32 count = 1;
 	layout->GetLineMetrics(&line_metrics, count, &count);
-	ID2D1SolidColorBrush *brush;
+	ComPointer<ID2D1SolidColorBrush> brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
 	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y-line_metrics.baseline), layout, brush);
-	brush->Release();
 }
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
@@ -422,10 +452,9 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 	}
 	draw_context->sink->Close();
 
-	ID2D1SolidColorBrush *brush;
+	ComPointer<ID2D1SolidColorBrush> brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
 	draw_context->target->FillGeometry(draw_context->path, brush);
-	brush->Release();
 
 	draw_context->sink->Release();
 	draw_context->path->Release();
@@ -468,10 +497,9 @@ void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width,
 	}
 	draw_context->sink->Close();
 
-	ID2D1SolidColorBrush *brush;
+	ComPointer<ID2D1SolidColorBrush> brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
 	draw_context->target->DrawGeometry(draw_context->path, brush, line_width, stroke_style);
-	brush->Release();
 
 	draw_context->sink->Release();
 	draw_context->path->Release();
@@ -487,10 +515,9 @@ void gral_draw_context_draw_clipped(gral_draw_context *draw_context, void (*call
 	}
 	draw_context->sink->Close();
 
-	ID2D1Layer *layer;
+	ComPointer<ID2D1Layer> layer;
 	draw_context->target->CreateLayer(&layer);
 	draw_context->target->PushLayer(D2D1::LayerParameters(D2D1::InfiniteRect(), draw_context->path), layer);
-	layer->Release();
 
 	draw_context->sink->Release();
 	draw_context->path->Release();
