@@ -19,6 +19,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <dwrite.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
+#include <avrt.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -716,6 +717,7 @@ size_t gral_file_get_size(gral_file *file) {
  ==========*/
 
 void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
+	HRESULT hr;
 	IMMDeviceEnumerator *device_enumerator;
 	CoInitialize(NULL);
 	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
@@ -733,8 +735,15 @@ void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_dat
 	wfx.nBlockAlign = 2 * 2;
 	wfx.wBitsPerSample = 16;
 	wfx.cbSize = 0;
-	audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, default_period, 0, &wfx, NULL);
+	hr = audio_client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, default_period, default_period, &wfx, NULL);
 	UINT32 buffer_size;
+	if (hr == AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
+		audio_client->GetBufferSize(&buffer_size);
+		default_period = (REFERENCE_TIME)((10000.0 * 1000 / wfx.nSamplesPerSec * buffer_size) + 0.5);
+		audio_client->Release();
+		device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
+		audio_client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, default_period, default_period, &wfx, NULL);
+	}
 	audio_client->GetBufferSize(&buffer_size);
 	IAudioRenderClient *render_client;
 	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
@@ -744,22 +753,17 @@ void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_dat
 	render_client->GetBuffer(buffer_size, &buffer);
 	int frames = callback((int16_t *)buffer, buffer_size, user_data);
 	render_client->ReleaseBuffer(frames, 0);
+	DWORD task_index = 0;
+	HANDLE task = AvSetMmThreadCharacteristics(L"Pro Audio", &task_index);
 	audio_client->Start();
-	UINT32 padding;
 	while (frames > 0) {
 		WaitForSingleObject(event, INFINITE);
-		audio_client->GetCurrentPadding(&padding);
-		if (buffer_size - padding > 0) {
-			render_client->GetBuffer(buffer_size-padding, &buffer);
-			frames = callback((int16_t *)buffer, buffer_size-padding, user_data);
-			render_client->ReleaseBuffer(frames, 0);
-		}
+		render_client->GetBuffer(buffer_size, &buffer);
+		frames = callback((int16_t *)buffer, buffer_size, user_data);
+		render_client->ReleaseBuffer(frames, 0);
 	}
-	do {
-		WaitForSingleObject(event, INFINITE);
-		audio_client->GetCurrentPadding(&padding);
-	} while (padding > 0);
 	audio_client->Stop();
+	AvRevertMmThreadCharacteristics(task);
 	CloseHandle(event);
 	render_client->Release();
 	audio_client->Release();
