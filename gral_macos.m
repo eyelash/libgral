@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018 Elias Aebi
+Copyright (c) 2016-2020 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -249,7 +249,7 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
 	return YES;
 }
 - (void)drawRect:(NSRect)rect {
-	CGContextRef context = [[NSGraphicsContext currentContext] graphicsPort];
+	CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
 	interface.draw((struct gral_draw_context *)context, user_data);
 }
 - (void)setFrameSize:(NSSize)size {
@@ -433,14 +433,14 @@ void gral_window_warp_cursor(struct gral_window *window_, float x, float y) {
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	NSOpenPanel *panel = [NSOpenPanel openPanel];
-	if ([panel runModal] == NSFileHandlingPanelOKButton) {
+	if ([panel runModal] == NSModalResponseOK) {
 		callback([[[panel URL] path] UTF8String], user_data);
 	}
 }
 
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
 	NSSavePanel *panel = [NSSavePanel savePanel];
-	if ([panel runModal] == NSFileHandlingPanelOKButton) {
+	if ([panel runModal] == NSModalResponseOK) {
 		callback([[[panel URL] path] UTF8String], user_data);
 	}
 }
