@@ -649,13 +649,12 @@ void gral_window_clipboard_copy(gral_window *window, const char *text) {
 	CloseClipboard();
 }
 
-void gral_window_clipboard_request_paste(gral_window *window) {
-	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
+void gral_window_clipboard_paste(gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data) {
 	OpenClipboard((HWND)window);
 	if (IsClipboardFormatAvailable(CF_UNICODETEXT)) {
 		HGLOBAL handle = GetClipboardData(CF_UNICODETEXT);
 		LPWSTR text = (LPWSTR)GlobalLock(handle);
-		window_data->iface.paste(utf16_to_utf8(text), window_data->user_data);
+		callback(utf16_to_utf8(text), user_data);
 		GlobalUnlock(handle);
 	}
 	CloseClipboard();

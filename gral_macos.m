@@ -451,11 +451,10 @@ void gral_window_clipboard_copy(struct gral_window *window, const char *text) {
 	[pasteboard setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString];
 }
 
-void gral_window_clipboard_request_paste(struct gral_window *window) {
+void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data) {
 	NSString *text = [[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
 	if (text) {
-		GralView *view = (GralView *)[(GralWindow *)window contentView];
-		view->interface.paste([text UTF8String], view->user_data);
+		callback([text UTF8String], user_data);
 	}
 }
 

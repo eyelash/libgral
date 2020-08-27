@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018 Elias Aebi
+Copyright (c) 2016-2020 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -51,7 +51,6 @@ struct gral_window_interface {
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
 	void (*text)(const char *s, void *user_data);
-	void (*paste)(const char *text, void *user_data);
 	int (*timer)(void *user_data);
 };
 struct gral_file;
@@ -104,7 +103,7 @@ void gral_window_warp_cursor(struct gral_window *window, float x, float y);
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, const char *text);
-void gral_window_clipboard_request_paste(struct gral_window *window);
+void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data);
 void gral_window_set_timer(struct gral_window *window, int milliseconds);
 
 

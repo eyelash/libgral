@@ -30,12 +30,16 @@ static void mouse_move(float x, float y, void *user_data) {
 
 }
 
+static void paste_callback(const char *text, void *user_data) {
+	printf("paste: %s\n", text);
+}
+
 static void mouse_button_press(float x, float y, int button, void *user_data) {
 	struct demo *demo = user_data;
 	if (button == GRAL_PRIMARY_MOUSE_BUTTON)
 		gral_window_clipboard_copy(demo->window, "gral clipboard test");
 	else if (button == GRAL_SECONDARY_MOUSE_BUTTON)
-		gral_window_clipboard_request_paste(demo->window);
+		gral_window_clipboard_paste(demo->window, paste_callback, NULL);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
@@ -48,10 +52,6 @@ static void scroll(float dx, float dy, void *user_data) {
 
 static void text(const char *s, void *user_data) {
 
-}
-
-static void paste(const char *text, void *user_data) {
-	printf("paste: %s\n", text);
 }
 
 static int timer(void *user_data) {
@@ -71,7 +71,6 @@ static void initialize(void *user_data) {
 		&mouse_button_release,
 		&scroll,
 		&text,
-		&paste,
 		&timer
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral clipboard demo", &interface, demo);

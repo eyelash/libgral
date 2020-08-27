@@ -69,10 +69,6 @@ static void text(const char *s, void *user_data) {
 
 }
 
-static void paste(const char *text, void *user_data) {
-
-}
-
 static int timer(void *user_data) {
 	return 0;
 }
@@ -90,7 +86,6 @@ static void initialize(void *user_data) {
 		&mouse_button_release,
 		&scroll,
 		&text,
-		&paste,
 		&timer
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral text demo", &interface, demo);

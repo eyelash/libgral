@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2018 Elias Aebi
+Copyright (c) 2016-2020 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -369,13 +369,21 @@ void gral_window_clipboard_copy(struct gral_window *window, const char *text) {
 	gtk_clipboard_set_text(clipboard, text, -1);
 }
 
-static void gral_window_text_received(GtkClipboard *clipboard, const gchar *text, gpointer data) {
-	GralWindow *window = GRAL_WINDOW(data);
-	window->interface.paste(text, window->user_data);
+typedef struct {
+	void (*callback)(const char *text, void *user_data);
+	void *user_data;
+} PasteCallbackData;
+static void paste_callback(GtkClipboard *clipboard, const gchar *text, gpointer user_data) {
+	PasteCallbackData *callback_data = user_data;
+	callback_data->callback(text, callback_data->user_data);
+	g_slice_free(PasteCallbackData, callback_data);
 }
-void gral_window_clipboard_request_paste(struct gral_window *window) {
+void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data) {
 	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(window), GDK_SELECTION_CLIPBOARD);
-	gtk_clipboard_request_text(clipboard, gral_window_text_received, window);
+	PasteCallbackData *callback_data = g_slice_new(PasteCallbackData);
+	callback_data->callback = callback;
+	callback_data->user_data = user_data;
+	gtk_clipboard_request_text(clipboard, paste_callback, callback_data);
 }
 
 static gboolean gral_window_timeout(gpointer user_data) {
