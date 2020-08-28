@@ -284,6 +284,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		}
 		return 0;
 	}
+	case WM_USER: {
+		void (*callback)(void *user_data) = (void (*)(void *))wParam;
+		void *user_data = (void *)lParam;
+		callback(user_data);
+		return 0;
+	}
 	case WM_CLOSE: {
 		if (window_data->iface.close(window_data->user_data)) {
 			DestroyWindow(hwnd);
@@ -662,6 +668,10 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(const cha
 
 void gral_window_set_timer(gral_window *window, int milliseconds) {
 	SetTimer((HWND)window, 0, milliseconds, NULL);
+}
+
+void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
+	PostMessage((HWND)window, WM_USER, (WPARAM)callback, (LPARAM)user_data);
 }
 
 

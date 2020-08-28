@@ -105,6 +105,7 @@ void gral_window_show_save_file_dialog(struct gral_window *window, void (*callba
 void gral_window_clipboard_copy(struct gral_window *window, const char *text);
 void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data);
 void gral_window_set_timer(struct gral_window *window, int milliseconds);
+void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data);
 
 
 /*=========

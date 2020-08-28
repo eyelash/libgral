@@ -235,6 +235,15 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
 }
 @end
 
+@interface MainThreadCallbackData: NSObject {
+@public
+	void (*callback)(void *user_data);
+	void *user_data;
+}
+@end
+@implementation MainThreadCallbackData
+@end
+
 @interface GralView: NSView<NSTextInputClient> {
 @public
 	struct gral_window_interface interface;
@@ -319,6 +328,11 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
 	if (!interface.timer(user_data)) {
 		[timer invalidate];
 	}
+}
+- (void)mainThreadCallback:(id)user_data {
+	MainThreadCallbackData *callback_data = user_data;
+	callback_data->callback(callback_data->user_data);
+	[callback_data release];
 }
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
@@ -461,6 +475,14 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(co
 void gral_window_set_timer(struct gral_window *window, int milliseconds) {
 	GralView *view = [(GralWindow *)window contentView];
 	[NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:view selector:@selector(timer:) userInfo:nil repeats:YES];
+}
+
+void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
+	GralView *view = [(GralWindow *)window contentView];
+	MainThreadCallbackData *callback_data = [[MainThreadCallbackData alloc] init];
+	callback_data->callback = callback;
+	callback_data->user_data = user_data;
+	[view performSelectorOnMainThread:@selector(mainThreadCallback:) withObject:callback_data waitUntilDone:NO];
 }
 
 
