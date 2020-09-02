@@ -127,7 +127,7 @@ size_t gral_file_get_size(struct gral_file *file);
     AUDIO
  ==========*/
 
-void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data);
+void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data);
 
 #ifdef __cplusplus
 }

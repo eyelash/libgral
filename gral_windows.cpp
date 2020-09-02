@@ -725,7 +725,29 @@ size_t gral_file_get_size(gral_file *file) {
     AUDIO
  ==========*/
 
-void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
+static int fill_buffer(float *buffer_float, int frames, int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	while (frames > 0) {
+		int actual_frames = callback(buffer_float, frames, user_data);
+		if (actual_frames == 0) {
+			for (int i = 0; i < frames * 2; i++) {
+				buffer_float[i] = 0.f;
+			}
+			return 0;
+		}
+		buffer_float += actual_frames * 2;
+		frames -= actual_frames;
+	}
+	return 1;
+}
+
+static void convert_buffer(float *buffer_float, int32_t *buffer_24, int frames) {
+	for (int i = 0; i < frames * 2; i++) {
+		uint32_t sample_24 = buffer_float[i] * 8388607.f + 8388608.5f;
+		buffer_24[i] = (sample_24 ^ 0x800000) << 8;
+	}
+}
+
+void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	HRESULT hr;
 	IMMDeviceEnumerator *device_enumerator;
 	CoInitialize(NULL);
@@ -738,14 +760,14 @@ void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_dat
 	audio_client->GetDevicePeriod(&default_period, &min_period);
 	WAVEFORMATEXTENSIBLE wfx;
 	wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-	wfx.Format.nChannels = 2;
 	wfx.Format.nSamplesPerSec = 44100;
-	wfx.Format.nAvgBytesPerSec = 44100 * 2 * 2;
-	wfx.Format.nBlockAlign = 2 * 2;
-	wfx.Format.wBitsPerSample = 16;
+	wfx.Format.wBitsPerSample = 32;
+	wfx.Format.nChannels = 2;
+	wfx.Format.nBlockAlign = wfx.Format.wBitsPerSample / 8 * wfx.Format.nChannels;
+	wfx.Format.nAvgBytesPerSec = wfx.Format.nBlockAlign * wfx.Format.nSamplesPerSec;
 	wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
 	wfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
-	wfx.Samples.wValidBitsPerSample = 16;
+	wfx.Samples.wValidBitsPerSample = 24;
 	wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
 	hr = audio_client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, default_period, default_period, (PWAVEFORMATEX)&wfx, NULL);
 	UINT32 buffer_size;
@@ -761,17 +783,20 @@ void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_dat
 	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
 	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	audio_client->SetEventHandle(event);
+	Buffer<float> buffer_float(buffer_size * 2);
 	BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);
-	int frames = callback((int16_t *)buffer, buffer_size, user_data);
+	int running = fill_buffer(buffer_float, buffer_size, callback, user_data);
+	convert_buffer(buffer_float, (int32_t *)buffer, buffer_size);
 	render_client->ReleaseBuffer(buffer_size, 0);
 	DWORD task_index = 0;
 	HANDLE task = AvSetMmThreadCharacteristics(L"Pro Audio", &task_index);
 	audio_client->Start();
-	while (frames > 0) {
+	while (running) {
 		WaitForSingleObject(event, INFINITE);
 		render_client->GetBuffer(buffer_size, &buffer);
-		frames = callback((int16_t *)buffer, buffer_size, user_data);
+		running = fill_buffer(buffer_float, buffer_size, callback, user_data);
+		convert_buffer(buffer_float, (int32_t *)buffer, buffer_size);
 		render_client->ReleaseBuffer(buffer_size, 0);
 	}
 	audio_client->Stop();

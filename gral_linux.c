@@ -468,7 +468,7 @@ size_t gral_file_get_size(struct gral_file *file) {
 
 #define FRAMES 1024
 
-static void play_buffer(snd_pcm_t *pcm, int16_t *buffer, int frames) {
+static void play_buffer(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t frames) {
 	while (frames > 0) {
 		int frames_written = snd_pcm_writei(pcm, buffer, frames);
 		if (frames_written < 0) {
@@ -482,12 +482,13 @@ static void play_buffer(snd_pcm_t *pcm, int16_t *buffer, int frames) {
 	}
 }
 
-void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
+void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	snd_pcm_t *pcm;
 	snd_pcm_open(&pcm, "default", SND_PCM_STREAM_PLAYBACK, 0);
-	snd_pcm_set_params(pcm, SND_PCM_FORMAT_S16, SND_PCM_ACCESS_RW_INTERLEAVED, 2, 44100, 1, 1000000*FRAMES/44100);
+	unsigned int latency = FRAMES * 3 / 44100.0 * 1e6 + 0.5;
+	snd_pcm_set_params(pcm, SND_PCM_FORMAT_FLOAT, SND_PCM_ACCESS_RW_INTERLEAVED, 2, 44100, 1, latency);
 	snd_pcm_prepare(pcm);
-	int16_t buffer[FRAMES*2];
+	float buffer[FRAMES*2];
 	int frames = callback(buffer, FRAMES, user_data);
 	while (frames > 0) {
 		play_buffer(pcm, buffer, frames);

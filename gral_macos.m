@@ -544,16 +544,16 @@ size_t gral_file_get_size(struct gral_file *file) {
 #define FRAMES 1024
 
 typedef struct {
-	int (*callback)(int16_t *buffer, int frames, void *user_data);
+	int (*callback)(float *buffer, int frames, void *user_data);
 	void *user_data;
-} CallbackData;
+} AudioCallbackData;
 
 static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
-	CallbackData *callback_data = user_data;
-	int frames = buffer->mAudioDataBytesCapacity / (2 * sizeof(int16_t));
+	AudioCallbackData *callback_data = user_data;
+	int frames = buffer->mAudioDataBytesCapacity / (2 * sizeof(float));
 	frames = callback_data->callback(buffer->mAudioData, frames, callback_data->user_data);
 	if (frames > 0) {
-		buffer->mAudioDataByteSize = frames * 2 * sizeof(int16_t);
+		buffer->mAudioDataByteSize = frames * 2 * sizeof(float);
 		AudioQueueEnqueueBuffer(queue, buffer, buffer->mPacketDescriptionCount, buffer->mPacketDescriptions);
 	}
 	else {
@@ -562,23 +562,23 @@ static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBuffe
 	}
 }
 
-void gral_audio_play(int (*callback)(int16_t *buffer, int frames, void *user_data), void *user_data) {
-	CallbackData callback_data = {callback, user_data};
+void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	AudioCallbackData callback_data = {callback, user_data};
 	AudioQueueRef queue;
-	AudioStreamBasicDescription format = {
-		.mSampleRate = 44100,
-		.mFormatID = kAudioFormatLinearPCM,
-		.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger|kLinearPCMFormatFlagIsPacked,
-		.mBytesPerPacket = 2 * sizeof(int16_t),
-		.mFramesPerPacket = 1,
-		.mBytesPerFrame = 2 * sizeof(int16_t),
-		.mChannelsPerFrame = 2,
-		.mBitsPerChannel = sizeof(int16_t) * 8
-	};
+	AudioStreamBasicDescription format;
+	format.mFormatID = kAudioFormatLinearPCM;
+	format.mFormatFlags = kLinearPCMFormatFlagIsFloat;
+	format.mSampleRate = 44100;
+	format.mBitsPerChannel = 32;
+	format.mChannelsPerFrame = 2;
+	format.mBytesPerFrame = format.mBitsPerChannel / 8 * format.mChannelsPerFrame;
+	format.mFramesPerPacket = 1;
+	format.mBytesPerPacket = format.mBytesPerFrame * format.mFramesPerPacket;
+	format.mReserved = 0;
 	AudioQueueNewOutput(&format, &audio_callback, &callback_data, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue);
 	AudioQueueBufferRef buffers[3];
 	for (int i = 0; i < 3; i++) {
-		AudioQueueAllocateBuffer(queue, FRAMES * 2 * sizeof(int16_t), &buffers[i]);
+		AudioQueueAllocateBuffer(queue, FRAMES * 2 * sizeof(float), &buffers[i]);
 		audio_callback(&callback_data, queue, buffers[i]);
 	}
 	AudioQueueStart(queue, NULL);
