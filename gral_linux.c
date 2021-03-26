@@ -147,10 +147,12 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	cairo_fill((cairo_t *)draw_context);
 }
 
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, float start_red, float start_green, float start_blue, float start_alpha, float end_red, float end_green, float end_blue, float end_alpha) {
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count) {
 	cairo_pattern_t *gradient = cairo_pattern_create_linear(start_x, start_y, end_x, end_y);
-	cairo_pattern_add_color_stop_rgba(gradient, 0.0, start_red, start_green, start_blue, start_alpha);
-	cairo_pattern_add_color_stop_rgba(gradient, 1.0, end_red, end_green, end_blue, end_alpha);
+	int i;
+	for (i = 0; i < count; i++) {
+		cairo_pattern_add_color_stop_rgba(gradient, stops[i].position, stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
+	}
 	cairo_set_source((cairo_t *)draw_context, gradient);
 	cairo_fill((cairo_t *)draw_context);
 	cairo_pattern_destroy(gradient);

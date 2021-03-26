@@ -183,11 +183,18 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	CGContextFillPath((CGContextRef)draw_context);
 }
 
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, float start_red, float start_green, float start_blue, float start_alpha, float end_red, float end_green, float end_blue, float end_alpha) {
-	CGFloat components[] = {start_red, start_green, start_blue, start_alpha, end_red, end_green, end_blue, end_alpha};
-	CGFloat locations[] = {0.f, 1.f};
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count) {
+	CGFloat components[count*4];
+	CGFloat locations[count];
+	for (int i = 0; i < count; i++) {
+		components[i*4+0] = stops[i].red;
+		components[i*4+1] = stops[i].green;
+		components[i*4+2] = stops[i].blue;
+		components[i*4+3] = stops[i].alpha;
+		locations[i] = stops[i].position;
+	}
 	CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-	CGGradientRef gradient = CGGradientCreateWithColorComponents(color_space, components, locations, 2);
+	CGGradientRef gradient = CGGradientCreateWithColorComponents(color_space, components, locations, count);
 	CGContextSaveGState((CGContextRef)draw_context);
 	CGContextClip((CGContextRef)draw_context);
 	CGContextDrawLinearGradient((CGContextRef)draw_context, gradient, CGPointMake(start_x, start_y), CGPointMake(end_x, end_y), kCGGradientDrawsBeforeStartLocation|kCGGradientDrawsAfterEndLocation);
