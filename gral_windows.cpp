@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2020 Elias Aebi
+Copyright (c) 2016-2021 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -482,13 +482,11 @@ void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, flo
 		gradient_stops[i].position = stops[i].position;
 		gradient_stops[i].color = D2D1::ColorF(stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
 	}
-	ID2D1GradientStopCollection *gradient_stop_collection;
+	ComPointer<ID2D1GradientStopCollection> gradient_stop_collection;
 	draw_context->target->CreateGradientStopCollection(gradient_stops, count, &gradient_stop_collection);
-	ID2D1LinearGradientBrush *brush;
+	ComPointer<ID2D1LinearGradientBrush> brush;
 	draw_context->target->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(start_x, start_y), D2D1::Point2F(end_x, end_y)), gradient_stop_collection, &brush);
 	draw_context->target->FillGeometry(draw_context->path, brush);
-	brush->Release();
-	gradient_stop_collection->Release();
 
 	draw_context->sink->Release();
 	draw_context->path->Release();
