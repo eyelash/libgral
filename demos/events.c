@@ -64,6 +64,14 @@ static uint32_t utf8_get_next(const char **utf8) {
 	return 0;
 }
 
+static void key_press(int key, int scan_code, void *user_data) {
+	printf("key press: %X (%X)\n", key, scan_code);
+}
+
+static void key_release(int key, int scan_code, void *user_data) {
+	printf("key release: %X (%X)\n", key, scan_code);
+}
+
 static void text(const char *s, void *user_data) {
 	while (*s) {
 		printf("text: U+%X\n", utf8_get_next(&s));
@@ -87,6 +95,8 @@ static void initialize(void *user_data) {
 		&mouse_button_press,
 		&mouse_button_release,
 		&scroll,
+		&key_press,
+		&key_release,
 		&text,
 		&timer
 	};

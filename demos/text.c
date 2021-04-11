@@ -65,6 +65,14 @@ static void scroll(float dx, float dy, void *user_data) {
 
 }
 
+static void key_press(int key, int scan_code, void *user_data) {
+
+}
+
+static void key_release(int key, int scan_code, void *user_data) {
+
+}
+
 static void text(const char *s, void *user_data) {
 
 }
@@ -85,6 +93,8 @@ static void initialize(void *user_data) {
 		&mouse_button_press,
 		&mouse_button_release,
 		&scroll,
+		&key_press,
+		&key_release,
 		&text,
 		&timer
 	};

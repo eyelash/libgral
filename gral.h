@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2020 Elias Aebi
+Copyright (c) 2016-2021 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -24,6 +24,20 @@ enum {
 	GRAL_PRIMARY_MOUSE_BUTTON = 1,
 	GRAL_MIDDLE_MOUSE_BUTTON = 2,
 	GRAL_SECONDARY_MOUSE_BUTTON = 3
+};
+enum {
+	GRAL_KEY_ENTER = 0xFF0D,
+	GRAL_KEY_BACKSPACE = 0xFF08,
+	GRAL_KEY_DELETE = 0xFFFF,
+	GRAL_KEY_ARROW_LEFT = 0xFF51,
+	GRAL_KEY_ARROW_UP = 0xFF52,
+	GRAL_KEY_ARROW_RIGHT = 0xFF53,
+	GRAL_KEY_ARROW_DOWN = 0xFF54,
+	GRAL_KEY_PAGE_UP = 0xFF55,
+	GRAL_KEY_PAGE_DOWN = 0xFF56,
+	GRAL_KEY_HOME = 0xFF50,
+	GRAL_KEY_END = 0xFF57,
+	GRAL_KEY_ESCAPE = 0xFF1B
 };
 enum {
 	GRAL_CURSOR_DEFAULT = 68,
@@ -57,6 +71,8 @@ struct gral_window_interface {
 	void (*mouse_button_press)(float x, float y, int button, void *user_data);
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
+	void (*key_press)(int key, int scan_code, void *user_data);
+	void (*key_release)(int key, int scan_code, void *user_data);
 	void (*text)(const char *s, void *user_data);
 	int (*timer)(void *user_data);
 };

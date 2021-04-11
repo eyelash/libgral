@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2020 Elias Aebi
+Copyright (c) 2016-2021 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -262,12 +262,16 @@ static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 }
 static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
 	GralArea *area = GRAL_AREA(widget);
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
+	window->interface.key_press(event->keyval, event->hardware_keycode - 8, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *event) {
 	GralArea *area = GRAL_AREA(widget);
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
+	window->interface.key_release(event->keyval, event->hardware_keycode - 8, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static void gral_area_commit(GtkIMContext *context, gchar *str, gpointer user_data) {

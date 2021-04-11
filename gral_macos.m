@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2020 Elias Aebi
+Copyright (c) 2016-2021 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "gral.h"
 #import <Cocoa/Cocoa.h>
+#import <Carbon/Carbon.h>
 
 static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
 	NSUInteger i16 = 0;
@@ -230,6 +231,37 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
     WINDOW
  ===========*/
 
+static int get_key(unsigned short key_code) {
+	switch (key_code) {
+	case kVK_Return:
+		return GRAL_KEY_ENTER;
+	case kVK_Delete:
+		return GRAL_KEY_BACKSPACE;
+	case kVK_ForwardDelete:
+		return GRAL_KEY_DELETE;
+	case kVK_LeftArrow:
+		return GRAL_KEY_ARROW_LEFT;
+	case kVK_UpArrow:
+		return GRAL_KEY_ARROW_UP;
+	case kVK_RightArrow:
+		return GRAL_KEY_ARROW_RIGHT;
+	case kVK_DownArrow:
+		return GRAL_KEY_ARROW_DOWN;
+	case kVK_PageUp:
+		return GRAL_KEY_PAGE_UP;
+	case kVK_PageDown:
+		return GRAL_KEY_PAGE_DOWN;
+	case kVK_Home:
+		return GRAL_KEY_HOME;
+	case kVK_End:
+		return GRAL_KEY_END;
+	case kVK_Escape:
+		return GRAL_KEY_ESCAPE;
+	default:
+		return 0;
+	}
+}
+
 @interface GralWindow: NSWindow<NSWindowDelegate> {
 @public
 	struct gral_window_interface interface;
@@ -327,9 +359,12 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
 }
 - (void)keyDown:(NSEvent *)event {
 	[[self inputContext] handleEvent:event];
+	unsigned short key_code = [event keyCode];
+	interface.key_press(get_key(key_code), key_code, user_data);
 }
 - (void)keyUp:(NSEvent *)event {
-
+	unsigned short key_code = [event keyCode];
+	interface.key_release(get_key(key_code), key_code, user_data);
 }
 - (void)timer:(NSTimer *)timer {
 	if (!interface.timer(user_data)) {

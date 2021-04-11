@@ -148,6 +148,37 @@ struct gral_application {
 	void *user_data;
 };
 
+static int get_key(WPARAM wParam) {
+	switch (wParam) {
+	case VK_RETURN:
+		return GRAL_KEY_ENTER;
+	case VK_BACK:
+		return GRAL_KEY_BACKSPACE;
+	case VK_DELETE:
+		return GRAL_KEY_DELETE;
+	case VK_LEFT:
+		return GRAL_KEY_ARROW_LEFT;
+	case VK_UP:
+		return GRAL_KEY_ARROW_UP;
+	case VK_RIGHT:
+		return GRAL_KEY_ARROW_RIGHT;
+	case VK_DOWN:
+		return GRAL_KEY_ARROW_DOWN;
+	case VK_PRIOR:
+		return GRAL_KEY_PAGE_UP;
+	case VK_NEXT:
+		return GRAL_KEY_PAGE_DOWN;
+	case VK_HOME:
+		return GRAL_KEY_HOME;
+	case VK_END:
+		return GRAL_KEY_END;
+	case VK_ESCAPE:
+		return GRAL_KEY_ESCAPE;
+	default:
+		return 0;
+	}
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
@@ -236,6 +267,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_MOUSEHWHEEL: {
 		window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.f, window_data->user_data);
+		return 0;
+	}
+	case WM_KEYDOWN: {
+		int scan_code = (lParam >> 16) & 0xFF;
+		window_data->iface.key_press(get_key(wParam), scan_code, window_data->user_data);
+		return 0;
+	}
+	case WM_KEYUP: {
+		int scan_code = (lParam >> 16) & 0xFF;
+		window_data->iface.key_release(get_key(wParam), scan_code, window_data->user_data);
 		return 0;
 	}
 	case WM_CHAR: {
