@@ -246,6 +246,9 @@ static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *
 	if (event->type == GDK_BUTTON_PRESS) {
 		window->interface.mouse_button_press(event->x, event->y, event->button, window->user_data);
 	}
+	else if (event->type == GDK_2BUTTON_PRESS) {
+		window->interface.double_click(event->x, event->y, event->button, window->user_data);
+	}
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_button_release_event(GtkWidget *widget, GdkEventButton *event) {

@@ -38,6 +38,10 @@ static void mouse_button_release(float x, float y, int button, void *user_data) 
 	printf("mouse button release: {%f, %f}\n", x, y);
 }
 
+static void double_click(float x, float y, int button, void *user_data) {
+	printf("double click: {%f, %f}\n", x, y);
+}
+
 static void scroll(float dx, float dy, void *user_data) {
 	printf("scroll {%f, %f}\n", dx, dy);
 }
@@ -94,6 +98,7 @@ static void initialize(void *user_data) {
 		&mouse_move,
 		&mouse_button_press,
 		&mouse_button_release,
+		&double_click,
 		&scroll,
 		&key_press,
 		&key_release,

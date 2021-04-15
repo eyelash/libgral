@@ -311,8 +311,7 @@ static int get_key(unsigned short key_code) {
 	interface.mouse_leave(user_data);
 }
 - (void)mouseMoved:(NSEvent *)event {
-	NSPoint location = [event locationInWindow];
-	location = [self convertPoint:location fromView:nil];
+	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	interface.mouse_move(location.x, location.y, user_data);
 }
 - (void)mouseDragged:(NSEvent *)event {
@@ -325,33 +324,36 @@ static int get_key(unsigned short key_code) {
 	[self mouseMoved:event];
 }
 - (void)mouseDown:(NSEvent *)event {
-	NSPoint location = [event locationInWindow];
-	location = [self convertPoint:location fromView:nil];
+	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	interface.mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
+	if ([event clickCount] == 2) {
+		interface.double_click(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
+	}
 }
 - (void)rightMouseDown:(NSEvent *)event {
-	NSPoint location = [event locationInWindow];
-	location = [self convertPoint:location fromView:nil];
+	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	interface.mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
+	if ([event clickCount] == 2) {
+		interface.double_click(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
+	}
 }
 - (void)otherMouseDown:(NSEvent *)event {
-	NSPoint location = [event locationInWindow];
-	location = [self convertPoint:location fromView:nil];
+	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	interface.mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
+	if ([event clickCount] == 2) {
+		interface.double_click(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
+	}
 }
 - (void)mouseUp:(NSEvent *)event {
-	NSPoint location = [event locationInWindow];
-	location = [self convertPoint:location fromView:nil];
+	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	interface.mouse_button_release(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
 }
 - (void)rightMouseUp:(NSEvent *)event {
-	NSPoint location = [event locationInWindow];
-	location = [self convertPoint:location fromView:nil];
+	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	interface.mouse_button_release(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseUp:(NSEvent *)event {
-	NSPoint location = [event locationInWindow];
-	location = [self convertPoint:location fromView:nil];
+	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	interface.mouse_button_release(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
 }
 - (void)scrollWheel:(NSEvent *)event {

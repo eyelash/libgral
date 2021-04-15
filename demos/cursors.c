@@ -69,6 +69,10 @@ static void mouse_button_release(float x, float y, int button, void *user_data) 
 
 }
 
+static void double_click(float x, float y, int button, void *user_data) {
+
+}
+
 static void scroll(float dx, float dy, void *user_data) {
 
 }
@@ -100,6 +104,7 @@ static void initialize(void *user_data) {
 		&mouse_move,
 		&mouse_button_press,
 		&mouse_button_release,
+		&double_click,
 		&scroll,
 		&key_press,
 		&key_release,
