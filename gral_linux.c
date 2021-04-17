@@ -187,6 +187,14 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
     WINDOW
  ===========*/
 
+static int get_modifiers(guint state) {
+	int modifiers = 0;
+	if (state & GDK_CONTROL_MASK) modifiers |= GRAL_MODIFIER_CONTROL;
+	if (state & GDK_MOD1_MASK) modifiers |= GRAL_MODIFIER_ALT;
+	if (state & GDK_SHIFT_MASK) modifiers |= GRAL_MODIFIER_SHIFT;
+	return modifiers;
+}
+
 #define GRAL_TYPE_WINDOW gral_window_get_type()
 G_DECLARE_FINAL_TYPE(GralWindow, gral_window, GRAL, WINDOW, GtkApplicationWindow)
 struct _GralWindow {
@@ -244,10 +252,10 @@ static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion 
 static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
 	if (event->type == GDK_BUTTON_PRESS) {
-		window->interface.mouse_button_press(event->x, event->y, event->button, window->user_data);
+		window->interface.mouse_button_press(event->x, event->y, event->button, get_modifiers(event->state), window->user_data);
 	}
 	else if (event->type == GDK_2BUTTON_PRESS) {
-		window->interface.double_click(event->x, event->y, event->button, window->user_data);
+		window->interface.double_click(event->x, event->y, event->button, get_modifiers(event->state), window->user_data);
 	}
 	return GDK_EVENT_STOP;
 }
@@ -267,7 +275,7 @@ static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event)
 	GralArea *area = GRAL_AREA(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
-	window->interface.key_press(event->keyval, event->hardware_keycode - 8, window->user_data);
+	window->interface.key_press(event->keyval, event->hardware_keycode - 8, get_modifiers(event->state), window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *event) {

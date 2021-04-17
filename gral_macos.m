@@ -261,6 +261,13 @@ static int get_key(unsigned short key_code) {
 		return 0;
 	}
 }
+static int get_modifiers(NSEventModifierFlags modifier_flags) {
+	int modifiers = 0;
+	if (modifier_flags & NSEventModifierFlagControl) modifiers |= GRAL_MODIFIER_CONTROL;
+	if (modifier_flags & NSEventModifierFlagOption) modifiers |= GRAL_MODIFIER_ALT;
+	if (modifier_flags & NSEventModifierFlagShift) modifiers |= GRAL_MODIFIER_SHIFT;
+	return modifiers;
+}
 
 @interface GralWindow: NSWindow<NSWindowDelegate> {
 @public
@@ -325,23 +332,26 @@ static int get_key(unsigned short key_code) {
 }
 - (void)mouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	interface.mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
+	int modifiers = get_modifiers([event modifierFlags]);
+	interface.mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
-		interface.double_click(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
+		interface.double_click(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
 	}
 }
 - (void)rightMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	interface.mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
+	int modifiers = get_modifiers([event modifierFlags]);
+	interface.mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
-		interface.double_click(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
+		interface.double_click(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
 	}
 }
 - (void)otherMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	interface.mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
+	int modifiers = get_modifiers([event modifierFlags]);
+	interface.mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
-		interface.double_click(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
+		interface.double_click(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
 	}
 }
 - (void)mouseUp:(NSEvent *)event {
@@ -362,7 +372,7 @@ static int get_key(unsigned short key_code) {
 - (void)keyDown:(NSEvent *)event {
 	[[self inputContext] handleEvent:event];
 	unsigned short key_code = [event keyCode];
-	interface.key_press(get_key(key_code), key_code, user_data);
+	interface.key_press(get_key(key_code), key_code, get_modifiers([event modifierFlags]), user_data);
 }
 - (void)keyUp:(NSEvent *)event {
 	unsigned short key_code = [event keyCode];

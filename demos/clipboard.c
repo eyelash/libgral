@@ -34,7 +34,7 @@ static void paste_callback(const char *text, void *user_data) {
 	printf("paste: %s\n", text);
 }
 
-static void mouse_button_press(float x, float y, int button, void *user_data) {
+static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
 	struct demo *demo = user_data;
 	if (button == GRAL_PRIMARY_MOUSE_BUTTON)
 		gral_window_clipboard_copy(demo->window, "gral clipboard test");
@@ -46,7 +46,7 @@ static void mouse_button_release(float x, float y, int button, void *user_data) 
 
 }
 
-static void double_click(float x, float y, int button, void *user_data) {
+static void double_click(float x, float y, int button, int modifiers, void *user_data) {
 
 }
 
@@ -54,7 +54,7 @@ static void scroll(float dx, float dy, void *user_data) {
 
 }
 
-static void key_press(int key, int scan_code, void *user_data) {
+static void key_press(int key, int scan_code, int modifiers, void *user_data) {
 
 }
 

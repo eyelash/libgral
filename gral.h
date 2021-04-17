@@ -40,6 +40,11 @@ enum {
 	GRAL_KEY_ESCAPE = 0xFF1B
 };
 enum {
+	GRAL_MODIFIER_CONTROL = 1 << 0,
+	GRAL_MODIFIER_ALT = 1 << 1,
+	GRAL_MODIFIER_SHIFT = 1 << 2
+};
+enum {
 	GRAL_CURSOR_DEFAULT = 68,
 	GRAL_CURSOR_TEXT = 152,
 	GRAL_CURSOR_HORIZONTAL_ARROWS = 108,
@@ -68,11 +73,11 @@ struct gral_window_interface {
 	void (*mouse_enter)(void *user_data);
 	void (*mouse_leave)(void *user_data);
 	void (*mouse_move)(float x, float y, void *user_data);
-	void (*mouse_button_press)(float x, float y, int button, void *user_data);
+	void (*mouse_button_press)(float x, float y, int button, int modifiers, void *user_data);
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
-	void (*double_click)(float x, float y, int button, void *user_data);
+	void (*double_click)(float x, float y, int button, int modifiers, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
-	void (*key_press)(int key, int scan_code, void *user_data);
+	void (*key_press)(int key, int scan_code, int modifiers, void *user_data);
 	void (*key_release)(int key, int scan_code, void *user_data);
 	void (*text)(const char *s, void *user_data);
 	int (*timer)(void *user_data);

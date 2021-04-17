@@ -178,6 +178,13 @@ static int get_key(WPARAM wParam) {
 		return 0;
 	}
 }
+int get_modifiers() {
+	int modifiers = 0;
+	if (GetKeyState(VK_CONTROL) < 0) modifiers |= GRAL_MODIFIER_CONTROL;
+	if (GetKeyState(VK_MENU) < 0) modifiers |= GRAL_MODIFIER_ALT;
+	if (GetKeyState(VK_SHIFT) < 0) modifiers |= GRAL_MODIFIER_SHIFT;
+	return modifiers;
+}
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
@@ -227,17 +234,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_LBUTTONDOWN: {
 		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
 		return 0;
 	}
 	case WM_MBUTTONDOWN: {
 		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONDOWN: {
 		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
+		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
 		return 0;
 	}
 	case WM_LBUTTONUP: {
@@ -263,20 +270,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_LBUTTONDBLCLK: {
 		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
-		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+		int modifiers = get_modifiers();
+		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
 		return 0;
 	}
 	case WM_MBUTTONDBLCLK: {
 		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
-		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
+		int modifiers = get_modifiers();
+		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
+		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
 		return 0;
 	}
 	case WM_RBUTTONDBLCLK: {
 		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
-		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
+		int modifiers = get_modifiers();
+		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
 		return 0;
 	}
 	case WM_MOUSEWHEEL: {
@@ -289,7 +299,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_KEYDOWN: {
 		int scan_code = (lParam >> 16) & 0xFF;
-		window_data->iface.key_press(get_key(wParam), scan_code, window_data->user_data);
+		window_data->iface.key_press(get_key(wParam), scan_code, get_modifiers(), window_data->user_data);
 		return 0;
 	}
 	case WM_KEYUP: {

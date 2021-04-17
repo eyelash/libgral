@@ -30,16 +30,16 @@ static void mouse_move(float x, float y, void *user_data) {
 	printf("mouse move: {%f, %f}\n", x, y);
 }
 
-static void mouse_button_press(float x, float y, int button, void *user_data) {
-	printf("mouse button press: {%f, %f}\n", x, y);
+static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
+	printf("mouse button press: {%f, %f} (modifiers: %X)\n", x, y, modifiers);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
 	printf("mouse button release: {%f, %f}\n", x, y);
 }
 
-static void double_click(float x, float y, int button, void *user_data) {
-	printf("double click: {%f, %f}\n", x, y);
+static void double_click(float x, float y, int button, int modifiers, void *user_data) {
+	printf("double click: {%f, %f} (modifiers: %X)\n", x, y, modifiers);
 }
 
 static void scroll(float dx, float dy, void *user_data) {
@@ -68,8 +68,8 @@ static uint32_t utf8_get_next(const char **utf8) {
 	return 0;
 }
 
-static void key_press(int key, int scan_code, void *user_data) {
-	printf("key press: %X (%X)\n", key, scan_code);
+static void key_press(int key, int scan_code, int modifiers, void *user_data) {
+	printf("key press: %X (%X) (modifiers: %X)\n", key, scan_code, modifiers);
 }
 
 static void key_release(int key, int scan_code, void *user_data) {

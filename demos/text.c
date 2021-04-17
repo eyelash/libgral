@@ -50,7 +50,7 @@ static void mouse_move(float x, float y, void *user_data) {
 
 }
 
-static void mouse_button_press(float x, float y, int button, void *user_data) {
+static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
 	struct demo *demo = user_data;
 	int index = gral_text_x_to_index(demo->text, x - 50.f);
 	demo->cursor_x = gral_text_index_to_x(demo->text, index);
@@ -61,7 +61,7 @@ static void mouse_button_release(float x, float y, int button, void *user_data) 
 
 }
 
-static void double_click(float x, float y, int button, void *user_data) {
+static void double_click(float x, float y, int button, int modifiers, void *user_data) {
 
 }
 
@@ -69,7 +69,7 @@ static void scroll(float dx, float dy, void *user_data) {
 
 }
 
-static void key_press(int key, int scan_code, void *user_data) {
+static void key_press(int key, int scan_code, int modifiers, void *user_data) {
 
 }
 
