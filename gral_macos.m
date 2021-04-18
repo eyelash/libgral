@@ -281,15 +281,6 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 @end
 
-@interface MainThreadCallbackData: NSObject {
-@public
-	void (*callback)(void *user_data);
-	void *user_data;
-}
-@end
-@implementation MainThreadCallbackData
-@end
-
 @interface GralView: NSView<NSTextInputClient> {
 @public
 	struct gral_window_interface interface;
@@ -377,16 +368,6 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 - (void)keyUp:(NSEvent *)event {
 	unsigned short key_code = [event keyCode];
 	interface.key_release(get_key(key_code), key_code, user_data);
-}
-- (void)timer:(NSTimer *)timer {
-	if (!interface.timer(user_data)) {
-		[timer invalidate];
-	}
-}
-- (void)mainThreadCallback:(id)user_data {
-	MainThreadCallbackData *callback_data = user_data;
-	callback_data->callback(callback_data->user_data);
-	[callback_data release];
 }
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
@@ -526,17 +507,49 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(co
 	}
 }
 
-void gral_window_set_timer(struct gral_window *window, int milliseconds) {
-	GralView *view = [(GralWindow *)window contentView];
-	[NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:view selector:@selector(timer:) userInfo:nil repeats:YES];
+@interface TimerCallbackObject: NSObject {
+@public
+	int (*callback)(void *user_data);
+	void *user_data;
+}
+@end
+@implementation TimerCallbackObject
+- (void)invoke:(NSTimer *)timer {
+	if (!callback(user_data)) {
+		[timer invalidate];
+	}
+}
+@end
+struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, int (*callback)(void *user_data), void *user_data) {
+	TimerCallbackObject *callback_object = [[TimerCallbackObject alloc] init];
+	callback_object->callback = callback;
+	callback_object->user_data = user_data;
+	NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:callback_object selector:@selector(invoke:) userInfo:nil repeats:YES];
+	[callback_object release];
+	return (struct gral_timer *)timer;
 }
 
+void gral_window_delete_timer(struct gral_window *window, struct gral_timer *timer) {
+	[(NSTimer *)timer invalidate];
+}
+
+@interface MainThreadCallbackObject: NSObject {
+@public
+	void (*callback)(void *user_data);
+	void *user_data;
+}
+@end
+@implementation MainThreadCallbackObject
+- (void)invoke:(id)object {
+	callback(user_data);
+}
+@end
 void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
-	GralView *view = [(GralWindow *)window contentView];
-	MainThreadCallbackData *callback_data = [[MainThreadCallbackData alloc] init];
-	callback_data->callback = callback;
-	callback_data->user_data = user_data;
-	[view performSelectorOnMainThread:@selector(mainThreadCallback:) withObject:callback_data waitUntilDone:NO];
+	MainThreadCallbackObject *callback_object = [[MainThreadCallbackObject alloc] init];
+	callback_object->callback = callback;
+	callback_object->user_data = user_data;
+	[callback_object performSelectorOnMainThread:@selector(invoke:) withObject:nil waitUntilDone:NO];
+	[callback_object release];
 }
 
 

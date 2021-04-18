@@ -4,6 +4,7 @@
 struct demo {
 	struct gral_application *application;
 	struct gral_window *window;
+	struct gral_timer *timer;
 };
 
 static int close(void *user_data) {
@@ -32,6 +33,11 @@ static void mouse_move(float x, float y, void *user_data) {
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
 	printf("mouse button press: {%f, %f} (modifiers: %X)\n", x, y, modifiers);
+	struct demo *demo = user_data;
+	if (demo->timer) {
+		gral_window_delete_timer(demo->window, demo->timer);
+		demo->timer = 0;
+	}
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
@@ -102,11 +108,10 @@ static void initialize(void *user_data) {
 		&scroll,
 		&key_press,
 		&key_release,
-		&text,
-		&timer
+		&text
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &interface, demo);
-	gral_window_set_timer(demo->window, 1000);
+	demo->timer = gral_window_create_timer(demo->window, 1000, &timer, demo);
 }
 
 int main(int argc, char **argv) {

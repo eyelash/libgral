@@ -404,12 +404,26 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(co
 	gtk_clipboard_request_text(clipboard, paste_callback, callback_data);
 }
 
-static gboolean gral_window_timeout(gpointer user_data) {
-	GralWindow *window = GRAL_WINDOW(user_data);
-	return window->interface.timer(window->user_data);
+typedef struct {
+	int (*callback)(void *user_data);
+	void *user_data;
+} TimerCallbackData;
+static gboolean timer_callback(gpointer user_data) {
+	TimerCallbackData *callback_data = user_data;
+	return callback_data->callback(callback_data->user_data);
 }
-void gral_window_set_timer(struct gral_window *window, int milliseconds) {
-	g_timeout_add(milliseconds, gral_window_timeout, window);
+static void timer_destroy(gpointer user_data) {
+	g_slice_free(TimerCallbackData, user_data);
+}
+struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, int (*callback)(void *user_data), void *user_data) {
+	TimerCallbackData *callback_data = g_slice_new(TimerCallbackData);
+	callback_data->callback = callback;
+	callback_data->user_data = user_data;
+	return (struct gral_timer *)(intptr_t)g_timeout_add_full(G_PRIORITY_DEFAULT, milliseconds, timer_callback, callback_data, timer_destroy);
+}
+
+void gral_window_delete_timer(struct gral_window *window, struct gral_timer *timer) {
+	g_source_remove((guint)(intptr_t)timer);
 }
 
 typedef struct {
@@ -419,14 +433,16 @@ typedef struct {
 static gboolean idle_callback(gpointer user_data) {
 	IdleCallbackData *callback_data = user_data;
 	callback_data->callback(callback_data->user_data);
-	g_slice_free(IdleCallbackData, callback_data);
 	return G_SOURCE_REMOVE;
+}
+static void idle_destroy(gpointer user_data) {
+	g_slice_free(IdleCallbackData, user_data);
 }
 void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
 	IdleCallbackData *callback_data = g_slice_new(IdleCallbackData);
 	callback_data->callback = callback;
 	callback_data->user_data = user_data;
-	gdk_threads_add_idle(idle_callback, callback_data);
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, idle_callback, callback_data, idle_destroy);
 }
 
 

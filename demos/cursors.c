@@ -89,10 +89,6 @@ static void text(const char *s, void *user_data) {
 
 }
 
-static int timer(void *user_data) {
-	return 0;
-}
-
 static void initialize(void *user_data) {
 	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
@@ -108,8 +104,7 @@ static void initialize(void *user_data) {
 		&scroll,
 		&key_press,
 		&key_release,
-		&text,
-		&timer
+		&text
 	};
 	demo->window = gral_window_create(demo->application, 400, 400, "gral cursors demo", &interface, demo);
 	demo->cursor = GRAL_CURSOR_DEFAULT;

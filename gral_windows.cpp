@@ -138,6 +138,11 @@ struct WindowData {
 	WindowData(): mouse_inside(false), minimum_width(0), minimum_height(0) {}
 };
 
+struct gral_timer {
+	int (*callback)(void *user_data);
+	void *user_data;
+};
+
 
 /*================
     APPLICATION
@@ -330,8 +335,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_TIMER: {
-		if (!window_data->iface.timer(window_data->user_data)) {
-			KillTimer(hwnd, wParam);
+		gral_timer *timer = (gral_timer *)wParam;
+		if (!timer->callback(timer->user_data)) {
+			KillTimer(hwnd, (UINT_PTR)timer);
+			delete timer;
 		}
 		return 0;
 	}
@@ -733,8 +740,17 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(const cha
 	CloseClipboard();
 }
 
-void gral_window_set_timer(gral_window *window, int milliseconds) {
-	SetTimer((HWND)window, 0, milliseconds, NULL);
+gral_timer *gral_window_create_timer(gral_window *window, int milliseconds, int (*callback)(void *user_data), void *user_data) {
+	gral_timer *timer = new gral_timer();
+	timer->callback = callback;
+	timer->user_data = user_data;
+	SetTimer((HWND)window, (UINT_PTR)timer, milliseconds, NULL);
+	return timer;
+}
+
+void gral_window_delete_timer(gral_window *window, gral_timer *timer) {
+	KillTimer((HWND)window, (UINT_PTR)timer);
+	delete timer;
 }
 
 void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
