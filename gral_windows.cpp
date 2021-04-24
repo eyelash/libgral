@@ -701,6 +701,8 @@ static HCURSOR get_cursor(int cursor) {
 	switch (cursor) {
 	case GRAL_CURSOR_DEFAULT:
 		return LoadCursor(NULL, IDC_ARROW);
+	case GRAL_CURSOR_HAND:
+		return LoadCursor(NULL, IDC_HAND);
 	case GRAL_CURSOR_TEXT:
 		return LoadCursor(NULL, IDC_IBEAM);
 	case GRAL_CURSOR_HORIZONTAL_ARROWS:

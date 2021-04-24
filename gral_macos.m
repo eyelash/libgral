@@ -456,6 +456,8 @@ static NSCursor *get_cursor(int cursor) {
 	switch (cursor) {
 	case GRAL_CURSOR_DEFAULT:
 		return NSCursor.arrowCursor;
+	case GRAL_CURSOR_HAND:
+		return NSCursor.pointingHandCursor;
 	case GRAL_CURSOR_TEXT:
 		return NSCursor.IBeamCursor;
 	case GRAL_CURSOR_HORIZONTAL_ARROWS:
