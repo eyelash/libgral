@@ -58,19 +58,6 @@ public:
 	}
 };
 
-static HINSTANCE hInstance;
-static ID2D1Factory *factory;
-static ID2D1StrokeStyle *stroke_style;
-static IDWriteFactory *dwrite_factory;
-
-struct gral_draw_context {
-	ID2D1HwndRenderTarget *target;
-	ID2D1PathGeometry *path;
-	ID2D1GeometrySink *sink;
-	bool open;
-	gral_draw_context(): open(false) {}
-};
-
 template <class T> class Buffer {
 	size_t length;
 	T *data;
@@ -116,6 +103,67 @@ static Buffer<char> utf16_to_utf8(const wchar_t *utf16) {
 	WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, length, NULL, NULL);
 	return utf8;
 }
+
+static UINT32 utf8_index_to_utf16(const wchar_t *text, int index) {
+	int i8 = 0;
+	UINT32 i16 = 0;
+	while (i8 < index) {
+		UINT32 c; // UTF-32 code point
+		if ((text[i16] & 0xFC00) == 0xD800) {
+			c = (((text[i16] & 0x03FF) << 10) | (text[i16+1] & 0x03FF)) + 0x10000;
+			i16++;
+		}
+		else {
+			c = text[i16];
+		}
+		i16++;
+		if (c <= 0x7F) i8 += 1;
+		else if (c <= 0x7FF) i8 += 2;
+		else if (c <= 0xFFFF) i8 += 3;
+		else i8 += 4;
+	}
+	return i16;
+}
+
+static int utf16_index_to_utf8(const wchar_t *text, UINT32 index) {
+	int i8 = 0;
+	UINT32 i16 = 0;
+	while (i16 < index) {
+		UINT32 c; // UTF-32 code point
+		if ((text[i16] & 0xFC00) == 0xD800) {
+			c = (((text[i16] & 0x03FF) << 10) | (text[i16+1] & 0x03FF)) + 0x10000;
+			i16++;
+		}
+		else {
+			c = text[i16];
+		}
+		i16++;
+		if (c <= 0x7F) i8 += 1;
+		else if (c <= 0x7FF) i8 += 2;
+		else if (c <= 0xFFFF) i8 += 3;
+		else i8 += 4;
+	}
+	return i8;
+}
+
+static HINSTANCE hInstance;
+static ID2D1Factory *factory;
+static ID2D1StrokeStyle *stroke_style;
+static IDWriteFactory *dwrite_factory;
+
+struct gral_draw_context {
+	ID2D1HwndRenderTarget *target;
+	ID2D1PathGeometry *path;
+	ID2D1GeometrySink *sink;
+	bool open;
+	gral_draw_context(): open(false) {}
+};
+
+struct gral_text {
+	ComPointer<IDWriteTextLayout> layout;
+	Buffer<wchar_t> utf16;
+	gral_text(const Buffer<wchar_t> &utf16): utf16(utf16) {}
+};
 
 static void adjust_window_size(int &width, int &height) {
 	RECT rect;
@@ -435,15 +483,13 @@ gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
 	ComPointer<IDWriteTextFormat> format;
 	dwrite_factory->CreateTextFormat(ncm.lfMessageFont.lfFaceName, NULL, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size, L"en", &format);
-	IDWriteTextLayout *layout;
-	Buffer<wchar_t> utf16 = utf8_to_utf16(utf8);
-	dwrite_factory->CreateTextLayout(utf16, utf16.get_length(), format, INFINITY, INFINITY, &layout);
-	return (gral_text *)layout;
+	gral_text *text = new gral_text(utf8_to_utf16(utf8));
+	dwrite_factory->CreateTextLayout(text->utf16, text->utf16.get_length(), format, INFINITY, INFINITY, &text->layout);
+	return text;
 }
 
 void gral_text_delete(gral_text *text) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
-	layout->Release();
+	delete text;
 }
 
 void gral_text_set_bold(gral_text *text, int start_index, int end_index) {
@@ -451,28 +497,23 @@ void gral_text_set_bold(gral_text *text, int start_index, int end_index) {
 }
 
 float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	DWRITE_TEXT_METRICS metrics;
-	layout->GetMetrics(&metrics);
+	text->layout->GetMetrics(&metrics);
 	return metrics.width;
 }
 
 float gral_text_index_to_x(gral_text *text, int index) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	float x, y;
 	DWRITE_HIT_TEST_METRICS metrics;
-	// TODO: convert UTF-8 index to UTF-16
-	layout->HitTestTextPosition(index, false, &x, &y, &metrics);
+	text->layout->HitTestTextPosition(utf8_index_to_utf16(text->utf16, index), false, &x, &y, &metrics);
 	return x;
 }
 
 int gral_text_x_to_index(gral_text *text, float x) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	BOOL trailing, inside;
 	DWRITE_HIT_TEST_METRICS metrics;
-	layout->HitTestPoint(x, 0.f, &trailing, &inside, &metrics);
-	// TODO: convert UTF-16 index to UTF-8
-	return inside && trailing ? metrics.textPosition + metrics.length : metrics.textPosition;
+	text->layout->HitTestPoint(x, 0.f, &trailing, &inside, &metrics);
+	return utf16_index_to_utf8(text->utf16, inside && trailing ? metrics.textPosition + metrics.length : metrics.textPosition);
 }
 
 void gral_font_get_metrics(gral_window *window, float size, float *ascent, float *descent) {
@@ -495,13 +536,12 @@ void gral_font_get_metrics(gral_window *window, float size, float *ascent, float
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
-	IDWriteTextLayout *layout = (IDWriteTextLayout *)text;
 	DWRITE_LINE_METRICS line_metrics;
 	UINT32 count = 1;
-	layout->GetLineMetrics(&line_metrics, count, &count);
+	text->layout->GetLineMetrics(&line_metrics, count, &count);
 	ComPointer<ID2D1SolidColorBrush> brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
-	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y-line_metrics.baseline), layout, brush);
+	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y-line_metrics.baseline), text->layout, brush);
 }
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {

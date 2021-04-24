@@ -15,8 +15,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #import <Carbon/Carbon.h>
 
 static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
+	int i8 = 0;
 	NSUInteger i16 = 0;
-	for (int i8 = 0; i8 < index; i16++) {
+	while (i8 < index) {
 		unichar c1 = [string characterAtIndex:i16];
 		uint32_t c; // UTF-32 code point
 		if ((c1 & 0xFC00) == 0xD800) {
@@ -27,6 +28,7 @@ static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
 		else {
 			c = c1;
 		}
+		i16++;
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -36,7 +38,8 @@ static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
 }
 static int utf16_index_to_utf8(NSString *string, NSUInteger index) {
 	int i8 = 0;
-	for (NSUInteger i16 = 0; i16 < index; i16++) {
+	NSUInteger i16 = 0;
+	while (i16 < index) {
 		unichar c1 = [string characterAtIndex:i16];
 		uint32_t c; // UTF-32 code point
 		if ((c1 & 0xFC00) == 0xD800) {
@@ -47,6 +50,7 @@ static int utf16_index_to_utf8(NSString *string, NSUInteger index) {
 		else {
 			c = c1;
 		}
+		i16++;
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
