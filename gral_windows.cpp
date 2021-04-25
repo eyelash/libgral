@@ -378,7 +378,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			}
 			char utf8[5];
 			WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, 5, NULL, NULL);
-			window_data->iface.text(utf8, window_data->user_data);
+			if (utf8[0] != '\b' && utf8[0] != '\t' && utf8[0] != '\r' && utf8[0] != 0x1B) {
+				window_data->iface.text(utf8, window_data->user_data);
+			}
 		}
 		return 0;
 	}
