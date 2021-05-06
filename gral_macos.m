@@ -12,23 +12,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "gral.h"
 #import <Cocoa/Cocoa.h>
-#import <Carbon/Carbon.h>
 
+static NSUInteger get_next_code_point(NSString *string, NSUInteger i, uint32_t *code_point) {
+	unichar c1 = [string characterAtIndex:i];
+	if ((c1 & 0xFC00) == 0xD800) {
+		unichar c2 = [string characterAtIndex:i+1];
+		*code_point = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
+		return 2;
+	}
+	else {
+		*code_point = c1;
+		return 1;
+	}
+}
 static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
 	int i8 = 0;
 	NSUInteger i16 = 0;
 	while (i8 < index) {
-		unichar c1 = [string characterAtIndex:i16];
 		uint32_t c; // UTF-32 code point
-		if ((c1 & 0xFC00) == 0xD800) {
-			i16++;
-			unichar c2 = [string characterAtIndex:i16];
-			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
-		}
-		else {
-			c = c1;
-		}
-		i16++;
+		i16 += get_next_code_point(string, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -40,17 +42,8 @@ static int utf16_index_to_utf8(NSString *string, NSUInteger index) {
 	int i8 = 0;
 	NSUInteger i16 = 0;
 	while (i16 < index) {
-		unichar c1 = [string characterAtIndex:i16];
 		uint32_t c; // UTF-32 code point
-		if ((c1 & 0xFC00) == 0xD800) {
-			i16++;
-			unichar c2 = [string characterAtIndex:i16];
-			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
-		}
-		else {
-			c = c1;
-		}
-		i16++;
+		i16 += get_next_code_point(string, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -235,40 +228,49 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
     WINDOW
  ===========*/
 
-static int get_key(unsigned short key_code) {
-	switch (key_code) {
-	case kVK_Return:
-		return GRAL_KEY_ENTER;
-	case kVK_Delete:
-		return GRAL_KEY_BACKSPACE;
-	case kVK_ForwardDelete:
-		return GRAL_KEY_DELETE;
-	case kVK_LeftArrow:
-		return GRAL_KEY_ARROW_LEFT;
-	case kVK_UpArrow:
-		return GRAL_KEY_ARROW_UP;
-	case kVK_RightArrow:
-		return GRAL_KEY_ARROW_RIGHT;
-	case kVK_DownArrow:
-		return GRAL_KEY_ARROW_DOWN;
-	case kVK_PageUp:
-		return GRAL_KEY_PAGE_UP;
-	case kVK_PageDown:
-		return GRAL_KEY_PAGE_DOWN;
-	case kVK_Home:
-		return GRAL_KEY_HOME;
-	case kVK_End:
-		return GRAL_KEY_END;
-	case kVK_Escape:
-		return GRAL_KEY_ESCAPE;
-	default:
+static int get_key(NSEvent *event) {
+	// TODO: use [event charactersByApplyingModifiers:0] (macOS 10.15+)
+	NSString *characters = [[event charactersIgnoringModifiers] lowercaseString];
+	if ([characters length] == 0) {
 		return 0;
 	}
+	uint32_t code_point;
+	get_next_code_point(characters, 0, &code_point);
+	switch (code_point) {
+	case NSCarriageReturnCharacter:
+		return GRAL_KEY_ENTER;
+	case NSDeleteCharacter:
+		return GRAL_KEY_BACKSPACE;
+	case NSDeleteFunctionKey:
+		return GRAL_KEY_DELETE;
+	case NSLeftArrowFunctionKey:
+		return GRAL_KEY_ARROW_LEFT;
+	case NSUpArrowFunctionKey:
+		return GRAL_KEY_ARROW_UP;
+	case NSRightArrowFunctionKey:
+		return GRAL_KEY_ARROW_RIGHT;
+	case NSDownArrowFunctionKey:
+		return GRAL_KEY_ARROW_DOWN;
+	case NSPageUpFunctionKey:
+		return GRAL_KEY_PAGE_UP;
+	case NSPageDownFunctionKey:
+		return GRAL_KEY_PAGE_DOWN;
+	case NSHomeFunctionKey:
+		return GRAL_KEY_HOME;
+	case NSEndFunctionKey:
+		return GRAL_KEY_END;
+	case '\e':
+		return GRAL_KEY_ESCAPE;
+	default:
+		return code_point;
+	}
 }
-static int get_modifiers(NSEventModifierFlags modifier_flags) {
+static int get_modifiers(NSEvent *event) {
+	NSEventModifierFlags modifier_flags = [event modifierFlags];
 	int modifiers = 0;
 	if (modifier_flags & NSEventModifierFlagControl) modifiers |= GRAL_MODIFIER_CONTROL;
 	if (modifier_flags & NSEventModifierFlagOption) modifiers |= GRAL_MODIFIER_ALT;
+	if (modifier_flags & NSEventModifierFlagCommand) modifiers |= GRAL_MODIFIER_CONTROL;
 	if (modifier_flags & NSEventModifierFlagShift) modifiers |= GRAL_MODIFIER_SHIFT;
 	return modifiers;
 }
@@ -327,7 +329,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)mouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	int modifiers = get_modifiers([event modifierFlags]);
+	int modifiers = get_modifiers(event);
 	interface.mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
 		interface.double_click(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
@@ -335,7 +337,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)rightMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	int modifiers = get_modifiers([event modifierFlags]);
+	int modifiers = get_modifiers(event);
 	interface.mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
 		interface.double_click(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
@@ -343,7 +345,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)otherMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	int modifiers = get_modifiers([event modifierFlags]);
+	int modifiers = get_modifiers(event);
 	interface.mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
 		interface.double_click(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
@@ -366,12 +368,16 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)keyDown:(NSEvent *)event {
 	[[self inputContext] handleEvent:event];
-	unsigned short key_code = [event keyCode];
-	interface.key_press(get_key(key_code), key_code, get_modifiers([event modifierFlags]), user_data);
+	int key = get_key(event);
+	if (key) {
+		interface.key_press(key, [event keyCode], get_modifiers(event), user_data);
+	}
 }
 - (void)keyUp:(NSEvent *)event {
-	unsigned short key_code = [event keyCode];
-	interface.key_release(get_key(key_code), key_code, user_data);
+	int key = get_key(event);
+	if (key) {
+		interface.key_release(key, [event keyCode], user_data);
+	}
 }
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
