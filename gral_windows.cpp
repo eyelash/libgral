@@ -104,19 +104,23 @@ static Buffer<char> utf16_to_utf8(const wchar_t *utf16) {
 	return utf8;
 }
 
+static UINT32 get_next_code_point(const wchar_t *text, UINT32 i, UINT32 *code_point) {
+	if ((text[i] & 0xFC00) == 0xD800) {
+		*code_point = (((text[i] & 0x03FF) << 10) | (text[i+1] & 0x03FF)) + 0x10000;
+		return 2;
+	}
+	else {
+		*code_point = text[i];
+		return 1;
+	}
+}
+
 static UINT32 utf8_index_to_utf16(const wchar_t *text, int index) {
 	int i8 = 0;
 	UINT32 i16 = 0;
 	while (i8 < index) {
 		UINT32 c; // UTF-32 code point
-		if ((text[i16] & 0xFC00) == 0xD800) {
-			c = (((text[i16] & 0x03FF) << 10) | (text[i16+1] & 0x03FF)) + 0x10000;
-			i16++;
-		}
-		else {
-			c = text[i16];
-		}
-		i16++;
+		i16 += get_next_code_point(text, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -130,14 +134,7 @@ static int utf16_index_to_utf8(const wchar_t *text, UINT32 index) {
 	UINT32 i16 = 0;
 	while (i16 < index) {
 		UINT32 c; // UTF-32 code point
-		if ((text[i16] & 0xFC00) == 0xD800) {
-			c = (((text[i16] & 0x03FF) << 10) | (text[i16+1] & 0x03FF)) + 0x10000;
-			i16++;
-		}
-		else {
-			c = text[i16];
-		}
-		i16++;
+		i16 += get_next_code_point(text, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -201,7 +198,7 @@ struct gral_application {
 	void *user_data;
 };
 
-static int get_key(WPARAM wParam) {
+static int get_key(WPARAM wParam, UINT scan_code) {
 	switch (wParam) {
 	case VK_RETURN:
 		return GRAL_KEY_ENTER;
@@ -227,8 +224,26 @@ static int get_key(WPARAM wParam) {
 		return GRAL_KEY_END;
 	case VK_ESCAPE:
 		return GRAL_KEY_ESCAPE;
-	default:
+	default: {
+		BYTE keyboard_state[256];
+		GetKeyboardState(keyboard_state);
+		keyboard_state[VK_SHIFT] = 0;
+		keyboard_state[VK_CONTROL] = 0;
+		keyboard_state[VK_MENU] = 0;
+		keyboard_state[VK_LSHIFT] = 0;
+		keyboard_state[VK_RSHIFT] = 0;
+		keyboard_state[VK_LCONTROL] = 0;
+		keyboard_state[VK_RCONTROL] = 0;
+		keyboard_state[VK_LMENU] = 0;
+		keyboard_state[VK_RMENU] = 0;
+		WCHAR utf16[5];
+		if (ToUnicode(wParam, scan_code, keyboard_state, utf16, 5, 0) > 0) {
+			UINT32 code_point;
+			get_next_code_point(utf16, 0, &code_point);
+			return code_point;
+		}
 		return 0;
+	}
 	}
 }
 int get_modifiers() {
@@ -351,13 +366,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_KEYDOWN: {
-		int scan_code = (lParam >> 16) & 0xFF;
-		window_data->iface.key_press(get_key(wParam), scan_code, get_modifiers(), window_data->user_data);
+		UINT scan_code = (lParam >> 16) & 0xFF;
+		int key = get_key(wParam, scan_code);
+		if (key) {
+			window_data->iface.key_press(key, scan_code, get_modifiers(), window_data->user_data);
+		}
 		return 0;
 	}
 	case WM_KEYUP: {
-		int scan_code = (lParam >> 16) & 0xFF;
-		window_data->iface.key_release(get_key(wParam), scan_code, window_data->user_data);
+		UINT scan_code = (lParam >> 16) & 0xFF;
+		int key = get_key(wParam, scan_code);
+		if (key) {
+			window_data->iface.key_release(key, scan_code, window_data->user_data);
+		}
 		return 0;
 	}
 	case WM_CHAR: {
@@ -378,7 +399,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			}
 			char utf8[5];
 			WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, 5, NULL, NULL);
-			if (utf8[0] != '\b' && utf8[0] != '\t' && utf8[0] != '\r' && utf8[0] != 0x1B) {
+			if (utf8[0] > 0x1F) {
 				window_data->iface.text(utf8, window_data->user_data);
 			}
 		}

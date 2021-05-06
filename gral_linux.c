@@ -271,18 +271,60 @@ static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 	window->interface.scroll(-delta_x, -delta_y, window->user_data);
 	return GDK_EVENT_STOP;
 }
+static int get_key(GdkEventKey *event) {
+	switch (event->keyval) {
+	case GDK_KEY_Return:
+		return GRAL_KEY_ENTER;
+	case GDK_KEY_BackSpace:
+		return GRAL_KEY_BACKSPACE;
+	case GDK_KEY_Delete:
+		return GRAL_KEY_DELETE;
+	case GDK_KEY_Left:
+		return GRAL_KEY_ARROW_LEFT;
+	case GDK_KEY_Up:
+		return GRAL_KEY_ARROW_UP;
+	case GDK_KEY_Right:
+		return GRAL_KEY_ARROW_RIGHT;
+	case GDK_KEY_Down:
+		return GRAL_KEY_ARROW_DOWN;
+	case GDK_KEY_Page_Up:
+		return GRAL_KEY_PAGE_UP;
+	case GDK_KEY_Page_Down:
+		return GRAL_KEY_PAGE_DOWN;
+	case GDK_KEY_Home:
+		return GRAL_KEY_HOME;
+	case GDK_KEY_End:
+		return GRAL_KEY_END;
+	case GDK_KEY_Escape:
+		return GRAL_KEY_ESCAPE;
+	default: {
+		GdkKeymap *keymap = gdk_keymap_get_for_display(gdk_window_get_display(event->window));
+		GdkKeymapKey keymap_key;
+		keymap_key.keycode = event->hardware_keycode;
+		keymap_key.group = 0;
+		keymap_key.level = 0;
+		return gdk_keyval_to_unicode(gdk_keymap_lookup_key(keymap, &keymap_key));
+	}
+	}
+}
 static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
 	GralArea *area = GRAL_AREA(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
-	window->interface.key_press(event->keyval, event->hardware_keycode - 8, get_modifiers(event->state), window->user_data);
+	int key = get_key(event);
+	if (key) {
+		window->interface.key_press(key, event->hardware_keycode - 8, get_modifiers(event->state), window->user_data);
+	}
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *event) {
 	GralArea *area = GRAL_AREA(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
-	window->interface.key_release(event->keyval, event->hardware_keycode - 8, window->user_data);
+	int key = get_key(event);
+	if (key) {
+		window->interface.key_release(key, event->hardware_keycode - 8, window->user_data);
+	}
 	return GDK_EVENT_STOP;
 }
 static void gral_area_commit(GtkIMContext *context, gchar *str, gpointer user_data) {

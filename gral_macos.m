@@ -14,21 +14,24 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #import <Cocoa/Cocoa.h>
 #import <Carbon/Carbon.h>
 
+static NSUInteger get_next_code_point(NSString *string, NSUInteger i, uint32_t *code_point) {
+	unichar c1 = [string characterAtIndex:i];
+	if ((c1 & 0xFC00) == 0xD800) {
+		unichar c2 = [string characterAtIndex:i+1];
+		*code_point = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
+		return 2;
+	}
+	else {
+		*code_point = c1;
+		return 1;
+	}
+}
 static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
 	int i8 = 0;
 	NSUInteger i16 = 0;
 	while (i8 < index) {
-		unichar c1 = [string characterAtIndex:i16];
 		uint32_t c; // UTF-32 code point
-		if ((c1 & 0xFC00) == 0xD800) {
-			i16++;
-			unichar c2 = [string characterAtIndex:i16];
-			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
-		}
-		else {
-			c = c1;
-		}
-		i16++;
+		i16 += get_next_code_point(string, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -40,17 +43,8 @@ static int utf16_index_to_utf8(NSString *string, NSUInteger index) {
 	int i8 = 0;
 	NSUInteger i16 = 0;
 	while (i16 < index) {
-		unichar c1 = [string characterAtIndex:i16];
 		uint32_t c; // UTF-32 code point
-		if ((c1 & 0xFC00) == 0xD800) {
-			i16++;
-			unichar c2 = [string characterAtIndex:i16];
-			c = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
-		}
-		else {
-			c = c1;
-		}
-		i16++;
+		i16 += get_next_code_point(string, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -235,7 +229,7 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
     WINDOW
  ===========*/
 
-static int get_key(unsigned short key_code) {
+static int get_key(UInt16 key_code) {
 	switch (key_code) {
 	case kVK_Return:
 		return GRAL_KEY_ENTER;
@@ -261,14 +255,29 @@ static int get_key(unsigned short key_code) {
 		return GRAL_KEY_END;
 	case kVK_Escape:
 		return GRAL_KEY_ESCAPE;
-	default:
+	default: {
+		TISInputSourceRef input_source = TISCopyCurrentKeyboardInputSource();
+		CFDataRef uchr = TISGetInputSourceProperty(input_source, kTISPropertyUnicodeKeyLayoutData);
+		const UCKeyboardLayout *keyboard_layout = (const UCKeyboardLayout *)CFDataGetBytePtr(uchr);
+		UInt32 dead_key_state = 0;
+		UniChar string[255];
+		UniCharCount string_length = 0;
+		UCKeyTranslate(keyboard_layout, key_code, kUCKeyActionDown, 0, LMGetKbdType(), 0, &dead_key_state, 255, &string_length, string);
+		NSString *characters = [NSString stringWithCharacters:string length:string_length];
+		if ([characters length] > 0) {
+			uint32_t code_point;
+			get_next_code_point(characters, 0, &code_point);
+			return code_point;
+		}
 		return 0;
+	}
 	}
 }
 static int get_modifiers(NSEventModifierFlags modifier_flags) {
 	int modifiers = 0;
 	if (modifier_flags & NSEventModifierFlagControl) modifiers |= GRAL_MODIFIER_CONTROL;
 	if (modifier_flags & NSEventModifierFlagOption) modifiers |= GRAL_MODIFIER_ALT;
+	if (modifier_flags & NSEventModifierFlagCommand) modifiers |= GRAL_MODIFIER_CONTROL;
 	if (modifier_flags & NSEventModifierFlagShift) modifiers |= GRAL_MODIFIER_SHIFT;
 	return modifiers;
 }
@@ -367,11 +376,17 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 - (void)keyDown:(NSEvent *)event {
 	[[self inputContext] handleEvent:event];
 	unsigned short key_code = [event keyCode];
-	interface.key_press(get_key(key_code), key_code, get_modifiers([event modifierFlags]), user_data);
+	int key = get_key(key_code);
+	if (key) {
+		interface.key_press(key, key_code, get_modifiers([event modifierFlags]), user_data);
+	}
 }
 - (void)keyUp:(NSEvent *)event {
 	unsigned short key_code = [event keyCode];
-	interface.key_release(get_key(key_code), key_code, user_data);
+	int key = get_key(key_code);
+	if (key) {
+		interface.key_release(key, key_code, user_data);
+	}
 }
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
