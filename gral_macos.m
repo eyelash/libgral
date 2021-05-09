@@ -105,7 +105,9 @@ struct gral_text *gral_text_create(struct gral_window *window, const char *text,
 	CFAttributedStringRef attributed_string = CFAttributedStringCreate(NULL, string, attributes);
 	CFRelease(string);
 	CFRelease(attributes);
-	return (struct gral_text *)attributed_string;
+	CFMutableAttributedStringRef mutable_attributed_string = CFAttributedStringCreateMutableCopy(NULL, 0, attributed_string);
+	CFRelease(attributed_string);
+	return (struct gral_text *)mutable_attributed_string;
 }
 
 void gral_text_delete(struct gral_text *text) {
@@ -113,7 +115,13 @@ void gral_text_delete(struct gral_text *text) {
 }
 
 void gral_text_set_bold(struct gral_text *text, int start_index, int end_index) {
-	// TODO: implement
+	CFStringRef string = CFAttributedStringGetString((CFAttributedStringRef)text);
+	CFIndex loc = utf8_index_to_utf16(string, start_index);
+	CFIndex len = utf8_index_to_utf16(string, end_index) - loc;
+	CTFontRef font = CFAttributedStringGetAttribute((CFAttributedStringRef)text, loc, kCTFontAttributeName, NULL);
+	CTFontRef bold_font = CTFontCreateCopyWithSymbolicTraits(font, 0, NULL, kCTFontTraitBold, kCTFontTraitBold);
+	CFAttributedStringSetAttribute((CFMutableAttributedStringRef)text, CFRangeMake(loc, len), kCTFontAttributeName, bold_font);
+	CFRelease(bold_font);
 }
 
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
