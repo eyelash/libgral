@@ -14,10 +14,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #import <Cocoa/Cocoa.h>
 #import <Carbon/Carbon.h>
 
-static NSUInteger get_next_code_point(NSString *string, NSUInteger i, uint32_t *code_point) {
-	unichar c1 = [string characterAtIndex:i];
+static NSUInteger get_next_code_point(CFStringRef string, NSUInteger i, uint32_t *code_point) {
+	unichar c1 = CFStringGetCharacterAtIndex(string, i);
 	if ((c1 & 0xFC00) == 0xD800) {
-		unichar c2 = [string characterAtIndex:i+1];
+		unichar c2 = CFStringGetCharacterAtIndex(string, i+1);
 		*code_point = (((c1 & 0x03FF) << 10) | (c2 & 0x03FF)) + 0x10000;
 		return 2;
 	}
@@ -26,7 +26,7 @@ static NSUInteger get_next_code_point(NSString *string, NSUInteger i, uint32_t *
 		return 1;
 	}
 }
-static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
+static NSUInteger utf8_index_to_utf16(CFStringRef string, int index) {
 	int i8 = 0;
 	NSUInteger i16 = 0;
 	while (i8 < index) {
@@ -39,7 +39,7 @@ static NSUInteger utf8_index_to_utf16(NSString *string, int index) {
 	}
 	return i16;
 }
-static int utf16_index_to_utf8(NSString *string, NSUInteger index) {
+static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 	int i8 = 0;
 	NSUInteger i16 = 0;
 	while (i16 < index) {
@@ -97,16 +97,19 @@ int gral_application_run(struct gral_application *application, int argc, char **
  ============*/
 
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
-	NSFont *font = [NSFont systemFontOfSize:size];
-	NSAttributedString *attributedString = [[NSAttributedString alloc]
-		initWithString:[NSString stringWithUTF8String:text]
-		attributes:[NSDictionary dictionaryWithObject:font forKey:NSFontAttributeName]
-	];
-	return (struct gral_text *)attributedString;
+	CFStringRef string = CFStringCreateWithCString(NULL, text, kCFStringEncodingUTF8);
+	CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(NULL, 1, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	CTFontRef font = CTFontCreateUIFontForLanguage(kCTFontUIFontSystem, size, NULL);
+	CFDictionarySetValue(attributes, kCTFontAttributeName, font);
+	CFRelease(font);
+	CFAttributedStringRef attributed_string = CFAttributedStringCreate(NULL, string, attributes);
+	CFRelease(string);
+	CFRelease(attributes);
+	return (struct gral_text *)attributed_string;
 }
 
 void gral_text_delete(struct gral_text *text) {
-	[(NSAttributedString *)text release];
+	CFRelease(text);
 }
 
 void gral_text_set_bold(struct gral_text *text, int start_index, int end_index) {
@@ -122,7 +125,7 @@ float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw
 
 float gral_text_index_to_x(struct gral_text *text, int index) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
-	NSString *string = [(NSAttributedString *)text string];
+	CFStringRef string = CFAttributedStringGetString((CFAttributedStringRef)text);
 	CGFloat offset = CTLineGetOffsetForStringIndex(line, utf8_index_to_utf16(string, index), NULL);
 	CFRelease(line);
 	return offset;
@@ -132,19 +135,18 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
 	CFIndex index = CTLineGetStringIndexForPosition(line, CGPointMake(x, 0.f));
 	CFRelease(line);
-	NSString *string = [(NSAttributedString *)text string];
+	CFStringRef string = CFAttributedStringGetString((CFAttributedStringRef)text);
 	return utf16_index_to_utf8(string, index);
 }
 
 void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
-	NSFont *font = [NSFont systemFontOfSize:size];
-	if (ascent) *ascent = font.ascender;
-	if (descent) *descent = -font.descender;
+	CTFontRef font = CTFontCreateUIFontForLanguage(kCTFontUIFontSystem, size, NULL);
+	if (ascent) *ascent = CTFontGetAscent(font);
+	if (descent) *descent = CTFontGetDescent(font);
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
-	CGContextSetRGBFillColor((CGContextRef)draw_context, red, green, blue, alpha);
 	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
 	CGContextSetTextMatrix((CGContextRef)draw_context, CGAffineTransformMakeScale(1.f, -1.f));
 	CFArrayRef glyphRuns = CTLineGetGlyphRuns(line);
@@ -155,6 +157,13 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 		int count = CTRunGetGlyphCount(run);
 		CFDictionaryRef attributes = CTRunGetAttributes(run);
 		CTFontRef font = CFDictionaryGetValue(attributes, kCTFontAttributeName);
+		CGColorRef color = (CGColorRef)CFDictionaryGetValue(attributes, kCTForegroundColorAttributeName);
+		if (color) {
+			CGContextSetFillColorWithColor((CGContextRef)draw_context, color);
+		}
+		else {
+			CGContextSetRGBFillColor((CGContextRef)draw_context, red, green, blue, alpha);
+		}
 		CTFontDrawGlyphs(font, glyphs, positions, count, (CGContextRef)draw_context);
 	}
 	CGContextTranslateCTM((CGContextRef)draw_context, -x, -y);
@@ -265,8 +274,8 @@ static int get_key(UInt16 key_code) {
 		UniChar string[255];
 		UniCharCount string_length = 0;
 		UCKeyTranslate(keyboard_layout, key_code, kUCKeyActionDown, 0, LMGetKbdType(), 0, &dead_key_state, 255, &string_length, string);
-		NSString *characters = [NSString stringWithCharacters:string length:string_length];
-		if ([characters length] > 0) {
+		CFStringRef characters = CFStringCreateWithCharactersNoCopy(NULL, string, string_length, kCFAllocatorNull);
+		if (CFStringGetLength(characters) > 0) {
 			uint32_t code_point;
 			get_next_code_point(characters, 0, &code_point);
 			return code_point;
