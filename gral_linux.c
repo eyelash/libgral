@@ -397,9 +397,25 @@ void gral_window_set_minimum_size(struct gral_window *window, int minimum_width,
 	gtk_window_set_geometry_hints(GTK_WINDOW(window), NULL, &geometry, GDK_HINT_MIN_SIZE);
 }
 
+static const char *get_cursor_name(int cursor) {
+	switch (cursor) {
+	case GRAL_CURSOR_DEFAULT:
+		return "default";
+	case GRAL_CURSOR_HAND:
+		return "pointer";
+	case GRAL_CURSOR_TEXT:
+		return "text";
+	case GRAL_CURSOR_HORIZONTAL_ARROWS:
+		return "col-resize";
+	case GRAL_CURSOR_VERTICAL_ARROWS:
+		return "row-resize";
+	case GRAL_CURSOR_NONE:
+		return "none";
+	}
+}
 void gral_window_set_cursor(struct gral_window *window, int cursor) {
 	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
-	GdkCursor *gdk_cursor = gdk_cursor_new_for_display(gdk_window_get_display(gdk_window), cursor);
+	GdkCursor *gdk_cursor = gdk_cursor_new_from_name(gdk_window_get_display(gdk_window), get_cursor_name(cursor));
 	gdk_window_set_cursor(gdk_window, gdk_cursor);
 	g_object_unref(gdk_cursor);
 }
