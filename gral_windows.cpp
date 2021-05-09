@@ -518,7 +518,10 @@ void gral_text_delete(gral_text *text) {
 }
 
 void gral_text_set_bold(gral_text *text, int start_index, int end_index) {
-	// TODO: implement
+	DWRITE_TEXT_RANGE range;
+	range.startPosition = utf8_index_to_utf16(text->utf16, start_index);
+	range.length = utf8_index_to_utf16(text->utf16, end_index) - range.startPosition;
+	text->layout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 }
 
 float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
