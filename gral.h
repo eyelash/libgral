@@ -103,6 +103,7 @@ int gral_application_run(struct gral_application *application, int argc, char **
 struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size);
 void gral_text_delete(struct gral_text *text);
 void gral_text_set_bold(struct gral_text *text, int start_index, int end_index);
+void gral_text_set_italic(struct gral_text *text, int start_index, int end_index);
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context);
 float gral_text_index_to_x(struct gral_text *text, int index);
 int gral_text_x_to_index(struct gral_text *text, float x);

@@ -124,6 +124,16 @@ void gral_text_set_bold(struct gral_text *text, int start_index, int end_index) 
 	CFRelease(bold_font);
 }
 
+void gral_text_set_italic(struct gral_text *text, int start_index, int end_index) {
+	CFStringRef string = CFAttributedStringGetString((CFAttributedStringRef)text);
+	CFIndex loc = utf8_index_to_utf16(string, start_index);
+	CFIndex len = utf8_index_to_utf16(string, end_index) - loc;
+	CTFontRef font = CFAttributedStringGetAttribute((CFAttributedStringRef)text, loc, kCTFontAttributeName, NULL);
+	CTFontRef italic_font = CTFontCreateCopyWithSymbolicTraits(font, 0, NULL, kCTFontTraitItalic, kCTFontTraitItalic);
+	CFAttributedStringSetAttribute((CFMutableAttributedStringRef)text, CFRangeMake(loc, len), kCTFontAttributeName, italic_font);
+	CFRelease(italic_font);
+}
+
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
 	CGRect bounds = CTLineGetImageBounds(line, (CGContextRef)draw_context);

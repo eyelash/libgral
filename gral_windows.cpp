@@ -524,6 +524,13 @@ void gral_text_set_bold(gral_text *text, int start_index, int end_index) {
 	text->layout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 }
 
+void gral_text_set_italic(gral_text *text, int start_index, int end_index) {
+	DWRITE_TEXT_RANGE range;
+	range.startPosition = utf8_index_to_utf16(text->utf16, start_index);
+	range.length = utf8_index_to_utf16(text->utf16, end_index) - range.startPosition;
+	text->layout->SetFontStyle(DWRITE_FONT_STYLE_ITALIC, range);
+}
+
 float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
 	DWRITE_TEXT_METRICS metrics;
 	text->layout->GetMetrics(&metrics);

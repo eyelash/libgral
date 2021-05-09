@@ -87,6 +87,14 @@ void gral_text_set_bold(struct gral_text *text, int start_index, int end_index) 
 	pango_attr_list_change(attr_list, attribute);
 }
 
+void gral_text_set_italic(struct gral_text *text, int start_index, int end_index) {
+	PangoAttribute *attribute = pango_attr_style_new(PANGO_STYLE_ITALIC);
+	attribute->start_index = start_index;
+	attribute->end_index = end_index;
+	PangoAttrList *attr_list = pango_layout_get_attributes(PANGO_LAYOUT(text));
+	pango_attr_list_change(attr_list, attribute);
+}
+
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
 	PangoRectangle extents;
 	pango_layout_get_extents(PANGO_LAYOUT(text), &extents, NULL);
