@@ -275,6 +275,8 @@ static int get_key(GdkEventKey *event) {
 	switch (event->keyval) {
 	case GDK_KEY_Return:
 		return GRAL_KEY_ENTER;
+	case GDK_KEY_Tab:
+		return GRAL_KEY_TAB;
 	case GDK_KEY_BackSpace:
 		return GRAL_KEY_BACKSPACE;
 	case GDK_KEY_Delete:

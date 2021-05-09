@@ -233,6 +233,8 @@ static int get_key(UInt16 key_code) {
 	switch (key_code) {
 	case kVK_Return:
 		return GRAL_KEY_ENTER;
+	case kVK_Tab:
+		return GRAL_KEY_TAB;
 	case kVK_Delete:
 		return GRAL_KEY_BACKSPACE;
 	case kVK_ForwardDelete:

@@ -202,6 +202,8 @@ static int get_key(WPARAM wParam, UINT scan_code) {
 	switch (wParam) {
 	case VK_RETURN:
 		return GRAL_KEY_ENTER;
+	case VK_TAB:
+		return GRAL_KEY_TAB;
 	case VK_BACK:
 		return GRAL_KEY_BACKSPACE;
 	case VK_DELETE:
