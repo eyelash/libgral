@@ -540,15 +540,6 @@ public:
 	GralTextRenderer(D2D1_COLOR_F const &color): reference_count(0), color(color) {}
 	IFACEMETHOD(DrawGlyphRun)(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode, DWRITE_GLYPH_RUN const *glyphRun, DWRITE_GLYPH_RUN_DESCRIPTION const *glyphRunDescription, IUnknown *clientDrawingEffect) {
 		gral_draw_context *draw_context = (gral_draw_context *)clientDrawingContext;
-		ComPointer<ID2D1PathGeometry> path;
-		factory->CreatePathGeometry(&path);
-		ComPointer<ID2D1GeometrySink> sink;
-		path->Open(&sink);
-		glyphRun->fontFace->GetGlyphRunOutline(glyphRun->fontEmSize, glyphRun->glyphIndices, glyphRun->glyphAdvances, glyphRun->glyphOffsets, glyphRun->glyphCount, glyphRun->isSideways, glyphRun->bidiLevel % 2, sink);
-		sink->Close();
-		D2D1_MATRIX_3X2_F const matrix = D2D1::Matrix3x2F(1.0f, 0.0f, 0.0f, 1.0f, baselineOriginX, baselineOriginY);
-		ComPointer<ID2D1TransformedGeometry> transformed_geometry;
-		factory->CreateTransformedGeometry(path, &matrix, &transformed_geometry);
 		ComPointer<ID2D1SolidColorBrush> brush;
 		if (clientDrawingEffect) {
 			ComPointer<ColorDrawingEffect> color_drawing_effect;
@@ -558,7 +549,7 @@ public:
 		else {
 			draw_context->target->CreateSolidColorBrush(color, &brush);
 		}
-		draw_context->target->FillGeometry(transformed_geometry, brush);
+		draw_context->target->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, brush, measuringMode);
 		return S_OK;
 	}
 	IFACEMETHOD(DrawInlineObject)(void *clientDrawingContext, FLOAT originX, FLOAT originY, IDWriteInlineObject *inlineObject, BOOL isSideways, BOOL isRightToLeft, IUnknown *clientDrawingEffect) {
