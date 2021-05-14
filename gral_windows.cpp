@@ -502,6 +502,75 @@ int gral_application_run(gral_application *application, int argc, char **argv) {
     DRAWING
  ============*/
 
+class GralTextRenderer: public IDWriteTextRenderer {
+	ULONG reference_count;
+	D2D1_COLOR_F color;
+public:
+	GralTextRenderer(D2D1_COLOR_F const &color): reference_count(0), color(color) {}
+	IFACEMETHOD(DrawGlyphRun)(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode, DWRITE_GLYPH_RUN const *glyphRun, DWRITE_GLYPH_RUN_DESCRIPTION const *glyphRunDescription, IUnknown *clientDrawingEffect) {
+		gral_draw_context *draw_context = (gral_draw_context *)clientDrawingContext;
+		ComPointer<ID2D1PathGeometry> path;
+		factory->CreatePathGeometry(&path);
+		ComPointer<ID2D1GeometrySink> sink;
+		path->Open(&sink);
+		glyphRun->fontFace->GetGlyphRunOutline(glyphRun->fontEmSize, glyphRun->glyphIndices, glyphRun->glyphAdvances, glyphRun->glyphOffsets, glyphRun->glyphCount, glyphRun->isSideways, glyphRun->bidiLevel % 2, sink);
+		sink->Close();
+		D2D1_MATRIX_3X2_F const matrix = D2D1::Matrix3x2F(1.0f, 0.0f, 0.0f, 1.0f, baselineOriginX, baselineOriginY);
+		ComPointer<ID2D1TransformedGeometry> transformed_geometry;
+		factory->CreateTransformedGeometry(path, &matrix, &transformed_geometry);
+		ComPointer<ID2D1SolidColorBrush> brush;
+		draw_context->target->CreateSolidColorBrush(color, &brush);
+		draw_context->target->FillGeometry(transformed_geometry, brush);
+		return S_OK;
+	}
+	IFACEMETHOD(DrawInlineObject)(void *clientDrawingContext, FLOAT originX, FLOAT originY, IDWriteInlineObject *inlineObject, BOOL isSideways, BOOL isRightToLeft, IUnknown *clientDrawingEffect) {
+		// TODO: implement
+		return S_OK;
+	}
+	IFACEMETHOD(DrawStrikethrough)(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_STRIKETHROUGH const *strikethrough, IUnknown *clientDrawingEffect) {
+		// TODO: implement
+		return S_OK;
+	}
+	IFACEMETHOD(DrawUnderline)(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_UNDERLINE const *underline, IUnknown *clientDrawingEffect) {
+		// TODO: implement
+		return S_OK;
+	}
+	IFACEMETHOD(IsPixelSnappingDisabled)(void *clientDrawingContext, BOOL *isDisabled) {
+		*isDisabled = FALSE;
+		return S_OK;
+	}
+	IFACEMETHOD(GetCurrentTransform)(void *clientDrawingContext, DWRITE_MATRIX *transform) {
+		gral_draw_context *draw_context = (gral_draw_context *)clientDrawingContext;
+		draw_context->target->GetTransform((D2D1_MATRIX_3X2_F *)transform);
+		return S_OK;
+	}
+	IFACEMETHOD(GetPixelsPerDip)(void *clientDrawingContext, FLOAT *pixelsPerDip) {
+		*pixelsPerDip = 1.0f;
+		return S_OK;
+	}
+	IFACEMETHOD(QueryInterface)(REFIID riid, void **ppvObject) {
+		if (riid == __uuidof(IDWriteTextRenderer) || riid == __uuidof(IDWritePixelSnapping) || riid == __uuidof(IUnknown)) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		else {
+			*ppvObject = NULL;
+			return E_FAIL;
+		}
+	}
+	IFACEMETHOD_(ULONG, AddRef)() {
+		return InterlockedIncrement(&reference_count);
+	}
+    IFACEMETHOD_(ULONG, Release)() {
+		ULONG new_reference_count = InterlockedDecrement(&reference_count);
+		if (new_reference_count == 0) {
+			delete this;
+		}
+		return new_reference_count;
+	}
+};
+
 gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
 	NONCLIENTMETRICS ncm;
 	ncm.cbSize = sizeof(NONCLIENTMETRICS);
@@ -578,9 +647,10 @@ void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *tex
 	DWRITE_LINE_METRICS line_metrics;
 	UINT32 count = 1;
 	text->layout->GetLineMetrics(&line_metrics, count, &count);
-	ComPointer<ID2D1SolidColorBrush> brush;
-	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
-	draw_context->target->DrawTextLayout(D2D1::Point2F(x, y-line_metrics.baseline), text->layout, brush);
+	ComPointer<GralTextRenderer> renderer;
+	*&renderer = new GralTextRenderer(D2D1::ColorF(red, green, blue, alpha));
+	renderer->AddRef();
+	text->layout->Draw(draw_context, renderer, x, y-line_metrics.baseline);
 }
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
