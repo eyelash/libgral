@@ -102,6 +102,7 @@ static void initialize(void *user_data) {
 	demo->text = gral_text_create(demo->window, "gral text demo: bold italic", 16.f);
 	gral_text_set_bold(demo->text, 16, 20);
 	gral_text_set_italic(demo->text, 21, 27);
+	gral_text_set_color(demo->text, 5, 9, 0.f, .5f, 1.f, 1.f);
 	demo->cursor_x = 0.f;
 	gral_font_get_metrics(demo->window, 16.f, &demo->ascent, &demo->descent);
 }

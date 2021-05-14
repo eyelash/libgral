@@ -531,6 +531,10 @@ void gral_text_set_italic(gral_text *text, int start_index, int end_index) {
 	text->layout->SetFontStyle(DWRITE_FONT_STYLE_ITALIC, range);
 }
 
+void gral_text_set_color(gral_text *text, int start_index, int end_index, float red, float green, float blue, float alpha) {
+	// TODO: implement
+}
+
 float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
 	DWRITE_TEXT_METRICS metrics;
 	text->layout->GetMetrics(&metrics);
