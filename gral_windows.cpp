@@ -502,6 +502,37 @@ int gral_application_run(gral_application *application, int argc, char **argv) {
     DRAWING
  ============*/
 
+class ColorDrawingEffect: public IUnknown {
+	ULONG reference_count;
+	D2D1_COLOR_F color;
+public:
+	ColorDrawingEffect(D2D1_COLOR_F const &color): reference_count(0), color(color) {}
+	D2D1_COLOR_F const &GetColor() const {
+		return color;
+	}
+	IFACEMETHOD(QueryInterface)(REFIID riid, void **ppvObject) {
+		if (riid == __uuidof(IUnknown)) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		else {
+			*ppvObject = NULL;
+			return E_FAIL;
+		}
+	}
+	IFACEMETHOD_(ULONG, AddRef)() {
+		return InterlockedIncrement(&reference_count);
+	}
+    IFACEMETHOD_(ULONG, Release)() {
+		ULONG new_reference_count = InterlockedDecrement(&reference_count);
+		if (new_reference_count == 0) {
+			delete this;
+		}
+		return new_reference_count;
+	}
+};
+
 class GralTextRenderer: public IDWriteTextRenderer {
 	ULONG reference_count;
 	D2D1_COLOR_F color;
@@ -519,7 +550,14 @@ public:
 		ComPointer<ID2D1TransformedGeometry> transformed_geometry;
 		factory->CreateTransformedGeometry(path, &matrix, &transformed_geometry);
 		ComPointer<ID2D1SolidColorBrush> brush;
-		draw_context->target->CreateSolidColorBrush(color, &brush);
+		if (clientDrawingEffect) {
+			ComPointer<ColorDrawingEffect> color_drawing_effect;
+			clientDrawingEffect->QueryInterface(__uuidof(IUnknown), (void **)&color_drawing_effect);
+			draw_context->target->CreateSolidColorBrush(color_drawing_effect->GetColor(), &brush);
+		}
+		else {
+			draw_context->target->CreateSolidColorBrush(color, &brush);
+		}
 		draw_context->target->FillGeometry(transformed_geometry, brush);
 		return S_OK;
 	}
@@ -601,7 +639,13 @@ void gral_text_set_italic(gral_text *text, int start_index, int end_index) {
 }
 
 void gral_text_set_color(gral_text *text, int start_index, int end_index, float red, float green, float blue, float alpha) {
-	// TODO: implement
+	DWRITE_TEXT_RANGE range;
+	range.startPosition = utf8_index_to_utf16(text->utf16, start_index);
+	range.length = utf8_index_to_utf16(text->utf16, end_index) - range.startPosition;
+	ComPointer<ColorDrawingEffect> drawing_effect;
+	*&drawing_effect = new ColorDrawingEffect(D2D1::ColorF(red, green, blue, alpha));
+	drawing_effect->AddRef();
+	text->layout->SetDrawingEffect(drawing_effect, range);
 }
 
 float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
