@@ -27,7 +27,7 @@ template <class T> class ComPointer {
 	T *pointer;
 public:
 	ComPointer(): pointer(NULL) {}
-	ComPointer(const ComPointer &com_pointer): pointer(com_pointer.pointer) {
+	ComPointer(ComPointer const &com_pointer): pointer(com_pointer.pointer) {
 		if (pointer) {
 			pointer->AddRef();
 		}
@@ -37,7 +37,7 @@ public:
 			pointer->Release();
 		}
 	}
-	ComPointer &operator =(const ComPointer &com_pointer) {
+	ComPointer &operator =(ComPointer const &com_pointer) {
 		if (pointer) {
 			pointer->Release();
 		}
@@ -63,7 +63,7 @@ template <class T> class Buffer {
 	T *data;
 public:
 	Buffer(size_t length): length(length), data(new T[length]) {}
-	Buffer(const Buffer &buffer): length(buffer.length), data(new T[length]) {
+	Buffer(Buffer const &buffer): length(buffer.length), data(new T[length]) {
 		for (size_t i = 0; i < length; i++) {
 			data[i] = buffer.data[i];
 		}
@@ -71,7 +71,7 @@ public:
 	~Buffer() {
 		delete[] data;
 	}
-	Buffer &operator =(const Buffer &buffer) {
+	Buffer &operator =(Buffer const &buffer) {
 		if (buffer.length != length) {
 			delete[] data;
 			length = buffer.length;
@@ -104,23 +104,23 @@ static Buffer<char> utf16_to_utf8(const wchar_t *utf16) {
 	return utf8;
 }
 
-static UINT32 get_next_code_point(const wchar_t *text, UINT32 i, UINT32 *code_point) {
-	if ((text[i] & 0xFC00) == 0xD800) {
-		*code_point = (((text[i] & 0x03FF) << 10) | (text[i+1] & 0x03FF)) + 0x10000;
+static UINT32 get_next_code_point(const wchar_t *utf16, UINT32 i, UINT32 *code_point) {
+	if ((utf16[i] & 0xFC00) == 0xD800) {
+		*code_point = (((utf16[i] & 0x03FF) << 10) | (utf16[i+1] & 0x03FF)) + 0x10000;
 		return 2;
 	}
 	else {
-		*code_point = text[i];
+		*code_point = utf16[i];
 		return 1;
 	}
 }
 
-static UINT32 utf8_index_to_utf16(const wchar_t *text, int index) {
+static UINT32 utf8_index_to_utf16(const wchar_t *utf16, int index) {
 	int i8 = 0;
 	UINT32 i16 = 0;
 	while (i8 < index) {
 		UINT32 c; // UTF-32 code point
-		i16 += get_next_code_point(text, i16, &c);
+		i16 += get_next_code_point(utf16, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -129,12 +129,12 @@ static UINT32 utf8_index_to_utf16(const wchar_t *text, int index) {
 	return i16;
 }
 
-static int utf16_index_to_utf8(const wchar_t *text, UINT32 index) {
+static int utf16_index_to_utf8(const wchar_t *utf16, UINT32 index) {
 	int i8 = 0;
 	UINT32 i16 = 0;
 	while (i16 < index) {
 		UINT32 c; // UTF-32 code point
-		i16 += get_next_code_point(text, i16, &c);
+		i16 += get_next_code_point(utf16, i16, &c);
 		if (c <= 0x7F) i8 += 1;
 		else if (c <= 0x7FF) i8 += 2;
 		else if (c <= 0xFFFF) i8 += 3;
@@ -159,7 +159,7 @@ struct gral_draw_context {
 struct gral_text {
 	ComPointer<IDWriteTextLayout> layout;
 	Buffer<wchar_t> utf16;
-	gral_text(const Buffer<wchar_t> &utf16): utf16(utf16) {}
+	gral_text(Buffer<wchar_t> const &utf16): utf16(utf16) {}
 };
 
 static void adjust_window_size(int &width, int &height) {
@@ -399,9 +399,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				utf16[0] = (WCHAR)wParam;
 				utf16[1] = 0;
 			}
-			char utf8[5];
+			CHAR utf8[5];
 			WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, 5, NULL, NULL);
-			if (utf8[0] > 0x1F) {
+			if ((UCHAR)utf8[0] > 0x1F) {
 				window_data->iface.text(utf8, window_data->user_data);
 			}
 		}
@@ -506,8 +506,8 @@ class ColorDrawingEffect: public IUnknown {
 	ULONG reference_count;
 	D2D1_COLOR_F color;
 public:
-	ColorDrawingEffect(D2D1_COLOR_F const &color): reference_count(0), color(color) {}
-	D2D1_COLOR_F const &GetColor() const {
+	ColorDrawingEffect(D2D1_COLOR_F const &color): reference_count(1), color(color) {}
+	D2D1_COLOR_F const &get_color() const {
 		return color;
 	}
 	IFACEMETHOD(QueryInterface)(REFIID riid, void **ppvObject) {
@@ -518,7 +518,7 @@ public:
 		}
 		else {
 			*ppvObject = NULL;
-			return E_FAIL;
+			return E_NOINTERFACE;
 		}
 	}
 	IFACEMETHOD_(ULONG, AddRef)() {
@@ -537,14 +537,13 @@ class GralTextRenderer: public IDWriteTextRenderer {
 	ULONG reference_count;
 	D2D1_COLOR_F color;
 public:
-	GralTextRenderer(D2D1_COLOR_F const &color): reference_count(0), color(color) {}
+	GralTextRenderer(D2D1_COLOR_F const &color): reference_count(1), color(color) {}
 	IFACEMETHOD(DrawGlyphRun)(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode, DWRITE_GLYPH_RUN const *glyphRun, DWRITE_GLYPH_RUN_DESCRIPTION const *glyphRunDescription, IUnknown *clientDrawingEffect) {
 		gral_draw_context *draw_context = (gral_draw_context *)clientDrawingContext;
 		ComPointer<ID2D1SolidColorBrush> brush;
 		if (clientDrawingEffect) {
-			ComPointer<ColorDrawingEffect> color_drawing_effect;
-			clientDrawingEffect->QueryInterface(__uuidof(IUnknown), (void **)&color_drawing_effect);
-			draw_context->target->CreateSolidColorBrush(color_drawing_effect->GetColor(), &brush);
+			ColorDrawingEffect *color_drawing_effect = (ColorDrawingEffect *)clientDrawingEffect;
+			draw_context->target->CreateSolidColorBrush(color_drawing_effect->get_color(), &brush);
 		}
 		else {
 			draw_context->target->CreateSolidColorBrush(color, &brush);
@@ -585,7 +584,7 @@ public:
 		}
 		else {
 			*ppvObject = NULL;
-			return E_FAIL;
+			return E_NOINTERFACE;
 		}
 	}
 	IFACEMETHOD_(ULONG, AddRef)() {
@@ -635,7 +634,6 @@ void gral_text_set_color(gral_text *text, int start_index, int end_index, float 
 	range.length = utf8_index_to_utf16(text->utf16, end_index) - range.startPosition;
 	ComPointer<ColorDrawingEffect> drawing_effect;
 	*&drawing_effect = new ColorDrawingEffect(D2D1::ColorF(red, green, blue, alpha));
-	drawing_effect->AddRef();
 	text->layout->SetDrawingEffect(drawing_effect, range);
 }
 
@@ -684,7 +682,6 @@ void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *tex
 	text->layout->GetLineMetrics(&line_metrics, count, &count);
 	ComPointer<GralTextRenderer> renderer;
 	*&renderer = new GralTextRenderer(D2D1::ColorF(red, green, blue, alpha));
-	renderer->AddRef();
 	text->layout->Draw(draw_context, renderer, x, y-line_metrics.baseline);
 }
 
@@ -976,13 +973,13 @@ void gral_file_close(gral_file *file) {
 
 size_t gral_file_read(gral_file *file, void *buffer, size_t size) {
 	DWORD bytes_read;
-	ReadFile(file, buffer, size, &bytes_read, NULL);
+	ReadFile(file, buffer, (DWORD)size, &bytes_read, NULL);
 	return bytes_read;
 }
 
 void gral_file_write(gral_file *file, const void *buffer, size_t size) {
 	DWORD bytes_written;
-	WriteFile(file, buffer, size, &bytes_written, NULL);
+	WriteFile(file, buffer, (DWORD)size, &bytes_written, NULL);
 }
 
 size_t gral_file_get_size(gral_file *file) {

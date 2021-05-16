@@ -418,9 +418,9 @@ static const char *get_cursor_name(int cursor) {
 	case GRAL_CURSOR_TEXT:
 		return "text";
 	case GRAL_CURSOR_HORIZONTAL_ARROWS:
-		return "col-resize";
+		return "ew-resize";
 	case GRAL_CURSOR_VERTICAL_ARROWS:
-		return "row-resize";
+		return "ns-resize";
 	case GRAL_CURSOR_NONE:
 		return "none";
 	}

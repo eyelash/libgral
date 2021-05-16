@@ -162,6 +162,9 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
 	CFIndex index = CTLineGetStringIndexForPosition(line, CGPointMake(x, 0.f));
 	CFRelease(line);
+	if (index == kCFNotFound) {
+		return 0;
+	}
 	CFStringRef string = CFAttributedStringGetString((CFAttributedStringRef)text);
 	return utf16_index_to_utf8(string, index);
 }
@@ -301,10 +304,11 @@ static int get_key(UInt16 key_code) {
 		UniChar string[255];
 		UniCharCount string_length = 0;
 		UCKeyTranslate(keyboard_layout, key_code, kUCKeyActionDown, 0, LMGetKbdType(), 0, &dead_key_state, 255, &string_length, string);
-		CFStringRef characters = CFStringCreateWithCharactersNoCopy(NULL, string, string_length, kCFAllocatorNull);
-		if (CFStringGetLength(characters) > 0) {
+		if (string_length > 0) {
+			CFStringRef characters = CFStringCreateWithCharactersNoCopy(NULL, string, string_length, kCFAllocatorNull);
 			uint32_t code_point;
 			get_next_code_point(characters, 0, &code_point);
+			CFRelease(characters);
 			return code_point;
 		}
 		return 0;
@@ -412,7 +416,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 	interface.scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
 }
 - (void)keyDown:(NSEvent *)event {
-	[[self inputContext] handleEvent:event];
+	[self interpretKeyEvents:[NSArray arrayWithObject:event]];
 	unsigned short key_code = [event keyCode];
 	int key = get_key(key_code);
 	if (key) {
@@ -508,15 +512,15 @@ static NSCursor *get_cursor(int cursor) {
 	static NSCursor *transparent_cursor = NULL;
 	switch (cursor) {
 	case GRAL_CURSOR_DEFAULT:
-		return NSCursor.arrowCursor;
+		return [NSCursor arrowCursor];
 	case GRAL_CURSOR_HAND:
-		return NSCursor.pointingHandCursor;
+		return [NSCursor pointingHandCursor];
 	case GRAL_CURSOR_TEXT:
-		return NSCursor.IBeamCursor;
+		return [NSCursor IBeamCursor];
 	case GRAL_CURSOR_HORIZONTAL_ARROWS:
-		return NSCursor.resizeLeftRightCursor;
+		return [NSCursor resizeLeftRightCursor];
 	case GRAL_CURSOR_VERTICAL_ARROWS:
-		return NSCursor.resizeUpDownCursor;
+		return [NSCursor resizeUpDownCursor];
 	case GRAL_CURSOR_NONE:
 		if (transparent_cursor == NULL) {
 			NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];

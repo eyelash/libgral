@@ -2,7 +2,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#define RAD(deg) ((deg) * ((float)M_PI / 180.f))
+#define RAD(deg) ((deg) * ((float)M_PI / 180.0f))
 
 struct demo {
 	struct gral_application *application;
@@ -22,7 +22,7 @@ static void add_rectangle(struct gral_draw_context *draw_context, float x, float
 }
 
 static void add_arc(struct gral_draw_context *draw_context, float cx, float cy, float radius, float start_angle, float sweep_angle) {
-	float h = 4.f / 3.f * tanf(sweep_angle / 4.f);
+	float h = 4.0f / 3.0f * tanf(sweep_angle / 4.0f);
 	float cos_start = cosf(start_angle) * radius;
 	float sin_start = sinf(start_angle) * radius;
 	float end_angle = start_angle + sweep_angle;
@@ -38,7 +38,7 @@ static void add_arc(struct gral_draw_context *draw_context, float cx, float cy, 
 }
 
 static void add_circle(struct gral_draw_context *draw_context, float x, float y, float size) {
-	float radius = size / 2.f;
+	float radius = size / 2.0f;
 	gral_draw_context_move_to(draw_context, x, y + radius);
 	add_arc(draw_context, x + radius, y + radius, radius, RAD(180), RAD(90));
 	add_arc(draw_context, x + radius, y + radius, radius, RAD(270), RAD(90));
@@ -59,7 +59,7 @@ static void add_rounded_rectangle(struct gral_draw_context *draw_context, float 
 }
 
 static void add_star(struct gral_draw_context *draw_context, float x, float y, float size) {
-	float radius = size / 2.f;
+	float radius = size / 2.0f;
 	float cx = x + radius;
 	float cy = y + radius;
 	float a = RAD(270);
@@ -73,21 +73,21 @@ static void add_star(struct gral_draw_context *draw_context, float x, float y, f
 }
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
-	add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
-	gral_draw_context_fill(draw_context, .9f, .1f, .1f, 1.f);
-	add_rectangle(draw_context, 220.f, 20.f, 160.f, 160.f);
-	gral_draw_context_stroke(draw_context, 4.f, .1f, .1f, .9f, 1.f);
-	add_rectangle(draw_context, 420.f, 20.f, 160.f, 160.f);
+	add_rectangle(draw_context, 20.0f, 20.0f, 160.0f, 160.0f);
+	gral_draw_context_fill(draw_context, 0.9f, 0.1f, 0.1f, 1.0f);
+	add_rectangle(draw_context, 220.0f, 20.0f, 160.0f, 160.0f);
+	gral_draw_context_stroke(draw_context, 4.0f, 0.1f, 0.1f, 0.9f, 1.0f);
+	add_rectangle(draw_context, 420.0f, 20.0f, 160.0f, 160.0f);
 	struct gral_gradient_stop stops[] = {
-		{0.f, .9f, .1f, .1f, 1.f},
-		{.3f, .9f, .9f, .1f, 1.f},
-		{1.f, .1f, .9f, .1f, 1.f}
+		{0.0f, 0.9f, 0.1f, 0.1f, 1.0f},
+		{0.3f, 0.9f, 0.9f, 0.1f, 1.0f},
+		{1.0f, 0.1f, 0.9f, 0.1f, 1.0f}
 	};
-	gral_draw_context_fill_linear_gradient(draw_context, 420.f, 20.f, 580.f, 100.f, stops, 3);
-	add_circle(draw_context, 20.f, 220.f, 160.f);
-	add_rounded_rectangle(draw_context, 220.f, 220.f, 160.f, 160.f, 20.f);
-	add_star(draw_context, 420.f, 220.f, 160.f);
-	gral_draw_context_fill(draw_context, .1f, .1f, .9f, 1.f);
+	gral_draw_context_fill_linear_gradient(draw_context, 420.0f, 20.0f, 580.0f, 100.0f, stops, 3);
+	add_circle(draw_context, 20.0f, 220.0f, 160.0f);
+	add_rounded_rectangle(draw_context, 220.0f, 220.0f, 160.0f, 160.0f, 20.0f);
+	add_star(draw_context, 420.0f, 220.0f, 160.0f);
+	gral_draw_context_fill(draw_context, 0.1f, 0.1f, 0.9f, 1.0f);
 }
 
 static void resize(int width, int height, void *user_data) {

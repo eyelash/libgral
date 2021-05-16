@@ -20,11 +20,11 @@ static void add_rectangle(struct gral_draw_context *draw_context, float x, float
 }
 
 static void draw(struct gral_draw_context *draw_context, void *user_data) {
-	add_rectangle(draw_context, 20.f, 20.f, 160.f, 160.f);
-	add_rectangle(draw_context, 220.f, 20.f, 160.f, 160.f);
-	add_rectangle(draw_context, 20.f, 220.f, 160.f, 160.f);
-	add_rectangle(draw_context, 220.f, 220.f, 160.f, 160.f);
-	gral_draw_context_fill(draw_context, .7f, .7f, .7f, 1.f);
+	add_rectangle(draw_context, 20.0f, 20.0f, 160.0f, 160.0f);
+	add_rectangle(draw_context, 220.0f, 20.0f, 160.0f, 160.0f);
+	add_rectangle(draw_context, 20.0f, 220.0f, 160.0f, 160.0f);
+	add_rectangle(draw_context, 220.0f, 220.0f, 160.0f, 160.0f);
+	gral_draw_context_fill(draw_context, 0.7f, 0.7f, 0.7f, 1.0f);
 }
 
 static void resize(int width, int height, void *user_data) {
