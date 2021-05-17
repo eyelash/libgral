@@ -357,6 +357,9 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 	[super setFrameSize:size];
 	interface.resize(size.width, size.height, user_data);
 }
+- (BOOL)acceptsFirstMouse:(NSEvent *)event {
+	return YES;
+}
 - (void)mouseEntered:(NSEvent *)event {
 	interface.mouse_enter(user_data);
 }
