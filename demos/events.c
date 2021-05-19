@@ -52,8 +52,8 @@ static void scroll(float dx, float dy, void *user_data) {
 	printf("scroll {%f, %f}\n", dx, dy);
 }
 
-static uint32_t utf8_get_next(const char **utf8) {
-	const char *c = *utf8;
+static uint32_t utf8_get_next(char const **utf8) {
+	char const *c = *utf8;
 	if ((c[0] & 0x80) == 0x00) {
 		*utf8 += 1;
 		return c[0];
@@ -82,7 +82,7 @@ static void key_release(int key, int scan_code, void *user_data) {
 	printf("key release: %X (%X)\n", key, scan_code);
 }
 
-static void text(const char *s, void *user_data) {
+static void text(char const *s, void *user_data) {
 	while (*s) {
 		printf("text: U+%X\n", utf8_get_next(&s));
 	}

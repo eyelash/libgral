@@ -43,7 +43,7 @@ static void gral_application_class_init(GralApplicationClass *class) {
 	application_class->activate = gral_application_activate;
 }
 
-struct gral_application *gral_application_create(const char *id, const struct gral_application_interface *interface, void *user_data) {
+struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data) {
 	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, "flags", G_APPLICATION_NON_UNIQUE, NULL);
 	application->interface = *interface;
 	application->user_data = user_data;
@@ -63,7 +63,7 @@ int gral_application_run(struct gral_application *application, int argc, char **
     DRAWING
  ============*/
 
-struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
+struct gral_text *gral_text_create(struct gral_window *window, char const *text, float size) {
 	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
 	PangoLayout *layout = pango_layout_new(context);
 	pango_layout_set_text(layout, text, -1);
@@ -124,7 +124,7 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	PangoLayoutLine *line = pango_layout_get_line_readonly(PANGO_LAYOUT(text), 0);
 	int index, trailing;
 	pango_layout_line_x_to_index(line, pango_units_from_double(x), &index, &trailing);
-	const char *str = pango_layout_get_text(PANGO_LAYOUT(text));
+	char const *str = pango_layout_get_text(PANGO_LAYOUT(text));
 	return g_utf8_offset_to_pointer(str + index, trailing) - str;
 }
 
@@ -167,7 +167,7 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	cairo_fill((cairo_t *)draw_context);
 }
 
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count) {
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop const *stops, int count) {
 	cairo_pattern_t *gradient = cairo_pattern_create_linear(start_x, start_y, end_x, end_y);
 	int i;
 	for (i = 0; i < count; i++) {
@@ -380,7 +380,7 @@ static void gral_area_class_init(GralAreaClass *class) {
 	object_class->dispose = gral_area_dispose;
 }
 
-struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, const struct gral_window_interface *interface, void *user_data) {
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data) {
 	GralWindow *window = g_object_new(GRAL_TYPE_WINDOW, "application", application, NULL);
 	g_object_ref_sink(window);
 	window->interface = *interface;
@@ -409,7 +409,7 @@ void gral_window_set_minimum_size(struct gral_window *window, int minimum_width,
 	gtk_window_set_geometry_hints(GTK_WINDOW(window), NULL, &geometry, GDK_HINT_MIN_SIZE);
 }
 
-static const char *get_cursor_name(int cursor) {
+static char const *get_cursor_name(int cursor) {
 	switch (cursor) {
 	case GRAL_CURSOR_DEFAULT:
 		return "default";
@@ -441,7 +441,7 @@ void gral_window_warp_cursor(struct gral_window *window, float x, float y) {
 	gdk_device_warp(pointer, screen, root_x, root_y);
 }
 
-void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new("Open", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT, NULL);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -451,7 +451,7 @@ void gral_window_show_open_file_dialog(struct gral_window *window, void (*callba
 	gtk_widget_destroy(dialog);
 }
 
-void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new("Save", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SAVE, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"), GTK_RESPONSE_ACCEPT, NULL);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -462,21 +462,21 @@ void gral_window_show_save_file_dialog(struct gral_window *window, void (*callba
 	gtk_widget_destroy(dialog);
 }
 
-void gral_window_clipboard_copy(struct gral_window *window, const char *text) {
+void gral_window_clipboard_copy(struct gral_window *window, char const *text) {
 	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(window), GDK_SELECTION_CLIPBOARD);
 	gtk_clipboard_set_text(clipboard, text, -1);
 }
 
 typedef struct {
-	void (*callback)(const char *text, void *user_data);
+	void (*callback)(char const *text, void *user_data);
 	void *user_data;
 } PasteCallbackData;
-static void paste_callback(GtkClipboard *clipboard, const gchar *text, gpointer user_data) {
+static void paste_callback(GtkClipboard *clipboard, gchar const *text, gpointer user_data) {
 	PasteCallbackData *callback_data = user_data;
 	callback_data->callback(text, callback_data->user_data);
 	g_slice_free(PasteCallbackData, callback_data);
 }
-void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data) {
+void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(char const *text, void *user_data), void *user_data) {
 	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(window), GDK_SELECTION_CLIPBOARD);
 	PasteCallbackData *callback_data = g_slice_new(PasteCallbackData);
 	callback_data->callback = callback;
@@ -534,12 +534,12 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
 #include <fcntl.h>
 #include <sys/stat.h>
 
-struct gral_file *gral_file_open_read(const char *path) {
+struct gral_file *gral_file_open_read(char const *path) {
 	int fd = open(path, O_RDONLY);
 	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
 
-struct gral_file *gral_file_open_write(const char *path) {
+struct gral_file *gral_file_open_write(char const *path) {
 	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
@@ -564,7 +564,7 @@ size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
 	return read((int)(intptr_t)file, buffer, size);
 }
 
-void gral_file_write(struct gral_file *file, const void *buffer, size_t size) {
+void gral_file_write(struct gral_file *file, void const *buffer, size_t size) {
 	write((int)(intptr_t)file, buffer, size);
 }
 
@@ -581,7 +581,7 @@ size_t gral_file_get_size(struct gral_file *file) {
 
 #define FRAMES 1024
 
-static void play_buffer(snd_pcm_t *pcm, const void *buffer, snd_pcm_uframes_t frames) {
+static void play_buffer(snd_pcm_t *pcm, void const *buffer, snd_pcm_uframes_t frames) {
 	while (frames > 0) {
 		int frames_written = snd_pcm_writei(pcm, buffer, frames);
 		if (frames_written < 0) {

@@ -73,7 +73,7 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 }
 @end
 
-struct gral_application *gral_application_create(const char *id, const struct gral_application_interface *interface, void *user_data) {
+struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data) {
 	NSApplication *application = [NSApplication sharedApplication];
 	GralApplicationDelegate *delegate = [[GralApplicationDelegate alloc] init];
 	delegate->interface = *interface;
@@ -96,7 +96,7 @@ int gral_application_run(struct gral_application *application, int argc, char **
     DRAWING
  ============*/
 
-struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size) {
+struct gral_text *gral_text_create(struct gral_window *window, char const *text, float size) {
 	CFStringRef string = CFStringCreateWithCString(NULL, text, kCFStringEncodingUTF8);
 	CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(NULL, 1, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	CTFontRef font = CTFontCreateUIFontForLanguage(kCTFontUIFontSystem, size, NULL);
@@ -182,8 +182,8 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 	CFArrayRef glyphRuns = CTLineGetGlyphRuns(line);
 	for (int i = 0; i < CFArrayGetCount(glyphRuns); i++) {
 		CTRunRef run = CFArrayGetValueAtIndex(glyphRuns, i);
-		const CGPoint *positions = CTRunGetPositionsPtr(run);
-		const CGGlyph *glyphs = CTRunGetGlyphsPtr(run);
+		CGPoint const *positions = CTRunGetPositionsPtr(run);
+		CGGlyph const *glyphs = CTRunGetGlyphsPtr(run);
 		int count = CTRunGetGlyphCount(run);
 		CFDictionaryRef attributes = CTRunGetAttributes(run);
 		CTFontRef font = CFDictionaryGetValue(attributes, kCTFontAttributeName);
@@ -221,7 +221,7 @@ void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, f
 	CGContextFillPath((CGContextRef)draw_context);
 }
 
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count) {
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop const *stops, int count) {
 	CGFloat components[count*4];
 	CGFloat locations[count];
 	for (int i = 0; i < count; i++) {
@@ -299,7 +299,7 @@ static int get_key(UInt16 key_code) {
 	default: {
 		TISInputSourceRef input_source = TISCopyCurrentKeyboardInputSource();
 		CFDataRef uchr = TISGetInputSourceProperty(input_source, kTISPropertyUnicodeKeyLayoutData);
-		const UCKeyboardLayout *keyboard_layout = (const UCKeyboardLayout *)CFDataGetBytePtr(uchr);
+		UCKeyboardLayout const *keyboard_layout = (UCKeyboardLayout const *)CFDataGetBytePtr(uchr);
 		UInt32 dead_key_state = 0;
 		UniChar string[255];
 		UniCharCount string_length = 0;
@@ -471,7 +471,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 @end
 
-struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, const struct gral_window_interface *interface, void *user_data) {
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data) {
 	GralWindow *window = [[GralWindow alloc]
 		initWithContentRect:CGRectMake(0, 0, width, height)
 		styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable
@@ -546,27 +546,27 @@ void gral_window_warp_cursor(struct gral_window *window_, float x, float y) {
 	CGWarpMouseCursorPosition(point);
 }
 
-void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
 	NSOpenPanel *panel = [NSOpenPanel openPanel];
 	if ([panel runModal] == NSModalResponseOK) {
 		callback([[[panel URL] path] UTF8String], user_data);
 	}
 }
 
-void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
 	NSSavePanel *panel = [NSSavePanel savePanel];
 	if ([panel runModal] == NSModalResponseOK) {
 		callback([[[panel URL] path] UTF8String], user_data);
 	}
 }
 
-void gral_window_clipboard_copy(struct gral_window *window, const char *text) {
+void gral_window_clipboard_copy(struct gral_window *window, char const *text) {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	[pasteboard clearContents];
 	[pasteboard setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString];
 }
 
-void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data) {
+void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(char const *text, void *user_data), void *user_data) {
 	NSString *text = [[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
 	if (text) {
 		callback([text UTF8String], user_data);
@@ -627,12 +627,12 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
 #include <fcntl.h>
 #include <sys/stat.h>
 
-struct gral_file *gral_file_open_read(const char *path) {
+struct gral_file *gral_file_open_read(char const *path) {
 	int fd = open(path, O_RDONLY);
 	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
 
-struct gral_file *gral_file_open_write(const char *path) {
+struct gral_file *gral_file_open_write(char const *path) {
 	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
@@ -657,7 +657,7 @@ size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
 	return read((int)(intptr_t)file, buffer, size);
 }
 
-void gral_file_write(struct gral_file *file, const void *buffer, size_t size) {
+void gral_file_write(struct gral_file *file, void const *buffer, size_t size) {
 	write((int)(intptr_t)file, buffer, size);
 }
 

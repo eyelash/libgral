@@ -90,21 +90,21 @@ public:
 	}
 };
 
-static Buffer<wchar_t> utf8_to_utf16(const char *utf8) {
+static Buffer<wchar_t> utf8_to_utf16(char const *utf8) {
 	int length = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
 	Buffer<wchar_t> utf16(length);
 	MultiByteToWideChar(CP_UTF8, 0, utf8, -1, utf16, length);
 	return utf16;
 }
 
-static Buffer<char> utf16_to_utf8(const wchar_t *utf16) {
+static Buffer<char> utf16_to_utf8(wchar_t const *utf16) {
 	int length = WideCharToMultiByte(CP_UTF8, 0, utf16, -1, NULL, 0, NULL, NULL);
 	Buffer<char> utf8(length);
 	WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, length, NULL, NULL);
 	return utf8;
 }
 
-static UINT32 get_next_code_point(const wchar_t *utf16, UINT32 i, UINT32 *code_point) {
+static UINT32 get_next_code_point(wchar_t const *utf16, UINT32 i, UINT32 *code_point) {
 	if ((utf16[i] & 0xFC00) == 0xD800) {
 		*code_point = (((utf16[i] & 0x03FF) << 10) | (utf16[i+1] & 0x03FF)) + 0x10000;
 		return 2;
@@ -115,7 +115,7 @@ static UINT32 get_next_code_point(const wchar_t *utf16, UINT32 i, UINT32 *code_p
 	}
 }
 
-static UINT32 utf8_index_to_utf16(const wchar_t *utf16, int index) {
+static UINT32 utf8_index_to_utf16(wchar_t const *utf16, int index) {
 	int i8 = 0;
 	UINT32 i16 = 0;
 	while (i8 < index) {
@@ -129,7 +129,7 @@ static UINT32 utf8_index_to_utf16(const wchar_t *utf16, int index) {
 	return i16;
 }
 
-static int utf16_index_to_utf8(const wchar_t *utf16, UINT32 index) {
+static int utf16_index_to_utf8(wchar_t const *utf16, UINT32 index) {
 	int i8 = 0;
 	UINT32 i16 = 0;
 	while (i16 < index) {
@@ -458,7 +458,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 }
 
-gral_application *gral_application_create(const char *id, const gral_application_interface *iface, void *user_data) {
+gral_application *gral_application_create(char const *id, gral_application_interface const *iface, void *user_data) {
 	hInstance = GetModuleHandle(NULL);
 	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
 	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
@@ -599,7 +599,7 @@ public:
 	}
 };
 
-gral_text *gral_text_create(gral_window *window, const char *utf8, float size) {
+gral_text *gral_text_create(gral_window *window, char const *utf8, float size) {
 	NONCLIENTMETRICS ncm;
 	ncm.cbSize = sizeof(NONCLIENTMETRICS);
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
@@ -727,7 +727,7 @@ void gral_draw_context_fill(gral_draw_context *draw_context, float red, float gr
 	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 }
 
-void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const gral_gradient_stop *stops, int count) {
+void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, gral_gradient_stop const *stops, int count) {
 	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
 		draw_context->open = false;
@@ -805,7 +805,7 @@ void gral_draw_context_draw_transformed(gral_draw_context *draw_context, float a
     WINDOW
  ===========*/
 
-gral_window *gral_window_create(gral_application *application, int width, int height, const char *title, const gral_window_interface *iface, void *user_data) {
+gral_window *gral_window_create(gral_application *application, int width, int height, char const *title, gral_window_interface const *iface, void *user_data) {
 	adjust_window_size(width, height);
 	HWND hwnd = CreateWindow(L"gral_window", utf8_to_utf16(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
 	WindowData *window_data = new WindowData();
@@ -870,7 +870,7 @@ void gral_window_warp_cursor(gral_window *window, float x, float y) {
 	SetCursorPos(point.x, point.y);
 }
 
-void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
 	WCHAR file_name[MAX_PATH];
 	file_name[0] = '\0';
 	OPENFILENAME ofn;
@@ -885,7 +885,7 @@ void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(con
 	}
 }
 
-void gral_window_show_save_file_dialog(gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data) {
+void gral_window_show_save_file_dialog(gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
 	WCHAR file_name[MAX_PATH];
 	file_name[0] = '\0';
 	OPENFILENAME ofn;
@@ -900,7 +900,7 @@ void gral_window_show_save_file_dialog(gral_window *window, void (*callback)(con
 	}
 }
 
-void gral_window_clipboard_copy(gral_window *window, const char *text) {
+void gral_window_clipboard_copy(gral_window *window, char const *text) {
 	OpenClipboard((HWND)window);
 	EmptyClipboard();
 	int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
@@ -912,7 +912,7 @@ void gral_window_clipboard_copy(gral_window *window, const char *text) {
 	CloseClipboard();
 }
 
-void gral_window_clipboard_paste(gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data) {
+void gral_window_clipboard_paste(gral_window *window, void (*callback)(char const *text, void *user_data), void *user_data) {
 	OpenClipboard((HWND)window);
 	if (IsClipboardFormatAvailable(CF_UNICODETEXT)) {
 		HGLOBAL handle = GetClipboardData(CF_UNICODETEXT);
@@ -945,12 +945,12 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
     FILE
  =========*/
 
-gral_file *gral_file_open_read(const char *path) {
+gral_file *gral_file_open_read(char const *path) {
 	HANDLE handle = CreateFile(utf8_to_utf16(path), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	return handle == INVALID_HANDLE_VALUE ? NULL : (gral_file *)handle;
 }
 
-gral_file *gral_file_open_write(const char *path) {
+gral_file *gral_file_open_write(char const *path) {
 	HANDLE handle = CreateFile(utf8_to_utf16(path), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	return handle == INVALID_HANDLE_VALUE ? NULL : (gral_file *)handle;
 }
@@ -977,7 +977,7 @@ size_t gral_file_read(gral_file *file, void *buffer, size_t size) {
 	return bytes_read;
 }
 
-void gral_file_write(gral_file *file, const void *buffer, size_t size) {
+void gral_file_write(gral_file *file, void const *buffer, size_t size) {
 	DWORD bytes_written;
 	WriteFile(file, buffer, (DWORD)size, &bytes_written, NULL);
 }

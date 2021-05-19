@@ -85,7 +85,7 @@ static void key_release(int key, int scan_code, void *user_data) {
 
 }
 
-static void text(const char *s, void *user_data) {
+static void text(char const *s, void *user_data) {
 
 }
 

@@ -81,7 +81,7 @@ struct gral_window_interface {
 	void (*scroll)(float dx, float dy, void *user_data);
 	void (*key_press)(int key, int scan_code, int modifiers, void *user_data);
 	void (*key_release)(int key, int scan_code, void *user_data);
-	void (*text)(const char *s, void *user_data);
+	void (*text)(char const *s, void *user_data);
 };
 struct gral_timer;
 struct gral_file;
@@ -91,7 +91,7 @@ struct gral_file;
     APPLICATION
  ================*/
 
-struct gral_application *gral_application_create(const char *id, const struct gral_application_interface *interface, void *user_data);
+struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data);
 void gral_application_delete(struct gral_application *application);
 int gral_application_run(struct gral_application *application, int argc, char **argv);
 
@@ -100,7 +100,7 @@ int gral_application_run(struct gral_application *application, int argc, char **
     DRAWING
  ============*/
 
-struct gral_text *gral_text_create(struct gral_window *window, const char *text, float size);
+struct gral_text *gral_text_create(struct gral_window *window, char const *text, float size);
 void gral_text_delete(struct gral_text *text);
 void gral_text_set_bold(struct gral_text *text, int start_index, int end_index);
 void gral_text_set_italic(struct gral_text *text, int start_index, int end_index);
@@ -117,7 +117,7 @@ void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, 
 void gral_draw_context_line_to(struct gral_draw_context *draw_context, float x, float y);
 void gral_draw_context_curve_to(struct gral_draw_context *draw_context, float x1, float y1, float x2, float y2, float x, float y);
 void gral_draw_context_fill(struct gral_draw_context *draw_context, float red, float green, float blue, float alpha);
-void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, const struct gral_gradient_stop *stops, int count);
+void gral_draw_context_fill_linear_gradient(struct gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop const *stops, int count);
 void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line_width, float red, float green, float blue, float alpha);
 void gral_draw_context_draw_clipped(struct gral_draw_context *draw_context, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data);
 void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, float a, float b, float c, float d, float e, float f, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data);
@@ -127,16 +127,16 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
     WINDOW
  ===========*/
 
-struct gral_window *gral_window_create(struct gral_application *application, int width, int height, const char *title, const struct gral_window_interface *interface, void *user_data);
+struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data);
 void gral_window_delete(struct gral_window *window);
 void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height);
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height);
 void gral_window_set_cursor(struct gral_window *window, int cursor);
 void gral_window_warp_cursor(struct gral_window *window, float x, float y);
-void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
-void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(const char *file, void *user_data), void *user_data);
-void gral_window_clipboard_copy(struct gral_window *window, const char *text);
-void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(const char *text, void *user_data), void *user_data);
+void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data);
+void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data);
+void gral_window_clipboard_copy(struct gral_window *window, char const *text);
+void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(char const *text, void *user_data), void *user_data);
 struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, int (*callback)(void *user_data), void *user_data);
 void gral_window_delete_timer(struct gral_window *window, struct gral_timer *timer);
 void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data);
@@ -146,14 +146,14 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
     FILE
  =========*/
 
-struct gral_file *gral_file_open_read(const char *path);
-struct gral_file *gral_file_open_write(const char *path);
+struct gral_file *gral_file_open_read(char const *path);
+struct gral_file *gral_file_open_write(char const *path);
 struct gral_file *gral_file_get_stdin(void);
 struct gral_file *gral_file_get_stdout(void);
 struct gral_file *gral_file_get_stderr(void);
 void gral_file_close(struct gral_file *file);
 size_t gral_file_read(struct gral_file *file, void *buffer, size_t size);
-void gral_file_write(struct gral_file *file, const void *buffer, size_t size);
+void gral_file_write(struct gral_file *file, void const *buffer, size_t size);
 size_t gral_file_get_size(struct gral_file *file);
 
 

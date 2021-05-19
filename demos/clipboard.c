@@ -30,7 +30,7 @@ static void mouse_move(float x, float y, void *user_data) {
 
 }
 
-static void paste_callback(const char *text, void *user_data) {
+static void paste_callback(char const *text, void *user_data) {
 	printf("paste: %s\n", text);
 }
 
@@ -62,7 +62,7 @@ static void key_release(int key, int scan_code, void *user_data) {
 
 }
 
-static void text(const char *s, void *user_data) {
+static void text(char const *s, void *user_data) {
 
 }
 
