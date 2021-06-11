@@ -12,8 +12,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "gral.h"
 #include <gtk/gtk.h>
-#define GETTEXT_PACKAGE "gtk30"
-#include <glib/gi18n-lib.h>
 #include <alsa/asoundlib.h>
 
 
@@ -442,24 +440,24 @@ void gral_window_warp_cursor(struct gral_window *window, float x, float y) {
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
-	GtkWidget *dialog = gtk_file_chooser_dialog_new("Open", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT, NULL);
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+	GtkFileChooserNative *dialog = gtk_file_chooser_native_new(NULL, GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, NULL, NULL);
+	if (gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		callback(filename, user_data);
 		g_free(filename);
 	}
-	gtk_widget_destroy(dialog);
+	g_object_unref(dialog);
 }
 
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {
-	GtkWidget *dialog = gtk_file_chooser_dialog_new("Save", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SAVE, _("_Cancel"), GTK_RESPONSE_CANCEL, _("_Save"), GTK_RESPONSE_ACCEPT, NULL);
+	GtkFileChooserNative *dialog = gtk_file_chooser_native_new(NULL, GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_SAVE, NULL, NULL);
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+	if (gtk_native_dialog_run(GTK_NATIVE_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		callback(filename, user_data);
 		g_free(filename);
 	}
-	gtk_widget_destroy(dialog);
+	g_object_unref(dialog);
 }
 
 void gral_window_clipboard_copy(struct gral_window *window, char const *text) {
