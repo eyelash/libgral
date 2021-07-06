@@ -72,7 +72,7 @@ static void add_star(struct gral_draw_context *draw_context, float x, float y, f
 	gral_draw_context_close_path(draw_context);
 }
 
-static void draw(struct gral_draw_context *draw_context, void *user_data) {
+static void draw(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data) {
 	add_rectangle(draw_context, 20.0f, 20.0f, 160.0f, 160.0f);
 	gral_draw_context_fill(draw_context, 0.9f, 0.1f, 0.1f, 1.0f);
 	add_rectangle(draw_context, 220.0f, 20.0f, 160.0f, 160.0f);

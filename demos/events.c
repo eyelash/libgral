@@ -11,7 +11,7 @@ static int close(void *user_data) {
 	return 1;
 }
 
-static void draw(struct gral_draw_context *draw_context, void *user_data) {
+static void draw(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data) {
 
 }
 

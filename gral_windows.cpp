@@ -266,6 +266,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
 			factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size), &window_data->target);
 		}
+		RECT update_rect;
+		GetUpdateRect(hwnd, &update_rect, FALSE);
 		gral_draw_context draw_context;
 		draw_context.target = window_data->target;
 		factory->CreatePathGeometry(&draw_context.path);
@@ -273,7 +275,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 		draw_context.target->BeginDraw();
 		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
-		window_data->iface.draw(&draw_context, window_data->user_data);
+		window_data->iface.draw(&draw_context, update_rect.left, update_rect.top, update_rect.right - update_rect.left, update_rect.bottom - update_rect.top, window_data->user_data);
 		if (draw_context.target->EndDraw() == D2DERR_RECREATE_TARGET) {
 			draw_context.target->Release();
 			window_data->target = NULL;

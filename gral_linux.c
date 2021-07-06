@@ -244,7 +244,9 @@ G_DEFINE_TYPE(GralArea, gral_area, GTK_TYPE_DRAWING_AREA)
 
 static gboolean gral_area_draw(GtkWidget *widget, cairo_t *cr) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
-	window->interface.draw((struct gral_draw_context *)cr, window->user_data);
+	GdkRectangle clip_rectangle;
+	gdk_cairo_get_clip_rectangle(cr, &clip_rectangle);
+	window->interface.draw((struct gral_draw_context *)cr, clip_rectangle.x, clip_rectangle.y, clip_rectangle.width, clip_rectangle.height, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static void gral_area_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {

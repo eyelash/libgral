@@ -351,7 +351,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)drawRect:(NSRect)rect {
 	CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
-	interface.draw((struct gral_draw_context *)context, user_data);
+	interface.draw((struct gral_draw_context *)context, rect.origin.x, rect.origin.y, rect.size.width, rect.size.height, user_data);
 }
 - (void)setFrameSize:(NSSize)size {
 	[super setFrameSize:size];

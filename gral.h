@@ -70,7 +70,7 @@ struct gral_draw_context;
 struct gral_window;
 struct gral_window_interface {
 	int (*close)(void *user_data);
-	void (*draw)(struct gral_draw_context *draw_context, void *user_data);
+	void (*draw)(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data);
 	void (*resize)(int width, int height, void *user_data);
 	void (*mouse_enter)(void *user_data);
 	void (*mouse_leave)(void *user_data);
