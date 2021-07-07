@@ -264,7 +264,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			RECT rc;
 			GetClientRect(hwnd, &rc);
 			D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
-			factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size), &window_data->target);
+			factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size, D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS), &window_data->target);
 		}
 		RECT update_rect;
 		GetUpdateRect(hwnd, &update_rect, FALSE);
@@ -274,8 +274,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		draw_context.path->Open(&draw_context.sink);
 		draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 		draw_context.target->BeginDraw();
+		draw_context.target->PushAxisAlignedClip(D2D1::RectF(update_rect.left, update_rect.top, update_rect.right, update_rect.bottom), D2D1_ANTIALIAS_MODE_ALIASED);
 		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
 		window_data->iface.draw(&draw_context, update_rect.left, update_rect.top, update_rect.right - update_rect.left, update_rect.bottom - update_rect.top, window_data->user_data);
+		draw_context.target->PopAxisAlignedClip();
 		if (draw_context.target->EndDraw() == D2DERR_RECREATE_TARGET) {
 			draw_context.target->Release();
 			window_data->target = NULL;
@@ -830,7 +832,7 @@ void gral_window_request_redraw(gral_window *window, int x, int y, int width, in
 	rect.top = y;
 	rect.right = x + width;
 	rect.bottom = y + height;
-	RedrawWindow((HWND)window, &rect, NULL, RDW_ERASE|RDW_INVALIDATE);
+	InvalidateRect((HWND)window, &rect, FALSE);
 }
 
 void gral_window_set_minimum_size(gral_window *window, int minimum_width, int minimum_height) {
