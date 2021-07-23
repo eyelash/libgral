@@ -8,6 +8,7 @@ struct demo {
 };
 
 static int close(void *user_data) {
+	printf("close\n");
 	return 1;
 }
 
@@ -93,7 +94,7 @@ static int timer(void *user_data) {
 	return 1;
 }
 
-static void initialize(void *user_data) {
+static void create_window(void *user_data) {
 	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
 		&close,
@@ -114,9 +115,23 @@ static void initialize(void *user_data) {
 	demo->timer = gral_window_create_timer(demo->window, 1000, &timer, demo);
 }
 
+static void open_empty(void *user_data) {
+	printf("open empty\n");
+	create_window(user_data);
+}
+
+static void open_file(char const *path, void *user_data) {
+	printf("open file: %s\n", path);
+	create_window(user_data);
+}
+
+static void quit(void *user_data) {
+	printf("quit\n");
+}
+
 int main(int argc, char **argv) {
 	struct demo demo;
-	struct gral_application_interface interface = {&initialize};
+	struct gral_application_interface interface = {&open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.events", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
 	gral_window_delete(demo.window);

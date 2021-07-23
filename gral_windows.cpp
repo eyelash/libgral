@@ -491,13 +491,24 @@ void gral_application_delete(gral_application *application) {
 	dwrite_factory->Release();
 }
 
-int gral_application_run(gral_application *application, int argc, char **argv) {
-	application->iface.initialize(application->user_data);
+int gral_application_run(gral_application *application, int argc_, char **argv_) {
+	int argc;
+	LPWSTR *argv = CommandLineToArgvW(GetCommandLine(), &argc);
+	if (argc > 1) {
+		for (int i = 1; i < argc; i++) {
+			application->iface.open_file(utf16_to_utf8(argv[i]), application->user_data);
+		}
+	}
+	else {
+		application->iface.open_empty(application->user_data);
+	}
+	LocalFree(argv);
 	MSG message;
 	while (GetMessage(&message, NULL, 0, 0)) {
 		TranslateMessage(&message);
 		DispatchMessage(&message);
 	}
+	application->iface.quit(application->user_data);
 	return 0;
 }
 

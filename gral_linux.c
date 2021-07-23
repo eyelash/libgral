@@ -29,9 +29,21 @@ struct _GralApplication {
 G_DEFINE_TYPE(GralApplication, gral_application, GTK_TYPE_APPLICATION)
 
 static void gral_application_activate(GApplication *gapplication) {
-	G_APPLICATION_CLASS(gral_application_parent_class)->activate(gapplication);
 	GralApplication *application = GRAL_APPLICATION(gapplication);
-	application->interface.initialize(application->user_data);
+	application->interface.open_empty(application->user_data);
+}
+static void gral_application_open(GApplication *gapplication, GFile **files, gint n_files, const gchar *hint) {
+	GralApplication *application = GRAL_APPLICATION(gapplication);
+	for (gint i = 0; i < n_files; i++) {
+		char *path = g_file_get_path(files[i]);
+		application->interface.open_file(path, application->user_data);
+		g_free(path);
+	}
+}
+static void gral_application_shutdown(GApplication *gapplication) {
+	G_APPLICATION_CLASS(gral_application_parent_class)->shutdown(gapplication);
+	GralApplication *application = GRAL_APPLICATION(gapplication);
+	application->interface.quit(application->user_data);
 }
 static void gral_application_init(GralApplication *application) {
 
@@ -39,10 +51,12 @@ static void gral_application_init(GralApplication *application) {
 static void gral_application_class_init(GralApplicationClass *class) {
 	GApplicationClass *application_class = G_APPLICATION_CLASS(class);
 	application_class->activate = gral_application_activate;
+	application_class->open = gral_application_open;
+	application_class->shutdown = gral_application_shutdown;
 }
 
 struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data) {
-	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, "flags", G_APPLICATION_NON_UNIQUE, NULL);
+	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, "flags", G_APPLICATION_NON_UNIQUE|G_APPLICATION_HANDLES_OPEN, NULL);
 	application->interface = *interface;
 	application->user_data = user_data;
 	return (struct gral_application *)application;

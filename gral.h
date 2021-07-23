@@ -56,7 +56,9 @@ enum {
 
 struct gral_application;
 struct gral_application_interface {
-	void (*initialize)(void *user_data);
+	void (*open_empty)(void *user_data);
+	void (*open_file)(char const *path, void *user_data);
+	void (*quit)(void *user_data);
 };
 struct gral_text;
 struct gral_gradient_stop {

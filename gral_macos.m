@@ -68,8 +68,18 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
 	return YES;
 }
-- (void)applicationDidFinishLaunching:(NSNotification *) notification {
-	interface.initialize(user_data);
+- (BOOL)applicationOpenUntitledFile:(NSApplication *)sender {
+	interface.open_empty(user_data);
+	return YES;
+}
+- (void)application:(NSApplication *)sender openFiles:(NSArray<NSString *> *)filenames {
+	for (NSUInteger i = 0; i < [filenames count]; i++) {
+		const char *path = [[filenames objectAtIndex:i] UTF8String];
+		interface.open_file(path, user_data);
+	}
+}
+- (void)applicationWillTerminate:(NSNotification *)notification {
+	interface.quit(user_data);
 }
 @end
 

@@ -1,4 +1,5 @@
 #include <gral.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 struct demo {
@@ -30,8 +31,17 @@ static void mouse_move(float x, float y, void *user_data) {
 
 }
 
-static void file_callback(char const *file, void *user_data) {
-	printf("file: %s\n", file);
+static void file_callback(char const *path, void *user_data) {
+	printf("path: %s\n", path);
+	struct gral_file *file = gral_file_open_read(path);
+	size_t size = gral_file_get_size(file);
+	printf("size: %zu\n", size);
+	char *buffer = malloc(size + 1);
+	gral_file_read(file, buffer, size);
+	buffer[size] = '\0';
+	puts(buffer);
+	free(buffer);
+	gral_file_close(file);
 }
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
@@ -66,7 +76,7 @@ static void text(char const *s, void *user_data) {
 
 }
 
-static void initialize(void *user_data) {
+static void create_window(void *user_data) {
 	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
 		&close,
@@ -86,9 +96,22 @@ static void initialize(void *user_data) {
 	demo->window = gral_window_create(demo->application, 600, 400, "gral file dialog demo", &interface, demo);
 }
 
+static void open_empty(void *user_data) {
+	create_window(user_data);
+}
+
+static void open_file(char const *path, void *user_data) {
+	file_callback(path, NULL);
+	create_window(user_data);
+}
+
+static void quit(void *user_data) {
+
+}
+
 int main(int argc, char **argv) {
 	struct demo demo;
-	struct gral_application_interface interface = {&initialize};
+	struct gral_application_interface interface = {&open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.file_dialogs", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
 	gral_window_delete(demo.window);
