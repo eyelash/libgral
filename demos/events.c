@@ -94,6 +94,10 @@ static int timer(void *user_data) {
 	return 1;
 }
 
+static void timer_destroy(void *user_data) {
+	printf("timer destroy\n");
+}
+
 static void create_window(void *user_data) {
 	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
@@ -112,7 +116,7 @@ static void create_window(void *user_data) {
 		&text
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &interface, demo);
-	demo->timer = gral_window_create_timer(demo->window, 1000, &timer, demo);
+	demo->timer = gral_window_create_timer(demo->window, 1000, &timer, &timer_destroy, demo);
 }
 
 static void open_empty(void *user_data) {
