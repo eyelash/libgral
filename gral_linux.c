@@ -75,14 +75,46 @@ int gral_application_run(struct gral_application *application, int argc, char **
     DRAWING
  ============*/
 
-struct gral_text *gral_text_create(struct gral_window *window, char const *text, float size) {
+struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size) {
+	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
+	PangoFontDescription *font = pango_font_description_copy(pango_context_get_font_description(context));
+	pango_font_description_set_family(font, name);
+	pango_font_description_set_absolute_size(font, pango_units_from_double(size));
+	return (struct gral_font *)font;
+}
+
+struct gral_font *gral_font_create_default(struct gral_window *window, float size) {
+	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
+	PangoFontDescription *font = pango_font_description_copy(pango_context_get_font_description(context));
+	pango_font_description_set_absolute_size(font, pango_units_from_double(size));
+	return (struct gral_font *)font;
+}
+
+struct gral_font *gral_font_create_monospace(struct gral_window *window, float size) {
+	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
+	PangoFontDescription *font = pango_font_description_copy(pango_context_get_font_description(context));
+	pango_font_description_set_family_static(font, "monospace");
+	pango_font_description_set_absolute_size(font, pango_units_from_double(size));
+	return (struct gral_font *)font;
+}
+
+void gral_font_delete(struct gral_font *font) {
+	pango_font_description_free((PangoFontDescription *)font);
+}
+
+void gral_font_get_metrics(struct gral_window *window, struct gral_font *font, float *ascent, float *descent) {
+	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
+	PangoFontMetrics *metrics = pango_context_get_metrics(context, (PangoFontDescription *)font, NULL);
+	if (ascent) *ascent = pango_units_to_double(pango_font_metrics_get_ascent(metrics));
+	if (descent) *descent = pango_units_to_double(pango_font_metrics_get_descent(metrics));
+	pango_font_metrics_unref(metrics);
+}
+
+struct gral_text *gral_text_create(struct gral_window *window, char const *text, struct gral_font *font) {
 	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
 	PangoLayout *layout = pango_layout_new(context);
 	pango_layout_set_text(layout, text, -1);
-	PangoFontDescription *font_description = pango_font_description_copy(pango_context_get_font_description(context));
-	pango_font_description_set_absolute_size(font_description, pango_units_from_double(size));
-	pango_layout_set_font_description(layout, font_description);
-	pango_font_description_free(font_description);
+	pango_layout_set_font_description(layout, (PangoFontDescription *)font);
 	pango_layout_set_attributes(layout, pango_attr_list_new());
 	return (struct gral_text *)layout;
 }
@@ -138,17 +170,6 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	pango_layout_line_x_to_index(line, pango_units_from_double(x), &index, &trailing);
 	char const *str = pango_layout_get_text(PANGO_LAYOUT(text));
 	return g_utf8_offset_to_pointer(str + index, trailing) - str;
-}
-
-void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
-	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
-	PangoFontDescription *font_description = pango_font_description_copy(pango_context_get_font_description(context));
-	pango_font_description_set_absolute_size(font_description, pango_units_from_double(size));
-	PangoFontMetrics *metrics = pango_context_get_metrics(context, font_description, NULL);
-	if (ascent) *ascent = pango_units_to_double(pango_font_metrics_get_ascent(metrics));
-	if (descent) *descent = pango_units_to_double(pango_font_metrics_get_descent(metrics));
-	pango_font_metrics_unref(metrics);
-	pango_font_description_free(font_description);
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {

@@ -99,12 +99,14 @@ static void create_window(void *user_data) {
 		&text
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral text demo", &interface, demo);
-	demo->text = gral_text_create(demo->window, "gral text demo: bold italic", 16.0f);
+	struct gral_font *font = gral_font_create_default(demo->window, 16.0f);
+	demo->text = gral_text_create(demo->window, "gral text demo: bold italic", font);
 	gral_text_set_bold(demo->text, 16, 20);
 	gral_text_set_italic(demo->text, 21, 27);
 	gral_text_set_color(demo->text, 5, 9, 0.0f, 0.5f, 1.0f, 1.0f);
 	demo->cursor_x = 0.0f;
-	gral_font_get_metrics(demo->window, 16.0f, &demo->ascent, &demo->descent);
+	gral_font_get_metrics(demo->window, font, &demo->ascent, &demo->descent);
+	gral_font_delete(font);
 }
 
 static void open_empty(void *user_data) {

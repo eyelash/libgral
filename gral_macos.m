@@ -106,12 +106,34 @@ int gral_application_run(struct gral_application *application, int argc, char **
     DRAWING
  ============*/
 
-struct gral_text *gral_text_create(struct gral_window *window, char const *text, float size) {
+struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size) {
+	CFStringRef string = CFStringCreateWithCString(NULL, name, kCFStringEncodingUTF8);
+	CTFontRef font = CTFontCreateWithName(string, size, NULL);
+	CFRelease(string);
+	return (struct gral_font *)font;
+}
+
+struct gral_font *gral_font_create_default(struct gral_window *window, float size) {
+	return (struct gral_font *)CTFontCreateUIFontForLanguage(kCTFontUIFontSystem, size, NULL);
+}
+
+struct gral_font *gral_font_create_monospace(struct gral_window *window, float size) {
+	return (struct gral_font *)CTFontCreateUIFontForLanguage(kCTFontUIFontUserFixedPitch, size, NULL);
+}
+
+void gral_font_delete(struct gral_font *font) {
+	CFRelease(font);
+}
+
+void gral_font_get_metrics(struct gral_window *window, struct gral_font *font, float *ascent, float *descent) {
+	if (ascent) *ascent = CTFontGetAscent((CTFontRef)font);
+	if (descent) *descent = CTFontGetDescent((CTFontRef)font);
+}
+
+struct gral_text *gral_text_create(struct gral_window *window, char const *text, struct gral_font *font) {
 	CFStringRef string = CFStringCreateWithCString(NULL, text, kCFStringEncodingUTF8);
 	CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(NULL, 1, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-	CTFontRef font = CTFontCreateUIFontForLanguage(kCTFontUIFontSystem, size, NULL);
 	CFDictionarySetValue(attributes, kCTFontAttributeName, font);
-	CFRelease(font);
 	CFAttributedStringRef attributed_string = CFAttributedStringCreate(NULL, string, attributes);
 	CFRelease(string);
 	CFRelease(attributes);
@@ -130,8 +152,10 @@ void gral_text_set_bold(struct gral_text *text, int start_index, int end_index) 
 	CFIndex len = utf8_index_to_utf16(string, end_index) - loc;
 	CTFontRef font = CFAttributedStringGetAttribute((CFAttributedStringRef)text, loc, kCTFontAttributeName, NULL);
 	CTFontRef bold_font = CTFontCreateCopyWithSymbolicTraits(font, 0, NULL, kCTFontTraitBold, kCTFontTraitBold);
-	CFAttributedStringSetAttribute((CFMutableAttributedStringRef)text, CFRangeMake(loc, len), kCTFontAttributeName, bold_font);
-	CFRelease(bold_font);
+	if (bold_font) {
+		CFAttributedStringSetAttribute((CFMutableAttributedStringRef)text, CFRangeMake(loc, len), kCTFontAttributeName, bold_font);
+		CFRelease(bold_font);
+	}
 }
 
 void gral_text_set_italic(struct gral_text *text, int start_index, int end_index) {
@@ -140,8 +164,10 @@ void gral_text_set_italic(struct gral_text *text, int start_index, int end_index
 	CFIndex len = utf8_index_to_utf16(string, end_index) - loc;
 	CTFontRef font = CFAttributedStringGetAttribute((CFAttributedStringRef)text, loc, kCTFontAttributeName, NULL);
 	CTFontRef italic_font = CTFontCreateCopyWithSymbolicTraits(font, 0, NULL, kCTFontTraitItalic, kCTFontTraitItalic);
-	CFAttributedStringSetAttribute((CFMutableAttributedStringRef)text, CFRangeMake(loc, len), kCTFontAttributeName, italic_font);
-	CFRelease(italic_font);
+	if (italic_font) {
+		CFAttributedStringSetAttribute((CFMutableAttributedStringRef)text, CFRangeMake(loc, len), kCTFontAttributeName, italic_font);
+		CFRelease(italic_font);
+	}
 }
 
 void gral_text_set_color(struct gral_text *text, int start_index, int end_index, float red, float green, float blue, float alpha) {
@@ -177,12 +203,6 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	}
 	CFStringRef string = CFAttributedStringGetString((CFAttributedStringRef)text);
 	return utf16_index_to_utf8(string, index);
-}
-
-void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent) {
-	CTFontRef font = CTFontCreateUIFontForLanguage(kCTFontUIFontSystem, size, NULL);
-	if (ascent) *ascent = CTFontGetAscent(font);
-	if (descent) *descent = CTFontGetDescent(font);
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {

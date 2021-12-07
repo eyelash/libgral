@@ -60,6 +60,7 @@ struct gral_application_interface {
 	void (*open_file)(char const *path, void *user_data);
 	void (*quit)(void *user_data);
 };
+struct gral_font;
 struct gral_text;
 struct gral_gradient_stop {
 	float position;
@@ -102,7 +103,12 @@ int gral_application_run(struct gral_application *application, int argc, char **
     DRAWING
  ============*/
 
-struct gral_text *gral_text_create(struct gral_window *window, char const *text, float size);
+struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size);
+struct gral_font *gral_font_create_default(struct gral_window *window, float size);
+struct gral_font *gral_font_create_monospace(struct gral_window *window, float size);
+void gral_font_delete(struct gral_font *font);
+void gral_font_get_metrics(struct gral_window *window, struct gral_font *font, float *ascent, float *descent);
+struct gral_text *gral_text_create(struct gral_window *window, char const *text, struct gral_font *font);
 void gral_text_delete(struct gral_text *text);
 void gral_text_set_bold(struct gral_text *text, int start_index, int end_index);
 void gral_text_set_italic(struct gral_text *text, int start_index, int end_index);
@@ -110,8 +116,6 @@ void gral_text_set_color(struct gral_text *text, int start_index, int end_index,
 float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context);
 float gral_text_index_to_x(struct gral_text *text, int index);
 int gral_text_x_to_index(struct gral_text *text, float x);
-
-void gral_font_get_metrics(struct gral_window *window, float size, float *ascent, float *descent);
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
 void gral_draw_context_close_path(struct gral_draw_context *draw_context);

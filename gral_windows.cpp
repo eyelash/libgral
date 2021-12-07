@@ -616,12 +616,56 @@ public:
 	}
 };
 
-gral_text *gral_text_create(gral_window *window, char const *utf8, float size) {
+static gral_font *create_font(WCHAR const *name, float size) {
+	WCHAR locale_name[LOCALE_NAME_MAX_LENGTH];
+	GetUserDefaultLocaleName(locale_name, LOCALE_NAME_MAX_LENGTH);
+	IDWriteTextFormat *format;
+	dwrite_factory->CreateTextFormat(name, NULL, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size, locale_name, &format);
+	return (gral_font *)format;
+}
+
+gral_font *gral_font_create(gral_window *window, char const *name, float size) {
+	return create_font(utf8_to_utf16(name), size);
+}
+
+gral_font *gral_font_create_default(gral_window *window, float size) {
 	NONCLIENTMETRICS ncm;
 	ncm.cbSize = sizeof(NONCLIENTMETRICS);
 	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
-	ComPointer<IDWriteTextFormat> format;
-	dwrite_factory->CreateTextFormat(ncm.lfMessageFont.lfFaceName, NULL, DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size, L"en", &format);
+	return create_font(ncm.lfMessageFont.lfFaceName, size);
+}
+
+gral_font *gral_font_create_monospace(gral_window *window, float size) {
+	return create_font(L"Consolas", size);
+}
+
+void gral_font_delete(gral_font *font) {
+	IDWriteTextFormat *format = (IDWriteTextFormat *)font;
+	format->Release();
+}
+
+void gral_font_get_metrics(gral_window *window, gral_font *font, float *ascent, float *descent) {
+	IDWriteTextFormat *format = (IDWriteTextFormat *)font;
+	UINT32 name_length = format->GetFontFamilyNameLength();
+	Buffer<WCHAR> name(name_length + 1);
+	format->GetFontFamilyName(name, name_length + 1);
+	ComPointer<IDWriteFontCollection> font_collection;
+	format->GetFontCollection(&font_collection);
+	UINT32 index;
+	BOOL exists;
+	font_collection->FindFamilyName(name, &index, &exists);
+	ComPointer<IDWriteFontFamily> font_family;
+	font_collection->GetFontFamily(index, &font_family);
+	ComPointer<IDWriteFont> dwrite_font;
+	font_family->GetFirstMatchingFont(DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, &dwrite_font);
+	DWRITE_FONT_METRICS metrics;
+	dwrite_font->GetMetrics(&metrics);
+	if (ascent) *ascent = (float)metrics.ascent / (float)metrics.designUnitsPerEm * format->GetFontSize();
+	if (descent) *descent = (float)metrics.descent / (float)metrics.designUnitsPerEm * format->GetFontSize();
+}
+
+gral_text *gral_text_create(gral_window *window, char const *utf8, gral_font *font) {
+	IDWriteTextFormat *format = (IDWriteTextFormat *)font;
 	gral_text *text = new gral_text(utf8_to_utf16(utf8));
 	dwrite_factory->CreateTextLayout(text->utf16, text->utf16.get_length(), format, INFINITY, INFINITY, &text->layout);
 	return text;
@@ -672,25 +716,6 @@ int gral_text_x_to_index(gral_text *text, float x) {
 	DWRITE_HIT_TEST_METRICS metrics;
 	text->layout->HitTestPoint(x, 0.f, &trailing, &inside, &metrics);
 	return utf16_index_to_utf8(text->utf16, inside && trailing ? metrics.textPosition + metrics.length : metrics.textPosition);
-}
-
-void gral_font_get_metrics(gral_window *window, float size, float *ascent, float *descent) {
-	NONCLIENTMETRICS ncm;
-	ncm.cbSize = sizeof(NONCLIENTMETRICS);
-	SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
-	ComPointer<IDWriteFontCollection> font_collection;
-	dwrite_factory->GetSystemFontCollection(&font_collection, false);
-	UINT32 index;
-	BOOL exists;
-	font_collection->FindFamilyName(ncm.lfMessageFont.lfFaceName, &index, &exists);
-	ComPointer<IDWriteFontFamily> font_family;
-	font_collection->GetFontFamily(index, &font_family);
-	ComPointer<IDWriteFont> font;
-	font_family->GetFirstMatchingFont(DWRITE_FONT_WEIGHT_REGULAR, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, &font);
-	DWRITE_FONT_METRICS metrics;
-	font->GetMetrics(&metrics);
-	if (ascent) *ascent = (float)metrics.ascent / (float)metrics.designUnitsPerEm * size;
-	if (descent) *descent = (float)metrics.descent / (float)metrics.designUnitsPerEm * size;
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
