@@ -15,6 +15,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define _UNICODE
 #include <Windows.h>
 #include <windowsx.h>
+#include <strsafe.h>
 #include <d2d1.h>
 #include <dwrite.h>
 #include <mmdeviceapi.h>
@@ -1032,6 +1033,19 @@ void gral_file_write(gral_file *file, void const *buffer, size_t size) {
 
 size_t gral_file_get_size(gral_file *file) {
 	return GetFileSize(file, NULL);
+}
+
+void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *name, void *user_data), void *user_data) {
+	int length = MultiByteToWideChar(CP_UTF8, 0, path_utf8, -1, NULL, 0);
+	Buffer<wchar_t> path_utf16(length + 2);
+	MultiByteToWideChar(CP_UTF8, 0, path_utf8, -1, path_utf16, length);
+	StringCchCat(path_utf16, path_utf16.get_length(), L"\\*");
+	WIN32_FIND_DATA find_data;
+	HANDLE handle = FindFirstFile(path_utf16, &find_data);
+	do {
+		callback(utf16_to_utf8(find_data.cFileName), user_data);
+	} while (FindNextFile(handle, &find_data));
+	FindClose(handle);
 }
 
 

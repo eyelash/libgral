@@ -162,6 +162,7 @@ void gral_file_close(struct gral_file *file);
 size_t gral_file_read(struct gral_file *file, void *buffer, size_t size);
 void gral_file_write(struct gral_file *file, void const *buffer, size_t size);
 size_t gral_file_get_size(struct gral_file *file);
+void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data);
 
 
 /*==========
