@@ -432,6 +432,10 @@ void gral_window_delete(struct gral_window *window) {
 	g_object_unref(window);
 }
 
+void gral_window_set_title(struct gral_window *window, char const *title) {
+	gtk_window_set_title(GTK_WINDOW(window), title);
+}
+
 void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height) {
 	GtkWidget *area = gtk_bin_get_child(GTK_BIN(window));
 	gtk_widget_queue_draw_area(area, x, y, width, height);

@@ -864,6 +864,10 @@ void gral_window_delete(gral_window *window) {
 
 }
 
+void gral_window_set_title(gral_window *window, char const *title) {
+	SetWindowText((HWND)window, utf8_to_utf16(title));
+}
+
 void gral_window_request_redraw(gral_window *window, int x, int y, int width, int height) {
 	RECT rect;
 	rect.left = x;

@@ -533,6 +533,10 @@ void gral_window_delete(struct gral_window *window) {
 	[(GralWindow *)window release];
 }
 
+void gral_window_set_title(struct gral_window *window, char const *title) {
+	[(GralWindow *)window setTitle:[NSString stringWithUTF8String:title]];
+}
+
 void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height) {
 	[[(GralWindow *)window contentView] setNeedsDisplayInRect:NSMakeRect(x, y, width, height)];
 }
