@@ -666,6 +666,7 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <stdio.h>
 #include <dirent.h>
 
 struct gral_file *gral_file_open_read(char const *path) {
@@ -674,7 +675,7 @@ struct gral_file *gral_file_open_read(char const *path) {
 }
 
 struct gral_file *gral_file_open_write(char const *path) {
-	int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+	int fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0666);
 	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
 
@@ -706,6 +707,10 @@ size_t gral_file_get_size(struct gral_file *file) {
 	struct stat stat;
 	fstat((int)(intptr_t)file, &stat);
 	return stat.st_size;
+}
+
+void gral_file_rename(char const *old_path, char const *new_path) {
+	rename(old_path, new_path);
 }
 
 void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data) {

@@ -1000,7 +1000,7 @@ gral_file *gral_file_open_read(char const *path) {
 }
 
 gral_file *gral_file_open_write(char const *path) {
-	HANDLE handle = CreateFile(utf8_to_utf16(path), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE handle = CreateFile(utf8_to_utf16(path), GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 	return handle == INVALID_HANDLE_VALUE ? NULL : (gral_file *)handle;
 }
 
@@ -1033,6 +1033,10 @@ void gral_file_write(gral_file *file, void const *buffer, size_t size) {
 
 size_t gral_file_get_size(gral_file *file) {
 	return GetFileSize(file, NULL);
+}
+
+void gral_file_rename(char const *old_path, char const *new_path) {
+	MoveFileEx(utf8_to_utf16(old_path), utf8_to_utf16(new_path), MOVEFILE_REPLACE_EXISTING);
 }
 
 void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *name, void *user_data), void *user_data) {
