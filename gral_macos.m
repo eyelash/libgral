@@ -196,7 +196,7 @@ float gral_text_index_to_x(struct gral_text *text, int index) {
 
 int gral_text_x_to_index(struct gral_text *text, float x) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
-	CFIndex index = CTLineGetStringIndexForPosition(line, CGPointMake(x, 0.f));
+	CFIndex index = CTLineGetStringIndexForPosition(line, CGPointMake(x, 0.0f));
 	CFRelease(line);
 	if (index == kCFNotFound) {
 		return 0;
@@ -208,7 +208,7 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
 	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
-	CGContextSetTextMatrix((CGContextRef)draw_context, CGAffineTransformMakeScale(1.f, -1.f));
+	CGContextSetTextMatrix((CGContextRef)draw_context, CGAffineTransformMakeScale(1.0f, -1.0f));
 	CFArrayRef glyphRuns = CTLineGetGlyphRuns(line);
 	for (int i = 0; i < CFArrayGetCount(glyphRuns); i++) {
 		CTRunRef run = CFArrayGetValueAtIndex(glyphRuns, i);

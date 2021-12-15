@@ -140,12 +140,12 @@ void gral_text_set_italic(struct gral_text *text, int start_index, int end_index
 }
 
 void gral_text_set_color(struct gral_text *text, int start_index, int end_index, float red, float green, float blue, float alpha) {
-	PangoAttribute *attribute = pango_attr_foreground_new(red * 65535.f, green * 65535.f, blue * 65535.f);
+	PangoAttribute *attribute = pango_attr_foreground_new(red * 65535.0f, green * 65535.0f, blue * 65535.0f);
 	attribute->start_index = start_index;
 	attribute->end_index = end_index;
 	PangoAttrList *attr_list = pango_layout_get_attributes(PANGO_LAYOUT(text));
 	pango_attr_list_change(attr_list, attribute);
-	attribute = pango_attr_foreground_alpha_new(alpha * 65535.f);
+	attribute = pango_attr_foreground_alpha_new(alpha * 65535.0f);
 	attribute->start_index = start_index;
 	attribute->end_index = end_index;
 	pango_attr_list_change(attr_list, attribute);

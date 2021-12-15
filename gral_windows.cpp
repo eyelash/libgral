@@ -365,11 +365,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_MOUSEWHEEL: {
-		window_data->iface.scroll(0.f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
+		window_data->iface.scroll(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
 		return 0;
 	}
 	case WM_MOUSEHWHEEL: {
-		window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.f, window_data->user_data);
+		window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.0f, window_data->user_data);
 		return 0;
 	}
 	case WM_KEYDOWN: {
@@ -714,7 +714,7 @@ float gral_text_index_to_x(gral_text *text, int index) {
 int gral_text_x_to_index(gral_text *text, float x) {
 	BOOL trailing, inside;
 	DWRITE_HIT_TEST_METRICS metrics;
-	text->layout->HitTestPoint(x, 0.f, &trailing, &inside, &metrics);
+	text->layout->HitTestPoint(x, 0.0f, &trailing, &inside, &metrics);
 	return utf16_index_to_utf8(text->utf16, inside && trailing ? metrics.textPosition + metrics.length : metrics.textPosition);
 }
 
@@ -1044,7 +1044,7 @@ static int fill_buffer(float *buffer_float, int frames, int (*callback)(float *b
 		int actual_frames = callback(buffer_float, frames, user_data);
 		if (actual_frames == 0) {
 			for (int i = 0; i < frames * 2; i++) {
-				buffer_float[i] = 0.f;
+				buffer_float[i] = 0.0f;
 			}
 			return 0;
 		}
@@ -1056,7 +1056,7 @@ static int fill_buffer(float *buffer_float, int frames, int (*callback)(float *b
 
 static void convert_buffer(float *buffer_float, int32_t *buffer_24, int frames) {
 	for (int i = 0; i < frames * 2; i++) {
-		uint32_t sample_24 = buffer_float[i] * 8388607.f + 8388608.5f;
+		uint32_t sample_24 = buffer_float[i] * 8388607.0f + 8388608.5f;
 		buffer_24[i] = (sample_24 ^ 0x800000) << 8;
 	}
 }
