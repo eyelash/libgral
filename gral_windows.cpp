@@ -21,8 +21,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <avrt.h>
-#define _USE_MATH_DEFINES
-#include <math.h>
 
 template <class T> class ComPointer {
 	T *pointer;
@@ -200,8 +198,8 @@ struct gral_application {
 	void *user_data;
 };
 
-static int get_key(WPARAM wParam, UINT scan_code) {
-	switch (wParam) {
+static int get_key(UINT virtual_key, UINT scan_code) {
+	switch (virtual_key) {
 	case VK_RETURN:
 		return GRAL_KEY_ENTER;
 	case VK_TAB:
@@ -241,7 +239,7 @@ static int get_key(WPARAM wParam, UINT scan_code) {
 		keyboard_state[VK_LMENU] = 0;
 		keyboard_state[VK_RMENU] = 0;
 		WCHAR utf16[5];
-		if (ToUnicode(wParam, scan_code, keyboard_state, utf16, 5, 0) > 0) {
+		if (ToUnicode(virtual_key, scan_code, keyboard_state, utf16, 5, 0) > 0) {
 			UINT32 code_point;
 			get_next_code_point(utf16, 0, &code_point);
 			return code_point;
@@ -276,7 +274,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		draw_context.path->Open(&draw_context.sink);
 		draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 		draw_context.target->BeginDraw();
-		draw_context.target->PushAxisAlignedClip(D2D1::RectF(update_rect.left, update_rect.top, update_rect.right, update_rect.bottom), D2D1_ANTIALIAS_MODE_ALIASED);
+		draw_context.target->PushAxisAlignedClip(D2D1::RectF((FLOAT)update_rect.left, (FLOAT)update_rect.top, (FLOAT)update_rect.right, (FLOAT)update_rect.bottom), D2D1_ANTIALIAS_MODE_ALIASED);
 		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
 		window_data->iface.draw(&draw_context, update_rect.left, update_rect.top, update_rect.right - update_rect.left, update_rect.bottom - update_rect.top, window_data->user_data);
 		draw_context.target->PopAxisAlignedClip();
@@ -375,7 +373,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_KEYDOWN: {
 		UINT scan_code = (lParam >> 16) & 0xFF;
-		int key = get_key(wParam, scan_code);
+		int key = get_key((UINT)wParam, scan_code);
 		if (key) {
 			window_data->iface.key_press(key, scan_code, get_modifiers(), window_data->user_data);
 		}
@@ -383,7 +381,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_KEYUP: {
 		UINT scan_code = (lParam >> 16) & 0xFF;
-		int key = get_key(wParam, scan_code);
+		int key = get_key((UINT)wParam, scan_code);
 		if (key) {
 			window_data->iface.key_release(key, scan_code, window_data->user_data);
 		}
@@ -668,7 +666,7 @@ void gral_font_get_metrics(gral_window *window, gral_font *font, float *ascent, 
 gral_text *gral_text_create(gral_window *window, char const *utf8, gral_font *font) {
 	IDWriteTextFormat *format = (IDWriteTextFormat *)font;
 	gral_text *text = new gral_text(utf8_to_utf16(utf8));
-	dwrite_factory->CreateTextLayout(text->utf16, text->utf16.get_length(), format, INFINITY, INFINITY, &text->layout);
+	dwrite_factory->CreateTextLayout(text->utf16, (UINT32)text->utf16.get_length(), format, 1.0e30f, 1.0e30f, &text->layout);
 	return text;
 }
 
@@ -1032,7 +1030,9 @@ void gral_file_write(gral_file *file, void const *buffer, size_t size) {
 }
 
 size_t gral_file_get_size(gral_file *file) {
-	return GetFileSize(file, NULL);
+	DWORD size_high;
+	DWORD size_low = GetFileSize(file, &size_high);
+	return (DWORD64)size_high << 32 | size_low;
 }
 
 void gral_file_rename(char const *old_path, char const *new_path) {
