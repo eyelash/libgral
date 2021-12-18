@@ -666,6 +666,7 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <stdio.h>
 #include <dirent.h>
 
@@ -707,6 +708,14 @@ size_t gral_file_get_size(struct gral_file *file) {
 	struct stat stat;
 	fstat((int)(intptr_t)file, &stat);
 	return stat.st_size;
+}
+
+void *gral_file_map(struct gral_file *file, size_t size) {
+	return mmap(NULL, size, PROT_READ, MAP_PRIVATE, (int)(intptr_t)file, 0);
+}
+
+void gral_file_unmap(void *address, size_t size) {
+	munmap(address, size);
 }
 
 void gral_file_rename(char const *old_path, char const *new_path) {

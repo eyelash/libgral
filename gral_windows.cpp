@@ -1035,6 +1035,17 @@ size_t gral_file_get_size(gral_file *file) {
 	return (DWORD64)size_high << 32 | size_low;
 }
 
+void *gral_file_map(gral_file *file, size_t size) {
+	HANDLE mapping = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+	LPVOID address = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, size);
+	CloseHandle(mapping);
+	return address;
+}
+
+void gral_file_unmap(void *address, size_t size) {
+	UnmapViewOfFile(address);
+}
+
 void gral_file_rename(char const *old_path, char const *new_path) {
 	MoveFileEx(utf8_to_utf16(old_path), utf8_to_utf16(new_path), MOVEFILE_REPLACE_EXISTING);
 }
