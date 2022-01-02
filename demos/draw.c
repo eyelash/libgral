@@ -1,12 +1,14 @@
 #include <gral.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <stdlib.h>
 
 #define RAD(deg) ((deg) * ((float)M_PI / 180.0f))
 
 struct demo {
 	struct gral_application *application;
 	struct gral_window *window;
+	struct gral_image *image;
 };
 
 static int close(void *user_data) {
@@ -84,10 +86,12 @@ static void draw(struct gral_draw_context *draw_context, int x, int y, int width
 		{1.0f, 0.1f, 0.9f, 0.1f, 1.0f}
 	};
 	gral_draw_context_fill_linear_gradient(draw_context, 420.0f, 20.0f, 580.0f, 100.0f, stops, 3);
-	add_circle(draw_context, 20.0f, 220.0f, 160.0f);
-	add_rounded_rectangle(draw_context, 220.0f, 220.0f, 160.0f, 160.0f, 20.0f);
-	add_star(draw_context, 420.0f, 220.0f, 160.0f);
-	gral_draw_context_fill(draw_context, 0.1f, 0.1f, 0.9f, 1.0f);
+	//add_circle(draw_context, 20.0f, 220.0f, 160.0f);
+	//add_rounded_rectangle(draw_context, 220.0f, 220.0f, 160.0f, 160.0f, 20.0f);
+	//add_star(draw_context, 420.0f, 220.0f, 160.0f);
+	//gral_draw_context_fill(draw_context, 0.1f, 0.1f, 0.9f, 1.0f);
+	struct demo *demo = user_data;
+	gral_draw_context_draw_image(draw_context, demo->image, 420.0f, 220.0f);
 }
 
 static void resize(int width, int height, void *user_data) {
@@ -169,6 +173,18 @@ static void quit(void *user_data) {
 
 int main(int argc, char **argv) {
 	struct demo demo;
+	unsigned char *image_data = malloc(100 * 100 * 4);
+	int x, y;
+	for (y = 0; y < 100; y++) {
+		for (x = 0; x < 100; x++) {
+			int i = (100 * y + x) * 4;
+			image_data[i + 0] = y == 10 ? 255 : x + 50;
+			image_data[i + 1] = 128;
+			image_data[i + 2] = 255;
+			image_data[i + 3] = 255;
+		}
+	}
+	demo.image = gral_image_create(100, 100, image_data);
 	struct gral_application_interface interface = {&open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.draw", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
