@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2021 Elias Aebi
+Copyright (c) 2016-2022 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "gral.h"
 #include <gtk/gtk.h>
+#include <stdlib.h>
 #include <alsa/asoundlib.h>
 
 
@@ -74,6 +75,18 @@ int gral_application_run(struct gral_application *application, int argc, char **
 /*============
     DRAWING
  ============*/
+
+static void pixbuf_destroy(guchar *pixels, gpointer data) {
+	free(pixels);
+}
+
+struct gral_image *gral_image_create(int width, int height, void *data) {
+	return (struct gral_image *)gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, TRUE, 8, width, height, width * 4, pixbuf_destroy, NULL);
+}
+
+void gral_image_delete(struct gral_image *image) {
+	g_object_unref(image);
+}
 
 struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size) {
 	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
@@ -170,6 +183,14 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	pango_layout_line_x_to_index(line, pango_units_from_double(x), &index, &trailing);
 	char const *str = pango_layout_get_text(PANGO_LAYOUT(text));
 	return g_utf8_offset_to_pointer(str + index, trailing) - str;
+}
+
+void gral_draw_context_draw_image(struct gral_draw_context *draw_context, struct gral_image *image, float x, float y) {
+	int width = gdk_pixbuf_get_width((GdkPixbuf *)image);
+	int height = gdk_pixbuf_get_height((GdkPixbuf *)image);
+	cairo_rectangle((cairo_t *)draw_context, x, y, width, height);
+	gdk_cairo_set_source_pixbuf((cairo_t *)draw_context, (GdkPixbuf *)image, x, y);
+	cairo_fill((cairo_t *)draw_context);
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {

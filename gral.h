@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2021 Elias Aebi
+Copyright (c) 2016-2022 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -60,6 +60,7 @@ struct gral_application_interface {
 	void (*open_file)(char const *path, void *user_data);
 	void (*quit)(void *user_data);
 };
+struct gral_image;
 struct gral_font;
 struct gral_text;
 struct gral_gradient_stop {
@@ -103,6 +104,9 @@ int gral_application_run(struct gral_application *application, int argc, char **
     DRAWING
  ============*/
 
+struct gral_image *gral_image_create(int width, int height, void *data);
+void gral_image_delete(struct gral_image *image);
+
 struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size);
 struct gral_font *gral_font_create_default(struct gral_window *window, float size);
 struct gral_font *gral_font_create_monospace(struct gral_window *window, float size);
@@ -117,6 +121,7 @@ float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw
 float gral_text_index_to_x(struct gral_text *text, int index);
 int gral_text_x_to_index(struct gral_text *text, float x);
 
+void gral_draw_context_draw_image(struct gral_draw_context *draw_context, struct gral_image *image, float x, float y);
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
 void gral_draw_context_close_path(struct gral_draw_context *draw_context);
 void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, float y);

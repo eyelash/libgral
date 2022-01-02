@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2021 Elias Aebi
+Copyright (c) 2016-2022 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "gral.h"
 #import <Cocoa/Cocoa.h>
 #import <Carbon/Carbon.h>
+#include <stdlib.h>
 
 static NSUInteger get_next_code_point(CFStringRef string, NSUInteger i, uint32_t *code_point) {
 	unichar c1 = CFStringGetCharacterAtIndex(string, i);
@@ -105,6 +106,23 @@ int gral_application_run(struct gral_application *application, int argc, char **
 /*============
     DRAWING
  ============*/
+
+static void image_release_callback(void *info, const void *data, size_t size) {
+	free(data);
+}
+
+struct gral_image *gral_image_create(int width, int height, void *data) {
+	CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+	CGDataProviderRef data_provider = CGDataProviderCreateWithData(NULL, data, width * height * 4, image_release_callback);
+	CGImageRef image = CGImageCreate(width, height, 8, 8 * 4, width * 4, color_space, kCGBitmapByteOrder32Big | kCGImageAlphaLast, data_provider, NULL, NO, kCGRenderingIntentDefault);
+	CGDataProviderRelease(data_provider);
+	CGColorSpaceRelease(color_space);
+	return (struct gral_image *)image;
+}
+
+void gral_image_delete(struct gral_image *image) {
+	CGImageRelease((CGImageRef)image);
+}
 
 struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size) {
 	CFStringRef string = CFStringCreateWithCString(NULL, name, kCFStringEncodingUTF8);
@@ -203,6 +221,14 @@ int gral_text_x_to_index(struct gral_text *text, float x) {
 	}
 	CFStringRef string = CFAttributedStringGetString((CFAttributedStringRef)text);
 	return utf16_index_to_utf8(string, index);
+}
+
+void gral_draw_context_draw_image(struct gral_draw_context *draw_context, struct gral_image *image, float x, float y) {
+	size_t width = CGImageGetWidth((CGImageRef)image);
+	size_t height = CGImageGetHeight((CGImageRef)image);
+	CGContextScaleCTM((CGContextRef)draw_context, 1.0f, -1.0f);
+	CGContextDrawImage((CGContextRef)draw_context, CGRectMake(x, -(y + height), width, height), (CGImageRef)image);
+	CGContextScaleCTM((CGContextRef)draw_context, 1.0f, -1.0f);
 }
 
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha) {

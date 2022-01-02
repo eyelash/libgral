@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2021 Elias Aebi
+Copyright (c) 2016-2022 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -17,7 +17,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <windowsx.h>
 #include <strsafe.h>
 #include <d2d1.h>
+#include <wincodec.h>
 #include <dwrite.h>
+#include <stdlib.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <avrt.h>
@@ -145,6 +147,7 @@ static int utf16_index_to_utf8(wchar_t const *utf16, UINT32 index) {
 static HINSTANCE hInstance;
 static ID2D1Factory *factory;
 static ID2D1StrokeStyle *stroke_style;
+static IWICImagingFactory *imaging_factory;
 static IDWriteFactory *dwrite_factory;
 
 struct gral_draw_context {
@@ -153,6 +156,16 @@ struct gral_draw_context {
 	ID2D1GeometrySink *sink;
 	bool open;
 	gral_draw_context(): open(false) {}
+};
+
+struct gral_image {
+	int width;
+	int height;
+	void *data;
+	gral_image(int width, int height, void *data): width(width), height(height), data(data) {}
+	~gral_image() {
+		free(data);
+	}
 };
 
 struct gral_text {
@@ -465,8 +478,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 gral_application *gral_application_create(char const *id, gral_application_interface const *iface, void *user_data) {
 	hInstance = GetModuleHandle(NULL);
+	CoInitialize(NULL);
 	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
 	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
+	CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&imaging_factory));
 	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown **)&dwrite_factory);
 	WNDCLASS window_class;
 	window_class.style = CS_DBLCLKS;
@@ -489,7 +504,9 @@ gral_application *gral_application_create(char const *id, gral_application_inter
 void gral_application_delete(gral_application *application) {
 	factory->Release();
 	stroke_style->Release();
+	imaging_factory->Release();
 	dwrite_factory->Release();
+	CoUninitialize();
 }
 
 int gral_application_run(gral_application *application, int argc_, char **argv_) {
@@ -615,6 +632,14 @@ public:
 	}
 };
 
+gral_image *gral_image_create(int width, int height, void *data) {
+	return new gral_image(width, height, data);
+}
+
+void gral_image_delete(gral_image *image) {
+	delete image;
+}
+
 static gral_font *create_font(WCHAR const *name, float size) {
 	WCHAR locale_name[LOCALE_NAME_MAX_LENGTH];
 	GetUserDefaultLocaleName(locale_name, LOCALE_NAME_MAX_LENGTH);
@@ -715,6 +740,17 @@ int gral_text_x_to_index(gral_text *text, float x) {
 	DWRITE_HIT_TEST_METRICS metrics;
 	text->layout->HitTestPoint(x, 0.0f, &trailing, &inside, &metrics);
 	return utf16_index_to_utf8(text->utf16, inside && trailing ? metrics.textPosition + metrics.length : metrics.textPosition);
+}
+
+void gral_draw_context_draw_image(gral_draw_context *draw_context, gral_image *image, float x, float y) {
+	ComPointer<IWICBitmap> source_bitmap;
+	imaging_factory->CreateBitmapFromMemory(image->width, image->height, GUID_WICPixelFormat32bppRGBA, image->width * 4, image->width * image->height * 4, (PBYTE)image->data, &source_bitmap);
+	ComPointer<IWICFormatConverter> format_converter;
+	imaging_factory->CreateFormatConverter(&format_converter);
+	format_converter->Initialize(source_bitmap, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom);
+	ComPointer<ID2D1Bitmap> bitmap;
+	draw_context->target->CreateBitmapFromWicBitmap(format_converter, &bitmap);
+	draw_context->target->DrawBitmap(bitmap, D2D1::RectF(x, y, x + image->width, y + image->height), 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, D2D1::RectF(0.0f, 0.0f, (FLOAT)image->width, (FLOAT)image->height));
 }
 
 void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *text, float x, float y, float red, float green, float blue, float alpha) {
@@ -1093,7 +1129,6 @@ static void convert_buffer(float *buffer_float, int32_t *buffer_24, int frames) 
 void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	HRESULT hr;
 	IMMDeviceEnumerator *device_enumerator;
-	CoInitialize(NULL);
 	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
 	IMMDevice *device;
 	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
@@ -1149,5 +1184,4 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	audio_client->Release();
 	device->Release();
 	device_enumerator->Release();
-	CoUninitialize();
 }
