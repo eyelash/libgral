@@ -22,7 +22,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdlib.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
-#include <avrt.h>
+#include <mfapi.h>
+#include <mferror.h>
+#include <mftransform.h>
+#include <wmcodecdsp.h>
 
 template <class T> class ComPointer {
 	T *pointer;
@@ -1104,84 +1107,109 @@ void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *
     AUDIO
  ==========*/
 
-static int fill_buffer(float *buffer_float, int frames, int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
-	while (frames > 0) {
-		int actual_frames = callback(buffer_float, frames, user_data);
-		if (actual_frames == 0) {
-			for (int i = 0; i < frames * 2; i++) {
-				buffer_float[i] = 0.0f;
+static HRESULT process_output(IMFTransform *transform, IMFSample *sample) {
+	MFT_OUTPUT_DATA_BUFFER output_data_buffer;
+	output_data_buffer.dwStreamID = 0;
+	output_data_buffer.pSample = sample;
+	output_data_buffer.dwStatus = 0;
+	output_data_buffer.pEvents = NULL;
+	DWORD status;
+	HRESULT result = transform->ProcessOutput(0, 1, &output_data_buffer, &status);
+	if (output_data_buffer.pEvents) {
+		output_data_buffer.pEvents->Release();
+	}
+	return result;
+}
+
+static int fill_buffer(IMFTransform *resampler, BYTE *device_buffer, UINT32 device_buffer_size, int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	while (device_buffer_size > 0) {
+		ComPointer<IMFMediaBuffer> output_buffer;
+		MFCreateMemoryBuffer(device_buffer_size, &output_buffer);
+		ComPointer<IMFSample> output_sample;
+		MFCreateSample(&output_sample);
+		output_sample->AddBuffer(output_buffer);
+		while (process_output(resampler, output_sample) == MF_E_TRANSFORM_NEED_MORE_INPUT) {
+			ComPointer<IMFMediaBuffer> input_buffer;
+			MFCreateMemoryBuffer(1024 * 2 * sizeof(float), &input_buffer);
+			BYTE *input_pointer;
+			input_buffer->Lock(&input_pointer, NULL, NULL);
+			int actual_frames = callback((float *)input_pointer, 1024, user_data);
+			input_buffer->Unlock();
+			if (actual_frames == 0) {
+				ZeroMemory(device_buffer, device_buffer_size);
+				return 0;
 			}
-			return 0;
+			input_buffer->SetCurrentLength(actual_frames * 2 * sizeof(float));
+			ComPointer<IMFSample> input_sample;
+			MFCreateSample(&input_sample);
+			input_sample->AddBuffer(input_buffer);
+			resampler->ProcessInput(0, input_sample, 0);
 		}
-		buffer_float += actual_frames * 2;
-		frames -= actual_frames;
+		BYTE *output_pointer;
+		DWORD output_size;
+		output_buffer->Lock(&output_pointer, NULL, &output_size);
+		CopyMemory(device_buffer, output_pointer, output_size);
+		output_buffer->Unlock();
+		device_buffer += output_size;
+		device_buffer_size -= output_size;
 	}
 	return 1;
 }
 
-static void convert_buffer(float *buffer_float, int32_t *buffer_24, int frames) {
-	for (int i = 0; i < frames * 2; i++) {
-		uint32_t sample_24 = buffer_float[i] * 8388607.0f + 8388608.5f;
-		buffer_24[i] = (sample_24 ^ 0x800000) << 8;
-	}
-}
-
 void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
-	HRESULT hr;
-	IMMDeviceEnumerator *device_enumerator;
+	ComPointer<IMMDeviceEnumerator> device_enumerator;
 	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
-	IMMDevice *device;
+	ComPointer<IMMDevice> device;
 	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
-	IAudioClient *audio_client;
+	ComPointer<IAudioClient> audio_client;
 	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
-	REFERENCE_TIME default_period, min_period;
-	audio_client->GetDevicePeriod(&default_period, &min_period);
-	WAVEFORMATEXTENSIBLE wfx;
-	wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-	wfx.Format.nSamplesPerSec = 44100;
-	wfx.Format.wBitsPerSample = 32;
-	wfx.Format.nChannels = 2;
-	wfx.Format.nBlockAlign = wfx.Format.wBitsPerSample / 8 * wfx.Format.nChannels;
-	wfx.Format.nAvgBytesPerSec = wfx.Format.nBlockAlign * wfx.Format.nSamplesPerSec;
-	wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
-	wfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
-	wfx.Samples.wValidBitsPerSample = 24;
-	wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
-	hr = audio_client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, default_period, default_period, (PWAVEFORMATEX)&wfx, NULL);
+	WAVEFORMATEX *format;
+	audio_client->GetMixFormat(&format);
+	ComPointer<IMFTransform> resampler;
+	CoCreateInstance(__uuidof(CResamplerMediaObject), NULL, CLSCTX_ALL, __uuidof(IMFTransform), (void **)&resampler);
+	ComPointer<IMFMediaType> input_type;
+	MFCreateMediaType(&input_type);
+	input_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio);
+	input_type->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_Float);
+	input_type->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, 2);
+	input_type->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, 44100);
+	input_type->SetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, 32 / 8 * 2);
+	input_type->SetUINT32(MF_MT_AUDIO_AVG_BYTES_PER_SECOND, 32 / 8 * 2 * 44100);
+	input_type->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, 32);
+	input_type->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
+	resampler->SetInputType(0, input_type, 0);
+	ComPointer<IMFMediaType> output_type;
+	MFCreateMediaType(&output_type);
+	MFInitMediaTypeFromWaveFormatEx(output_type, format, sizeof(WAVEFORMATEX) + format->cbSize);
+	resampler->SetOutputType(0, output_type, 0);
+	audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 0, 0, format, NULL);
 	UINT32 buffer_size;
-	if (hr == AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
-		audio_client->GetBufferSize(&buffer_size);
-		default_period = (REFERENCE_TIME)((10000.0 * 1000 / wfx.Format.nSamplesPerSec * buffer_size) + 0.5);
-		audio_client->Release();
-		device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
-		audio_client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, default_period, default_period, (PWAVEFORMATEX)&wfx, NULL);
-	}
 	audio_client->GetBufferSize(&buffer_size);
 	IAudioRenderClient *render_client;
 	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
 	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	audio_client->SetEventHandle(event);
-	Buffer<float> buffer_float(buffer_size * 2);
 	BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);
-	int running = fill_buffer(buffer_float, buffer_size, callback, user_data);
-	convert_buffer(buffer_float, (int32_t *)buffer, buffer_size);
+	int running = fill_buffer(resampler, buffer, buffer_size * format->nBlockAlign, callback, user_data);
 	render_client->ReleaseBuffer(buffer_size, 0);
-	DWORD task_index = 0;
-	HANDLE task = AvSetMmThreadCharacteristics(L"Pro Audio", &task_index);
 	audio_client->Start();
+	UINT32 padding;
 	while (running) {
 		WaitForSingleObject(event, INFINITE);
-		render_client->GetBuffer(buffer_size, &buffer);
-		running = fill_buffer(buffer_float, buffer_size, callback, user_data);
-		convert_buffer(buffer_float, (int32_t *)buffer, buffer_size);
-		render_client->ReleaseBuffer(buffer_size, 0);
+		audio_client->GetCurrentPadding(&padding);
+		if (buffer_size - padding > 0) {
+			render_client->GetBuffer(buffer_size - padding, &buffer);
+			running = fill_buffer(resampler, buffer, (buffer_size - padding) * format->nBlockAlign, callback, user_data);
+			render_client->ReleaseBuffer(buffer_size - padding, 0);
+		}
 	}
+	do {
+		WaitForSingleObject(event, INFINITE);
+		audio_client->GetCurrentPadding(&padding);
+	} while (padding > 0);
 	audio_client->Stop();
-	AvRevertMmThreadCharacteristics(task);
 	CloseHandle(event);
 	render_client->Release();
-	audio_client->Release();
-	device->Release();
-	device_enumerator->Release();
+	CoTaskMemFree(format);
 }

@@ -26,7 +26,22 @@ static int callback(float *buffer, int frames, void *user_data) {
 	return frames;
 }
 
+static void open_empty(void *user_data) {
+
+}
+
+static void open_file(char const *path, void *user_data) {
+
+}
+
+static void quit(void *user_data) {
+
+}
+
 int main() {
+	struct gral_application_interface interface = {&open_empty, &open_file, &quit};
+	struct gral_application *application = gral_application_create("com.github.eyelash.libgral.demos.audio", &interface, NULL);
 	gral_audio_play(&callback, NULL);
+	gral_application_delete(application);
 	return 0;
 }
