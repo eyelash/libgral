@@ -1136,6 +1136,16 @@ static int fill_buffer(IMFTransform *resampler, BYTE *device_buffer, UINT32 devi
 			int actual_frames = callback((float *)input_pointer, 1024, user_data);
 			input_buffer->Unlock();
 			if (actual_frames == 0) {
+				resampler->ProcessMessage(MFT_MESSAGE_NOTIFY_END_OF_STREAM, NULL);
+				resampler->ProcessMessage(MFT_MESSAGE_COMMAND_DRAIN, NULL);
+				process_output(resampler, output_sample);
+				BYTE *output_pointer;
+				DWORD output_size;
+				output_buffer->Lock(&output_pointer, NULL, &output_size);
+				CopyMemory(device_buffer, output_pointer, output_size);
+				output_buffer->Unlock();
+				device_buffer += output_size;
+				device_buffer_size -= output_size;
 				ZeroMemory(device_buffer, device_buffer_size);
 				return 0;
 			}
@@ -1189,6 +1199,7 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
 	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	audio_client->SetEventHandle(event);
+	resampler->ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, NULL);
 	BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);
 	int running = fill_buffer(resampler, buffer, buffer_size * format->nBlockAlign, callback, user_data);
