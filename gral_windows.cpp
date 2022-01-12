@@ -209,6 +209,13 @@ struct gral_timer {
     APPLICATION
  ================*/
 
+void gral_install(char **argv_, char const *application_name) {
+	int argc;
+	LPWSTR *argv = CommandLineToArgvW(GetCommandLine(), &argc);
+	CreateSymbolicLink(L"%AppData%\\Microsoft\\Windows\\Start Menu\\Programs\\", argv[0], 0);
+	LocalFree(argv);
+}
+
 struct gral_application {
 	gral_application_interface iface;
 	void *user_data;

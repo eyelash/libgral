@@ -59,6 +59,10 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
     APPLICATION
  ================*/
 
+void gral_install(char **argv, char const *application_name) {
+
+}
+
 @interface GralApplicationDelegate: NSObject<NSApplicationDelegate> {
 @public
 	struct gral_application_interface interface;

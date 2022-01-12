@@ -20,6 +20,35 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     APPLICATION
  ================*/
 
+void gral_install(char **argv, char const *application_name) {
+	GFile *executable_file = g_file_new_for_path(argv[0]);
+	char *executable_path = g_file_get_path(executable_file);
+	GFile *executable_parent = g_file_get_parent(executable_file);
+	GFile *icon_file = g_file_get_child(executable_parent, "icon.svg");
+	char *icon_path = g_file_get_path(icon_file);
+	char *executable_basename = g_file_get_basename(executable_file);
+	char *desktop_basename = g_strconcat(executable_basename, ".desktop", NULL);
+	GFile *desktop_file = g_file_new_build_filename(g_get_user_data_dir(), "applications", desktop_basename, NULL);
+	//g_file_make_directory_with_parents(desktop_file, NULL, NULL);
+	GFileOutputStream *stream = g_file_create(desktop_file, G_FILE_CREATE_NONE, NULL, NULL);
+	if (stream) {
+		g_output_stream_printf(G_OUTPUT_STREAM(stream), NULL, NULL, NULL, "[Desktop Entry]\n");
+		g_output_stream_printf(G_OUTPUT_STREAM(stream), NULL, NULL, NULL, "Type=Application\n");
+		g_output_stream_printf(G_OUTPUT_STREAM(stream), NULL, NULL, NULL, "Name=%s\n", application_name);
+		g_output_stream_printf(G_OUTPUT_STREAM(stream), NULL, NULL, NULL, "Exec=%s\n", executable_path);
+		g_output_stream_printf(G_OUTPUT_STREAM(stream), NULL, NULL, NULL, "Icon=%s\n", icon_path);
+		g_object_unref(stream);
+	}
+	g_object_unref(executable_file);
+	g_free(executable_path);
+	g_object_unref(executable_parent);
+	g_object_unref(icon_file);
+	g_free(icon_path);
+	g_free(executable_basename);
+	g_free(desktop_basename);
+	g_object_unref(desktop_file);
+}
+
 #define GRAL_TYPE_APPLICATION gral_application_get_type()
 G_DECLARE_FINAL_TYPE(GralApplication, gral_application, GRAL, APPLICATION, GtkApplication)
 struct _GralApplication {

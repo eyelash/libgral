@@ -95,6 +95,8 @@ struct gral_file;
     APPLICATION
  ================*/
 
+void gral_install(char **argv, char const *application_name);
+
 struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data);
 void gral_application_delete(struct gral_application *application);
 int gral_application_run(struct gral_application *application, int argc, char **argv);
