@@ -104,6 +104,20 @@ struct gral_font *gral_font_create_default(struct gral_window *window, float siz
 }
 
 struct gral_font *gral_font_create_monospace(struct gral_window *window, float size) {
+	GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default();
+	if (schema_source) {
+		GSettingsSchema *settings_schema = g_settings_schema_source_lookup(schema_source, "org.gnome.desktop.interface", TRUE);
+		if (settings_schema) {
+			GSettings *settings = g_settings_new_full(settings_schema, NULL, NULL);
+			gchar *monospace_font_name = g_settings_get_string(settings, "monospace-font-name");
+			PangoFontDescription *font = pango_font_description_from_string(monospace_font_name);
+			pango_font_description_set_absolute_size(font, pango_units_from_double(size));
+			g_free(monospace_font_name);
+			g_object_unref(settings);
+			g_settings_schema_unref(settings_schema);
+			return (struct gral_font *)font;
+		}
+	}
 	PangoContext *context = gtk_widget_get_pango_context(GTK_WIDGET(window));
 	PangoFontDescription *font = pango_font_description_copy(pango_context_get_font_description(context));
 	pango_font_description_set_family_static(font, "monospace");
