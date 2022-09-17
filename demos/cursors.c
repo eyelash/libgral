@@ -49,7 +49,7 @@ static void mouse_move(float x, float y, void *user_data) {
 	if (point_inside_rectangle(x, y, 20, 20, 160, 160))
 		cursor = GRAL_CURSOR_TEXT;
 	if (point_inside_rectangle(x, y, 220, 20, 160, 160))
-		cursor = GRAL_CURSOR_NONE;
+		cursor = GRAL_CURSOR_HAND;
 	if (point_inside_rectangle(x, y, 20, 220, 160, 160))
 		cursor = GRAL_CURSOR_HORIZONTAL_ARROWS;
 	if (point_inside_rectangle(x, y, 220, 220, 160, 160))
@@ -60,13 +60,20 @@ static void mouse_move(float x, float y, void *user_data) {
 	}
 }
 
+static void mouse_move_relative(float delta_x, float delta_y, void *user_data) {
+	printf("mouse move relative: {%f, %f}\n", delta_x, delta_y);
+}
+
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
 	struct demo *demo = user_data;
-	gral_window_warp_cursor(demo->window, 200, 200);
+	gral_window_set_cursor(demo->window, GRAL_CURSOR_NONE);
+	gral_window_lock_pointer(demo->window);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
-
+	struct demo *demo = user_data;
+	gral_window_unlock_pointer(demo->window);
+	gral_window_set_cursor(demo->window, demo->cursor);
 }
 
 static void double_click(float x, float y, int button, int modifiers, void *user_data) {
@@ -98,6 +105,7 @@ static void create_window(void *user_data) {
 		&mouse_enter,
 		&mouse_leave,
 		&mouse_move,
+		&mouse_move_relative,
 		&mouse_button_press,
 		&mouse_button_release,
 		&double_click,

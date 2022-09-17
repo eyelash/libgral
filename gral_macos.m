@@ -396,6 +396,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 @public
 	struct gral_window_interface interface;
 	void *user_data;
+	BOOL is_pointer_locked;
 }
 @end
 @implementation GralView
@@ -423,8 +424,13 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 	interface.mouse_leave(user_data);
 }
 - (void)mouseMoved:(NSEvent *)event {
-	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	interface.mouse_move(location.x, location.y, user_data);
+	if (is_pointer_locked) {
+		interface.mouse_move_relative([event deltaX], [event deltaY], user_data);
+	}
+	else {
+		NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
+		interface.mouse_move(location.x, location.y, user_data);
+	}
 }
 - (void)mouseDragged:(NSEvent *)event {
 	[self mouseMoved:event];
@@ -541,6 +547,7 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	GralView *view = [[GralView alloc] init];
 	view->interface = *interface;
 	view->user_data = user_data;
+	view->is_pointer_locked = NO;
 	NSTrackingArea *trackingArea = [[NSTrackingArea alloc]
 		initWithRect:CGRectMake(0, 0, width, height)
 		options:NSTrackingMouseEnteredAndExited|NSTrackingMouseMoved|NSTrackingActiveAlways|NSTrackingInVisibleRect
@@ -604,6 +611,18 @@ void gral_window_warp_cursor(struct gral_window *window_, float x, float y) {
 	NSPoint point = [[window contentView] convertPoint:NSMakePoint(x, y) toView:nil];
 	point = NSMakePoint(NSMinX(window.frame) + point.x, NSMaxY(NSScreen.screens[0].frame) - (NSMinY(window.frame) + point.y));
 	CGWarpMouseCursorPosition(point);
+}
+
+void gral_window_lock_pointer(struct gral_window *window) {
+	GralView *view = (GralView *)[(GralWindow *)window contentView];
+	CGAssociateMouseAndMouseCursorPosition(NO);
+	view->is_pointer_locked = YES;
+}
+
+void gral_window_unlock_pointer(struct gral_window *window) {
+	GralView *view = (GralView *)[(GralWindow *)window contentView];
+	CGAssociateMouseAndMouseCursorPosition(YES);
+	view->is_pointer_locked = NO;
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {

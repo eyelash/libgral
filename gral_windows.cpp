@@ -195,7 +195,9 @@ struct WindowData {
 	bool mouse_inside;
 	int minimum_width, minimum_height;
 	HCURSOR cursor;
-	WindowData(): mouse_inside(false), minimum_width(0), minimum_height(0) {}
+	bool is_pointer_locked;
+	POINT locked_pointer;
+	WindowData(): mouse_inside(false), minimum_width(0), minimum_height(0), is_pointer_locked(false) {}
 };
 
 struct gral_timer {
@@ -304,17 +306,27 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 	}
 	case WM_MOUSEMOVE: {
-		if (!window_data->mouse_inside) {
-			SetCursor(window_data->cursor);
-			window_data->mouse_inside = true;
-			window_data->iface.mouse_enter(window_data->user_data);
-			TRACKMOUSEEVENT track_mouse_event;
-			track_mouse_event.cbSize = sizeof(TRACKMOUSEEVENT);
-			track_mouse_event.dwFlags = TME_LEAVE;
-			track_mouse_event.hwndTrack = hwnd;
-			TrackMouseEvent(&track_mouse_event);
+		if (window_data->is_pointer_locked) {
+			POINT point;
+			GetCursorPos(&point);
+			if (point.x != window_data->locked_pointer.x || point.y != window_data->locked_pointer.y) {
+				window_data->iface.mouse_move_relative(point.x - window_data->locked_pointer.x, point.y - window_data->locked_pointer.y, window_data->user_data);
+				SetCursorPos(window_data->locked_pointer.x, window_data->locked_pointer.y);
+			}
 		}
-		window_data->iface.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
+		else {
+			if (!window_data->mouse_inside) {
+				SetCursor(window_data->cursor);
+				window_data->mouse_inside = true;
+				window_data->iface.mouse_enter(window_data->user_data);
+				TRACKMOUSEEVENT track_mouse_event;
+				track_mouse_event.cbSize = sizeof(TRACKMOUSEEVENT);
+				track_mouse_event.dwFlags = TME_LEAVE;
+				track_mouse_event.hwndTrack = hwnd;
+				TrackMouseEvent(&track_mouse_event);
+			}
+			window_data->iface.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
+		}
 		return 0;
 	}
 	case WM_MOUSELEAVE: {
@@ -952,6 +964,17 @@ void gral_window_warp_cursor(gral_window *window, float x, float y) {
 	point.y = (LONG)y;
 	ClientToScreen((HWND)window, &point);
 	SetCursorPos(point.x, point.y);
+}
+
+void gral_window_lock_pointer(gral_window *window) {
+	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
+	GetCursorPos(&window_data->locked_pointer);
+	window_data->is_pointer_locked = true;
+}
+
+void gral_window_unlock_pointer(gral_window *window) {
+	WindowData *window_data = (WindowData *)GetWindowLongPtr((HWND)window, GWLP_USERDATA);
+	window_data->is_pointer_locked = false;
 }
 
 void gral_window_show_open_file_dialog(gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {

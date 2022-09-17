@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "gral.h"
 #include <gtk/gtk.h>
+#include <gdk/gdkwayland.h>
 #include <stdlib.h>
 #include <alsa/asoundlib.h>
 
@@ -289,6 +290,8 @@ struct _GralWindow {
 	GtkApplicationWindow parent_instance;
 	struct gral_window_interface interface;
 	void *user_data;
+	gboolean is_pointer_locked;
+	gint locked_pointer_x, locked_pointer_y;
 };
 G_DEFINE_TYPE(GralWindow, gral_window, GTK_TYPE_APPLICATION_WINDOW)
 
@@ -336,7 +339,27 @@ static gboolean gral_area_leave_notify_event(GtkWidget *widget, GdkEventCrossing
 }
 static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
-	window->interface.mouse_move(event->x, event->y, window->user_data);
+	if (window->is_pointer_locked) {
+		GdkScreen *screen = gtk_widget_get_screen(GTK_WIDGET(window));
+		GdkDisplay *display = gdk_screen_get_display(screen);
+		GdkDevice *pointer = gdk_seat_get_pointer(gdk_display_get_default_seat(display));
+		gint x, y;
+		gdk_device_get_position(pointer, NULL, &x, &y);
+		if (x != window->locked_pointer_x || y != window->locked_pointer_y) {
+			window->interface.mouse_move_relative(x - window->locked_pointer_x, y - window->locked_pointer_y, window->user_data);
+			if (GDK_IS_WAYLAND_DISPLAY(display)) {
+				// gdk_device_warp does not work on Wayland
+				window->locked_pointer_x = x;
+				window->locked_pointer_y = y;
+			}
+			else {
+				gdk_device_warp(pointer, screen, window->locked_pointer_x, window->locked_pointer_y);
+			}
+		}
+	}
+	else {
+		window->interface.mouse_move(event->x, event->y, window->user_data);
+	}
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *event) {
@@ -455,6 +478,7 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	g_object_ref_sink(window);
 	window->interface = *interface;
 	window->user_data = user_data;
+	window->is_pointer_locked = FALSE;
 	gtk_window_set_default_size(GTK_WINDOW(window), width, height);
 	gtk_window_set_title(GTK_WINDOW(window), title);
 	GtkWidget *area = g_object_new(GRAL_TYPE_AREA, NULL);
@@ -513,6 +537,20 @@ void gral_window_warp_cursor(struct gral_window *window, float x, float y) {
 	gint root_x, root_y;
 	gdk_window_get_root_coords(gdk_window, x, y, &root_x, &root_y);
 	gdk_device_warp(pointer, screen, root_x, root_y);
+}
+
+void gral_window_lock_pointer(struct gral_window *window) {
+	GralWindow *gral_window = GRAL_WINDOW(window);
+	GdkScreen *screen = gtk_widget_get_screen(GTK_WIDGET(gral_window));
+	GdkDisplay *display = gdk_screen_get_display(screen);
+	GdkDevice *pointer = gdk_seat_get_pointer(gdk_display_get_default_seat(display));
+	gdk_device_get_position(pointer, NULL, &gral_window->locked_pointer_x, &gral_window->locked_pointer_y);
+	gral_window->is_pointer_locked = TRUE;
+}
+
+void gral_window_unlock_pointer(struct gral_window *window) {
+	GralWindow *gral_window = GRAL_WINDOW(window);
+	gral_window->is_pointer_locked = FALSE;
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {

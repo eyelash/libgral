@@ -30,6 +30,10 @@ static void mouse_move(float x, float y, void *user_data) {
 
 }
 
+static void mouse_move_relative(float delta_x, float delta_y, void *user_data) {
+
+}
+
 static void paste_callback(char const *text, void *user_data) {
 	printf("paste: %s\n", text);
 }
@@ -75,6 +79,7 @@ static void create_window(void *user_data) {
 		&mouse_enter,
 		&mouse_leave,
 		&mouse_move,
+		&mouse_move_relative,
 		&mouse_button_press,
 		&mouse_button_release,
 		&double_click,

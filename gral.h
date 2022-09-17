@@ -79,6 +79,7 @@ struct gral_window_interface {
 	void (*mouse_enter)(void *user_data);
 	void (*mouse_leave)(void *user_data);
 	void (*mouse_move)(float x, float y, void *user_data);
+	void (*mouse_move_relative)(float delta_x, float delta_y, void *user_data);
 	void (*mouse_button_press)(float x, float y, int button, int modifiers, void *user_data);
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
 	void (*double_click)(float x, float y, int button, int modifiers, void *user_data);
@@ -145,6 +146,8 @@ void gral_window_request_redraw(struct gral_window *window, int x, int y, int wi
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height);
 void gral_window_set_cursor(struct gral_window *window, int cursor);
 void gral_window_warp_cursor(struct gral_window *window, float x, float y);
+void gral_window_lock_pointer(struct gral_window *window);
+void gral_window_unlock_pointer(struct gral_window *window);
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data);
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, char const *text);
