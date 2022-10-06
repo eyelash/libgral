@@ -290,6 +290,8 @@ struct _GralWindow {
 	GtkApplicationWindow parent_instance;
 	struct gral_window_interface interface;
 	void *user_data;
+	gboolean is_cursor_hidden;
+	int cursor;
 	gboolean is_pointer_locked;
 	gint locked_pointer_x, locked_pointer_y;
 };
@@ -478,6 +480,8 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	g_object_ref_sink(window);
 	window->interface = *interface;
 	window->user_data = user_data;
+	window->is_cursor_hidden = FALSE;
+	window->cursor = GRAL_CURSOR_DEFAULT;
 	window->is_pointer_locked = FALSE;
 	gtk_window_set_default_size(GTK_WINDOW(window), width, height);
 	gtk_window_set_title(GTK_WINDOW(window), title);
@@ -523,11 +527,37 @@ static char const *get_cursor_name(int cursor) {
 		return "none";
 	}
 }
-void gral_window_set_cursor(struct gral_window *window, int cursor) {
+static void update_cursor(struct gral_window *window) {
+	GralWindow *gral_window = GRAL_WINDOW(window);
 	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
-	GdkCursor *gdk_cursor = gdk_cursor_new_from_name(gdk_window_get_display(gdk_window), get_cursor_name(cursor));
+	GdkCursor *gdk_cursor;
+	if (gral_window->is_cursor_hidden) {
+		gdk_cursor = gdk_cursor_new_from_name(gdk_window_get_display(gdk_window), "none");
+	}
+	else {
+		gdk_cursor = gdk_cursor_new_from_name(gdk_window_get_display(gdk_window), get_cursor_name(gral_window->cursor));
+	}
 	gdk_window_set_cursor(gdk_window, gdk_cursor);
 	g_object_unref(gdk_cursor);
+}
+void gral_window_set_cursor(struct gral_window *window, int cursor) {
+	GralWindow *gral_window = GRAL_WINDOW(window);
+	gral_window->cursor = cursor;
+	if (!gral_window->is_cursor_hidden) {
+		update_cursor(window);
+	}
+}
+
+void gral_window_hide_cursor(struct gral_window *window) {
+	GralWindow *gral_window = GRAL_WINDOW(window);
+	gral_window->is_cursor_hidden = TRUE;
+	update_cursor(window);
+}
+
+void gral_window_show_cursor(struct gral_window *window) {
+	GralWindow *gral_window = GRAL_WINDOW(window);
+	gral_window->is_cursor_hidden = FALSE;
+	update_cursor(window);
 }
 
 void gral_window_warp_cursor(struct gral_window *window, float x, float y) {

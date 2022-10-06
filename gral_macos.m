@@ -606,6 +606,14 @@ void gral_window_set_cursor(struct gral_window *window, int cursor) {
 	[get_cursor(cursor) set];
 }
 
+void gral_window_hide_cursor(struct gral_window *window) {
+	CGDisplayHideCursor(kCGNullDirectDisplay);
+}
+
+void gral_window_show_cursor(struct gral_window *window) {
+	CGDisplayShowCursor(kCGNullDirectDisplay);
+}
+
 void gral_window_warp_cursor(struct gral_window *window_, float x, float y) {
 	GralWindow *window = (GralWindow *)window_;
 	NSPoint point = [[window contentView] convertPoint:NSMakePoint(x, y) toView:nil];

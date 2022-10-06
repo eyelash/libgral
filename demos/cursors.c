@@ -66,14 +66,14 @@ static void mouse_move_relative(float delta_x, float delta_y, void *user_data) {
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
 	struct demo *demo = user_data;
-	gral_window_set_cursor(demo->window, GRAL_CURSOR_NONE);
+	gral_window_hide_cursor(demo->window);
 	gral_window_lock_pointer(demo->window);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
 	struct demo *demo = user_data;
 	gral_window_unlock_pointer(demo->window);
-	gral_window_set_cursor(demo->window, demo->cursor);
+	gral_window_show_cursor(demo->window);
 }
 
 static void double_click(float x, float y, int button, int modifiers, void *user_data) {

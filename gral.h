@@ -145,6 +145,8 @@ void gral_window_set_title(struct gral_window *window, char const *title);
 void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height);
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height);
 void gral_window_set_cursor(struct gral_window *window, int cursor);
+void gral_window_hide_cursor(struct gral_window *window);
+void gral_window_show_cursor(struct gral_window *window);
 void gral_window_warp_cursor(struct gral_window *window, float x, float y);
 void gral_window_lock_pointer(struct gral_window *window);
 void gral_window_unlock_pointer(struct gral_window *window);

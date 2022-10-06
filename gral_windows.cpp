@@ -958,6 +958,14 @@ void gral_window_set_cursor(gral_window *window, int cursor) {
 	SetCursor(window_data->cursor);
 }
 
+void gral_window_hide_cursor(gral_window *window) {
+	ShowCursor(FALSE);
+}
+
+void gral_window_show_cursor(gral_window *window) {
+	ShowCursor(TRUE);
+}
+
 void gral_window_warp_cursor(gral_window *window, float x, float y) {
 	POINT point;
 	point.x = (LONG)x;
