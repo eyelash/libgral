@@ -352,23 +352,24 @@ static int get_key(UInt16 key_code) {
 		return GRAL_KEY_END;
 	case kVK_Escape:
 		return GRAL_KEY_ESCAPE;
-	default: {
-		TISInputSourceRef input_source = TISCopyCurrentKeyboardInputSource();
-		CFDataRef uchr = TISGetInputSourceProperty(input_source, kTISPropertyUnicodeKeyLayoutData);
-		UCKeyboardLayout const *keyboard_layout = (UCKeyboardLayout const *)CFDataGetBytePtr(uchr);
-		UInt32 dead_key_state = 0;
-		UniChar string[255];
-		UniCharCount string_length = 0;
-		UCKeyTranslate(keyboard_layout, key_code, kUCKeyActionDown, 0, LMGetKbdType(), 0, &dead_key_state, 255, &string_length, string);
-		if (string_length > 0) {
-			CFStringRef characters = CFStringCreateWithCharactersNoCopy(NULL, string, string_length, kCFAllocatorNull);
-			uint32_t code_point;
-			get_next_code_point(characters, 0, &code_point);
-			CFRelease(characters);
-			return code_point;
+	default:
+		{
+			TISInputSourceRef input_source = TISCopyCurrentKeyboardInputSource();
+			CFDataRef uchr = TISGetInputSourceProperty(input_source, kTISPropertyUnicodeKeyLayoutData);
+			UCKeyboardLayout const *keyboard_layout = (UCKeyboardLayout const *)CFDataGetBytePtr(uchr);
+			UInt32 dead_key_state = 0;
+			UniChar string[255];
+			UniCharCount string_length = 0;
+			UCKeyTranslate(keyboard_layout, key_code, kUCKeyActionDown, 0, LMGetKbdType(), 0, &dead_key_state, 255, &string_length, string);
+			if (string_length > 0) {
+				CFStringRef characters = CFStringCreateWithCharactersNoCopy(NULL, string, string_length, kCFAllocatorNull);
+				uint32_t code_point;
+				get_next_code_point(characters, 0, &code_point);
+				CFRelease(characters);
+				return code_point;
+			}
+			return 0;
 		}
-		return 0;
-	}
 	}
 }
 static int get_modifiers(NSEventModifierFlags modifier_flags) {

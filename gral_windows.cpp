@@ -244,26 +244,27 @@ static int get_key(UINT virtual_key, UINT scan_code) {
 		return GRAL_KEY_END;
 	case VK_ESCAPE:
 		return GRAL_KEY_ESCAPE;
-	default: {
-		BYTE keyboard_state[256];
-		GetKeyboardState(keyboard_state);
-		keyboard_state[VK_SHIFT] = 0;
-		keyboard_state[VK_CONTROL] = 0;
-		keyboard_state[VK_MENU] = 0;
-		keyboard_state[VK_LSHIFT] = 0;
-		keyboard_state[VK_RSHIFT] = 0;
-		keyboard_state[VK_LCONTROL] = 0;
-		keyboard_state[VK_RCONTROL] = 0;
-		keyboard_state[VK_LMENU] = 0;
-		keyboard_state[VK_RMENU] = 0;
-		WCHAR utf16[5];
-		if (ToUnicode(virtual_key, scan_code, keyboard_state, utf16, 5, 0) > 0) {
-			UINT32 code_point;
-			get_next_code_point(utf16, 0, &code_point);
-			return code_point;
+	default:
+		{
+			BYTE keyboard_state[256];
+			GetKeyboardState(keyboard_state);
+			keyboard_state[VK_SHIFT] = 0;
+			keyboard_state[VK_CONTROL] = 0;
+			keyboard_state[VK_MENU] = 0;
+			keyboard_state[VK_LSHIFT] = 0;
+			keyboard_state[VK_RSHIFT] = 0;
+			keyboard_state[VK_LCONTROL] = 0;
+			keyboard_state[VK_RCONTROL] = 0;
+			keyboard_state[VK_LMENU] = 0;
+			keyboard_state[VK_RMENU] = 0;
+			WCHAR utf16[5];
+			if (ToUnicode(virtual_key, scan_code, keyboard_state, utf16, 5, 0) > 0) {
+				UINT32 code_point;
+				get_next_code_point(utf16, 0, &code_point);
+				return code_point;
+			}
+			return 0;
 		}
-		return 0;
-	}
 	}
 }
 int get_modifiers() {
@@ -277,215 +278,237 @@ int get_modifiers() {
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
-	case WM_PAINT: {
-		if (window_data->target == NULL) {
-			RECT rc;
-			GetClientRect(hwnd, &rc);
-			D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
-			factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size, D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS), &window_data->target);
-		}
-		RECT update_rect;
-		GetUpdateRect(hwnd, &update_rect, FALSE);
-		gral_draw_context draw_context;
-		draw_context.target = window_data->target;
-		factory->CreatePathGeometry(&draw_context.path);
-		draw_context.path->Open(&draw_context.sink);
-		draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
-		draw_context.target->BeginDraw();
-		draw_context.target->PushAxisAlignedClip(D2D1::RectF((FLOAT)update_rect.left, (FLOAT)update_rect.top, (FLOAT)update_rect.right, (FLOAT)update_rect.bottom), D2D1_ANTIALIAS_MODE_ALIASED);
-		draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
-		window_data->iface.draw(&draw_context, update_rect.left, update_rect.top, update_rect.right - update_rect.left, update_rect.bottom - update_rect.top, window_data->user_data);
-		draw_context.target->PopAxisAlignedClip();
-		if (draw_context.target->EndDraw() == D2DERR_RECREATE_TARGET) {
-			draw_context.target->Release();
-			window_data->target = NULL;
-		}
-		draw_context.sink->Release();
-		draw_context.path->Release();
-		ValidateRect(hwnd, NULL);
-		return 0;
-	}
-	case WM_MOUSEMOVE: {
-		if (window_data->is_pointer_locked) {
-			POINT point;
-			GetCursorPos(&point);
-			if (point.x != window_data->locked_pointer.x || point.y != window_data->locked_pointer.y) {
-				window_data->iface.mouse_move_relative(point.x - window_data->locked_pointer.x, point.y - window_data->locked_pointer.y, window_data->user_data);
-				SetCursorPos(window_data->locked_pointer.x, window_data->locked_pointer.y);
+	case WM_PAINT:
+		{
+			if (window_data->target == NULL) {
+				RECT rc;
+				GetClientRect(hwnd, &rc);
+				D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
+				factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(hwnd, size, D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS), &window_data->target);
 			}
-		}
-		else {
-			if (!window_data->mouse_inside) {
-				SetCursor(window_data->cursor);
-				window_data->mouse_inside = true;
-				window_data->iface.mouse_enter(window_data->user_data);
-				TRACKMOUSEEVENT track_mouse_event;
-				track_mouse_event.cbSize = sizeof(TRACKMOUSEEVENT);
-				track_mouse_event.dwFlags = TME_LEAVE;
-				track_mouse_event.hwndTrack = hwnd;
-				TrackMouseEvent(&track_mouse_event);
+			RECT update_rect;
+			GetUpdateRect(hwnd, &update_rect, FALSE);
+			gral_draw_context draw_context;
+			draw_context.target = window_data->target;
+			factory->CreatePathGeometry(&draw_context.path);
+			draw_context.path->Open(&draw_context.sink);
+			draw_context.sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+			draw_context.target->BeginDraw();
+			draw_context.target->PushAxisAlignedClip(D2D1::RectF((FLOAT)update_rect.left, (FLOAT)update_rect.top, (FLOAT)update_rect.right, (FLOAT)update_rect.bottom), D2D1_ANTIALIAS_MODE_ALIASED);
+			draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
+			window_data->iface.draw(&draw_context, update_rect.left, update_rect.top, update_rect.right - update_rect.left, update_rect.bottom - update_rect.top, window_data->user_data);
+			draw_context.target->PopAxisAlignedClip();
+			if (draw_context.target->EndDraw() == D2DERR_RECREATE_TARGET) {
+				draw_context.target->Release();
+				window_data->target = NULL;
 			}
-			window_data->iface.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
+			draw_context.sink->Release();
+			draw_context.path->Release();
+			ValidateRect(hwnd, NULL);
+			return 0;
 		}
-		return 0;
-	}
-	case WM_MOUSELEAVE: {
-		window_data->iface.mouse_leave(window_data->user_data);
-		window_data->mouse_inside = false;
-		return 0;
-	}
-	case WM_LBUTTONDOWN: {
-		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
-		return 0;
-	}
-	case WM_MBUTTONDOWN: {
-		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
-		return 0;
-	}
-	case WM_RBUTTONDOWN: {
-		SetCapture(hwnd);
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
-		return 0;
-	}
-	case WM_LBUTTONUP: {
-		if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
-			ReleaseCapture();
-		}
-		window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
-		return 0;
-	}
-	case WM_MBUTTONUP: {
-		if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
-			ReleaseCapture();
-		}
-		window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
-		return 0;
-	}
-	case WM_RBUTTONUP: {
-		if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
-			ReleaseCapture();
-		}
-		window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
-		return 0;
-	}
-	case WM_LBUTTONDBLCLK: {
-		SetCapture(hwnd);
-		int modifiers = get_modifiers();
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
-		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
-		return 0;
-	}
-	case WM_MBUTTONDBLCLK: {
-		SetCapture(hwnd);
-		int modifiers = get_modifiers();
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
-		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
-		return 0;
-	}
-	case WM_RBUTTONDBLCLK: {
-		SetCapture(hwnd);
-		int modifiers = get_modifiers();
-		window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
-		window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
-		return 0;
-	}
-	case WM_MOUSEWHEEL: {
-		window_data->iface.scroll(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
-		return 0;
-	}
-	case WM_MOUSEHWHEEL: {
-		window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.0f, window_data->user_data);
-		return 0;
-	}
-	case WM_KEYDOWN: {
-		UINT scan_code = (lParam >> 16) & 0xFF;
-		int key = get_key((UINT)wParam, scan_code);
-		if (key) {
-			window_data->iface.key_press(key, scan_code, get_modifiers(), window_data->user_data);
-		}
-		return 0;
-	}
-	case WM_KEYUP: {
-		UINT scan_code = (lParam >> 16) & 0xFF;
-		int key = get_key((UINT)wParam, scan_code);
-		if (key) {
-			window_data->iface.key_release(key, scan_code, window_data->user_data);
-		}
-		return 0;
-	}
-	case WM_CHAR: {
-		static WCHAR utf16[3];
-		if ((wParam & 0xFC00) == 0xD800) {
-			// high surrogate
-			utf16[0] = (WCHAR)wParam;
-		}
-		else {
-			if ((wParam & 0xFC00) == 0xDC00) {
-				// low surrogate
-				utf16[1] = (WCHAR)wParam;
-				utf16[2] = 0;
+	case WM_MOUSEMOVE:
+		{
+			if (window_data->is_pointer_locked) {
+				POINT point;
+				GetCursorPos(&point);
+				if (point.x != window_data->locked_pointer.x || point.y != window_data->locked_pointer.y) {
+					window_data->iface.mouse_move_relative(point.x - window_data->locked_pointer.x, point.y - window_data->locked_pointer.y, window_data->user_data);
+					SetCursorPos(window_data->locked_pointer.x, window_data->locked_pointer.y);
+				}
 			}
 			else {
+				if (!window_data->mouse_inside) {
+					SetCursor(window_data->cursor);
+					window_data->mouse_inside = true;
+					window_data->iface.mouse_enter(window_data->user_data);
+					TRACKMOUSEEVENT track_mouse_event;
+					track_mouse_event.cbSize = sizeof(TRACKMOUSEEVENT);
+					track_mouse_event.dwFlags = TME_LEAVE;
+					track_mouse_event.hwndTrack = hwnd;
+					TrackMouseEvent(&track_mouse_event);
+				}
+				window_data->iface.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
+			}
+			return 0;
+		}
+	case WM_MOUSELEAVE:
+		{
+			window_data->iface.mouse_leave(window_data->user_data);
+			window_data->mouse_inside = false;
+			return 0;
+		}
+	case WM_LBUTTONDOWN:
+		{
+			SetCapture(hwnd);
+			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
+			return 0;
+		}
+	case WM_MBUTTONDOWN:
+		{
+			SetCapture(hwnd);
+			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
+			return 0;
+		}
+	case WM_RBUTTONDOWN:
+		{
+			SetCapture(hwnd);
+			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
+			return 0;
+		}
+	case WM_LBUTTONUP:
+		{
+			if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
+				ReleaseCapture();
+			}
+			window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+			return 0;
+		}
+	case WM_MBUTTONUP:
+		{
+			if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
+				ReleaseCapture();
+			}
+			window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
+			return 0;
+		}
+	case WM_RBUTTONUP:
+		{
+			if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
+				ReleaseCapture();
+			}
+			window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
+			return 0;
+		}
+	case WM_LBUTTONDBLCLK:
+		{
+			SetCapture(hwnd);
+			int modifiers = get_modifiers();
+			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			return 0;
+		}
+	case WM_MBUTTONDBLCLK:
+		{
+			SetCapture(hwnd);
+			int modifiers = get_modifiers();
+			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
+			return 0;
+		}
+	case WM_RBUTTONDBLCLK:
+		{
+			SetCapture(hwnd);
+			int modifiers = get_modifiers();
+			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			return 0;
+		}
+	case WM_MOUSEWHEEL:
+		{
+			window_data->iface.scroll(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
+			return 0;
+		}
+	case WM_MOUSEHWHEEL:
+		{
+			window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.0f, window_data->user_data);
+			return 0;
+		}
+	case WM_KEYDOWN:
+		{
+			UINT scan_code = (lParam >> 16) & 0xFF;
+			int key = get_key((UINT)wParam, scan_code);
+			if (key) {
+				window_data->iface.key_press(key, scan_code, get_modifiers(), window_data->user_data);
+			}
+			return 0;
+		}
+	case WM_KEYUP:
+		{
+			UINT scan_code = (lParam >> 16) & 0xFF;
+			int key = get_key((UINT)wParam, scan_code);
+			if (key) {
+				window_data->iface.key_release(key, scan_code, window_data->user_data);
+			}
+			return 0;
+		}
+	case WM_CHAR:
+		{
+			static WCHAR utf16[3];
+			if ((wParam & 0xFC00) == 0xD800) {
+				// high surrogate
 				utf16[0] = (WCHAR)wParam;
-				utf16[1] = 0;
 			}
-			CHAR utf8[5];
-			WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, 5, NULL, NULL);
-			if ((UCHAR)utf8[0] > 0x1F) {
-				window_data->iface.text(utf8, window_data->user_data);
+			else {
+				if ((wParam & 0xFC00) == 0xDC00) {
+					// low surrogate
+					utf16[1] = (WCHAR)wParam;
+					utf16[2] = 0;
+				}
+				else {
+					utf16[0] = (WCHAR)wParam;
+					utf16[1] = 0;
+				}
+				CHAR utf8[5];
+				WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, 5, NULL, NULL);
+				if ((UCHAR)utf8[0] > 0x1F) {
+					window_data->iface.text(utf8, window_data->user_data);
+				}
 			}
+			return 0;
 		}
-		return 0;
-	}
-	case WM_TIMER: {
-		gral_timer *timer = (gral_timer *)wParam;
-		if (!timer->callback(timer->user_data)) {
-			KillTimer(hwnd, (UINT_PTR)timer);
-			timer->destroy(timer->user_data);
-			delete timer;
+	case WM_TIMER:
+		{
+			gral_timer *timer = (gral_timer *)wParam;
+			if (!timer->callback(timer->user_data)) {
+				KillTimer(hwnd, (UINT_PTR)timer);
+				timer->destroy(timer->user_data);
+				delete timer;
+			}
+			return 0;
 		}
-		return 0;
-	}
-	case WM_SIZE: {
-		WORD width = LOWORD(lParam);
-		WORD height = HIWORD(lParam);
-		window_data->iface.resize(width, height, window_data->user_data);
-		if (window_data->target) {
-			window_data->target->Resize(D2D1::SizeU(width, height));
+	case WM_SIZE:
+		{
+			WORD width = LOWORD(lParam);
+			WORD height = HIWORD(lParam);
+			window_data->iface.resize(width, height, window_data->user_data);
+			if (window_data->target) {
+				window_data->target->Resize(D2D1::SizeU(width, height));
+			}
+			RedrawWindow(hwnd, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
+			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 		}
-		RedrawWindow(hwnd, NULL, NULL, RDW_ERASE|RDW_INVALIDATE);
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
-	}
-	case WM_GETMINMAXINFO: {
-		if (window_data) {
-			MINMAXINFO *mmi = (MINMAXINFO *)lParam;
-			mmi->ptMinTrackSize.x = window_data->minimum_width;
-			mmi->ptMinTrackSize.y = window_data->minimum_height;
+	case WM_GETMINMAXINFO:
+		{
+			if (window_data) {
+				MINMAXINFO *mmi = (MINMAXINFO *)lParam;
+				mmi->ptMinTrackSize.x = window_data->minimum_width;
+				mmi->ptMinTrackSize.y = window_data->minimum_height;
+			}
+			return 0;
 		}
-		return 0;
-	}
-	case WM_USER: {
-		void (*callback)(void *user_data) = (void (*)(void *))wParam;
-		void *user_data = (void *)lParam;
-		callback(user_data);
-		return 0;
-	}
-	case WM_CLOSE: {
-		if (window_data->iface.close(window_data->user_data)) {
-			DestroyWindow(hwnd);
+	case WM_USER:
+		{
+			void (*callback)(void *user_data) = (void (*)(void *))wParam;
+			void *user_data = (void *)lParam;
+			callback(user_data);
 		}
-		return 0;
-	}
-	case WM_DESTROY: {
-		if (window_data->target) {
-			window_data->target->Release();
+	case WM_CLOSE:
+		{
+			if (window_data->iface.close(window_data->user_data)) {
+				DestroyWindow(hwnd);
+			}
+			return 0;
 		}
-		delete window_data;
-		PostQuitMessage(0);
-		return 0;
-	}
+	case WM_DESTROY:
+		{
+			if (window_data->target) {
+				window_data->target->Release();
+			}
+			delete window_data;
+			PostQuitMessage(0);
+			return 0;
+		}
 	default:
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}

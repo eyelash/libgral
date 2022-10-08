@@ -414,14 +414,15 @@ static int get_key(GdkEventKey *event) {
 		return GRAL_KEY_END;
 	case GDK_KEY_Escape:
 		return GRAL_KEY_ESCAPE;
-	default: {
-		GdkKeymap *keymap = gdk_keymap_get_for_display(gdk_window_get_display(event->window));
-		GdkKeymapKey keymap_key;
-		keymap_key.keycode = event->hardware_keycode;
-		keymap_key.group = 0;
-		keymap_key.level = 0;
-		return gdk_keyval_to_unicode(gdk_keymap_lookup_key(keymap, &keymap_key));
-	}
+	default:
+		{
+			GdkKeymap *keymap = gdk_keymap_get_for_display(gdk_window_get_display(event->window));
+			GdkKeymapKey keymap_key;
+			keymap_key.keycode = event->hardware_keycode;
+			keymap_key.group = 0;
+			keymap_key.level = 0;
+			return gdk_keyval_to_unicode(gdk_keymap_lookup_key(keymap, &keymap_key));
+		}
 	}
 }
 static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
