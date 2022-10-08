@@ -528,36 +528,35 @@ static char const *get_cursor_name(int cursor) {
 		return "none";
 	}
 }
-static void update_cursor(struct gral_window *window) {
-	GralWindow *gral_window = GRAL_WINDOW(window);
+static void update_cursor(GralWindow *window) {
 	GdkWindow *gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
 	GdkCursor *gdk_cursor;
-	if (gral_window->is_cursor_hidden) {
+	if (window->is_cursor_hidden) {
 		gdk_cursor = gdk_cursor_new_from_name(gdk_window_get_display(gdk_window), "none");
 	}
 	else {
-		gdk_cursor = gdk_cursor_new_from_name(gdk_window_get_display(gdk_window), get_cursor_name(gral_window->cursor));
+		gdk_cursor = gdk_cursor_new_from_name(gdk_window_get_display(gdk_window), get_cursor_name(window->cursor));
 	}
 	gdk_window_set_cursor(gdk_window, gdk_cursor);
 	g_object_unref(gdk_cursor);
 }
-void gral_window_set_cursor(struct gral_window *window, int cursor) {
-	GralWindow *gral_window = GRAL_WINDOW(window);
-	gral_window->cursor = cursor;
-	if (!gral_window->is_cursor_hidden) {
+void gral_window_set_cursor(struct gral_window *window_, int cursor) {
+	GralWindow *window = GRAL_WINDOW(window_);
+	window->cursor = cursor;
+	if (!window->is_cursor_hidden) {
 		update_cursor(window);
 	}
 }
 
-void gral_window_hide_cursor(struct gral_window *window) {
-	GralWindow *gral_window = GRAL_WINDOW(window);
-	gral_window->is_cursor_hidden = TRUE;
+void gral_window_hide_cursor(struct gral_window *window_) {
+	GralWindow *window = GRAL_WINDOW(window_);
+	window->is_cursor_hidden = TRUE;
 	update_cursor(window);
 }
 
-void gral_window_show_cursor(struct gral_window *window) {
-	GralWindow *gral_window = GRAL_WINDOW(window);
-	gral_window->is_cursor_hidden = FALSE;
+void gral_window_show_cursor(struct gral_window *window_) {
+	GralWindow *window = GRAL_WINDOW(window_);
+	window->is_cursor_hidden = FALSE;
 	update_cursor(window);
 }
 
@@ -570,18 +569,18 @@ void gral_window_warp_cursor(struct gral_window *window, float x, float y) {
 	gdk_device_warp(pointer, screen, root_x, root_y);
 }
 
-void gral_window_lock_pointer(struct gral_window *window) {
-	GralWindow *gral_window = GRAL_WINDOW(window);
-	GdkScreen *screen = gtk_widget_get_screen(GTK_WIDGET(gral_window));
+void gral_window_lock_pointer(struct gral_window *window_) {
+	GralWindow *window = GRAL_WINDOW(window_);
+	GdkScreen *screen = gtk_widget_get_screen(GTK_WIDGET(window));
 	GdkDisplay *display = gdk_screen_get_display(screen);
 	GdkDevice *pointer = gdk_seat_get_pointer(gdk_display_get_default_seat(display));
-	gdk_device_get_position(pointer, NULL, &gral_window->locked_pointer_x, &gral_window->locked_pointer_y);
-	gral_window->is_pointer_locked = TRUE;
+	gdk_device_get_position(pointer, NULL, &window->locked_pointer_x, &window->locked_pointer_y);
+	window->is_pointer_locked = TRUE;
 }
 
-void gral_window_unlock_pointer(struct gral_window *window) {
-	GralWindow *gral_window = GRAL_WINDOW(window);
-	gral_window->is_pointer_locked = FALSE;
+void gral_window_unlock_pointer(struct gral_window *window_) {
+	GralWindow *window = GRAL_WINDOW(window_);
+	window->is_pointer_locked = FALSE;
 }
 
 void gral_window_show_open_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data) {

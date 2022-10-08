@@ -79,7 +79,7 @@ struct gral_window_interface {
 	void (*mouse_enter)(void *user_data);
 	void (*mouse_leave)(void *user_data);
 	void (*mouse_move)(float x, float y, void *user_data);
-	void (*mouse_move_relative)(float delta_x, float delta_y, void *user_data);
+	void (*mouse_move_relative)(float dx, float dy, void *user_data);
 	void (*mouse_button_press)(float x, float y, int button, int modifiers, void *user_data);
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
 	void (*double_click)(float x, float y, int button, int modifiers, void *user_data);

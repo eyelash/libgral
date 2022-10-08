@@ -60,8 +60,8 @@ static void mouse_move(float x, float y, void *user_data) {
 	}
 }
 
-static void mouse_move_relative(float delta_x, float delta_y, void *user_data) {
-	printf("mouse move relative: {%f, %f}\n", delta_x, delta_y);
+static void mouse_move_relative(float dx, float dy, void *user_data) {
+	printf("mouse move relative: {%f, %f}\n", dx, dy);
 }
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {

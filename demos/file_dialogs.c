@@ -31,7 +31,7 @@ static void mouse_move(float x, float y, void *user_data) {
 
 }
 
-static void mouse_move_relative(float delta_x, float delta_y, void *user_data) {
+static void mouse_move_relative(float dx, float dy, void *user_data) {
 
 }
 

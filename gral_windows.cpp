@@ -313,7 +313,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				POINT point;
 				GetCursorPos(&point);
 				if (point.x != window_data->locked_pointer.x || point.y != window_data->locked_pointer.y) {
-					window_data->iface.mouse_move_relative(point.x - window_data->locked_pointer.x, point.y - window_data->locked_pointer.y, window_data->user_data);
+					window_data->iface.mouse_move_relative((float)(point.x - window_data->locked_pointer.x), (float)(point.y - window_data->locked_pointer.y), window_data->user_data);
 					SetCursorPos(window_data->locked_pointer.x, window_data->locked_pointer.y);
 				}
 			}
@@ -405,15 +405,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			return 0;
 		}
 	case WM_MOUSEWHEEL:
-		{
-			window_data->iface.scroll(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
-			return 0;
-		}
+		window_data->iface.scroll(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
+		return 0;
 	case WM_MOUSEHWHEEL:
-		{
-			window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.0f, window_data->user_data);
-			return 0;
-		}
+		window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.0f, window_data->user_data);
+		return 0;
 	case WM_KEYDOWN:
 		{
 			UINT scan_code = (lParam >> 16) & 0xFF;
@@ -492,6 +488,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			void (*callback)(void *user_data) = (void (*)(void *))wParam;
 			void *user_data = (void *)lParam;
 			callback(user_data);
+			return 0;
 		}
 	case WM_CLOSE:
 		{
