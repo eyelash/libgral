@@ -391,6 +391,12 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 - (BOOL)windowShouldClose:(id)sender {
 	return interface.close(user_data);
 }
+- (void)windowDidBecomeKey:(NSNotification *)notification {
+	interface.focus_enter(user_data);
+}
+- (void)windowDidResignKey:(NSNotification *)notification {
+	interface.focus_leave(user_data);
+}
 @end
 
 @interface GralView: NSView<NSTextInputClient> {

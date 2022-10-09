@@ -93,6 +93,14 @@ static void text(char const *s, void *user_data) {
 	}
 }
 
+static void focus_enter(void *user_data) {
+	printf("focus enter\n");
+}
+
+static void focus_leave(void *user_data) {
+	printf("focus leave\n");
+}
+
 static int timer(void *user_data) {
 	printf("timer\n");
 	return 1;
@@ -118,7 +126,9 @@ static void create_window(void *user_data) {
 		&scroll,
 		&key_press,
 		&key_release,
-		&text
+		&text,
+		&focus_enter,
+		&focus_leave
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &interface, demo);
 	demo->timer = gral_window_create_timer(demo->window, 1000, &timer, &timer_destroy, demo);

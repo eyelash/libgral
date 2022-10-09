@@ -449,6 +449,16 @@ static void gral_area_commit(GtkIMContext *context, gchar *str, gpointer user_da
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(GTK_WIDGET(user_data)));
 	window->interface.text(str, window->user_data);
 }
+static gboolean gral_area_focus_in_event(GtkWidget *widget, GdkEventFocus *event) {
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
+	window->interface.focus_enter(window->user_data);
+	return GDK_EVENT_STOP;
+}
+static gboolean gral_area_focus_out_event(GtkWidget *widget, GdkEventFocus *event) {
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_parent(widget));
+	window->interface.focus_leave(window->user_data);
+	return GDK_EVENT_STOP;
+}
 static void gral_area_dispose(GObject *object) {
 	GralArea *area = GRAL_AREA(object);
 	g_clear_object(&area->im_context);
@@ -472,6 +482,8 @@ static void gral_area_class_init(GralAreaClass *class) {
 	widget_class->scroll_event = gral_area_scroll_event;
 	widget_class->key_press_event = gral_area_key_press_event;
 	widget_class->key_release_event = gral_area_key_release_event;
+	widget_class->focus_in_event = gral_area_focus_in_event;
+	widget_class->focus_out_event = gral_area_focus_out_event;
 	GObjectClass *object_class = G_OBJECT_CLASS(class);
 	object_class->dispose = gral_area_dispose;
 }

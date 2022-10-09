@@ -87,6 +87,8 @@ struct gral_window_interface {
 	void (*key_press)(int key, int scan_code, int modifiers, void *user_data);
 	void (*key_release)(int key, int scan_code, void *user_data);
 	void (*text)(char const *s, void *user_data);
+	void (*focus_enter)(void *user_data);
+	void (*focus_leave)(void *user_data);
 };
 struct gral_timer;
 struct gral_file;

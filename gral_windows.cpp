@@ -453,6 +453,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			}
 			return 0;
 		}
+	case WM_SETFOCUS:
+		window_data->iface.focus_enter(window_data->user_data);
+		return 0;
+	case WM_KILLFOCUS:
+		window_data->iface.focus_leave(window_data->user_data);
+		return 0;
 	case WM_TIMER:
 		{
 			gral_timer *timer = (gral_timer *)wParam;

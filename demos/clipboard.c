@@ -70,6 +70,14 @@ static void text(char const *s, void *user_data) {
 
 }
 
+static void focus_enter(void *user_data) {
+
+}
+
+static void focus_leave(void *user_data) {
+
+}
+
 static void create_window(void *user_data) {
 	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
@@ -86,7 +94,9 @@ static void create_window(void *user_data) {
 		&scroll,
 		&key_press,
 		&key_release,
-		&text
+		&text,
+		&focus_enter,
+		&focus_leave
 	};
 	demo->window = gral_window_create(demo->application, 800, 600, "gral clipboard demo", &interface, demo);
 }
