@@ -102,7 +102,7 @@ static void focus_leave(void *user_data) {
 }
 
 static int timer(void *user_data) {
-	printf("timer\n");
+	printf("timer %f\n", gral_time_get_monotonic());
 	return 1;
 }
 

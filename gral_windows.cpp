@@ -1160,6 +1160,24 @@ void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *
 }
 
 
+/*=========
+    TIME
+ =========*/
+
+static double get_frequency() {
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	return frequency.QuadPart;
+}
+
+double gral_time_get_monotonic() {
+	static const double frequency = get_frequency();
+	LARGE_INTEGER count;
+	QueryPerformanceCounter(&count);
+	return count.QuadPart / frequency;
+}
+
+
 /*==========
     AUDIO
  ==========*/

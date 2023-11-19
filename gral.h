@@ -180,6 +180,13 @@ void gral_file_rename(char const *old_path, char const *new_path);
 void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data);
 
 
+/*=========
+    TIME
+ =========*/
+
+double gral_time_get_monotonic(void);
+
+
 /*==========
     AUDIO
  ==========*/

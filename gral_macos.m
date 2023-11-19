@@ -792,6 +792,17 @@ void gral_directory_iterate(char const *path, void (*callback)(char const *name,
 }
 
 
+/*=========
+    TIME
+ =========*/
+
+double gral_time_get_monotonic(void) {
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec + ts.tv_nsec / 1e9;
+}
+
+
 /*==========
     AUDIO
  ==========*/
