@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2022 Elias Aebi
+Copyright (c) 2016-2023 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -784,6 +784,10 @@ void gral_file_rename(char const *old_path, char const *new_path) {
 
 void gral_file_remove(char const *path) {
 	unlink(path);
+}
+
+void gral_directory_create(char const *path) {
+	mkdir(path, 0777);
 }
 
 void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data) {
