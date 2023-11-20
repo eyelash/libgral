@@ -747,6 +747,10 @@ void gral_file_rename(char const *old_path, char const *new_path) {
 	rename(old_path, new_path);
 }
 
+void gral_file_remove(char const *path) {
+	unlink(path);
+}
+
 void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data) {
 	DIR *directory = opendir(path);
 	struct dirent *entry;
@@ -754,6 +758,10 @@ void gral_directory_iterate(char const *path, void (*callback)(char const *name,
 		callback(entry->d_name, user_data);
 	}
 	closedir(directory);
+}
+
+void gral_directory_remove(char const *path) {
+	rmdir(path);
 }
 
 

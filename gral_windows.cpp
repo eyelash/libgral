@@ -1146,6 +1146,10 @@ void gral_file_rename(char const *old_path, char const *new_path) {
 	MoveFileEx(utf8_to_utf16(old_path), utf8_to_utf16(new_path), MOVEFILE_REPLACE_EXISTING);
 }
 
+void gral_file_remove(char const *path) {
+	DeleteFile(utf8_to_utf16(path));
+}
+
 void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *name, void *user_data), void *user_data) {
 	int length = MultiByteToWideChar(CP_UTF8, 0, path_utf8, -1, NULL, 0);
 	Buffer<wchar_t> path_utf16(length + 2);
@@ -1157,6 +1161,10 @@ void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *
 		callback(utf16_to_utf8(find_data.cFileName), user_data);
 	} while (FindNextFile(handle, &find_data));
 	FindClose(handle);
+}
+
+void gral_directory_remove(char const *path) {
+	RemoveDirectory(utf8_to_utf16(path));
 }
 
 

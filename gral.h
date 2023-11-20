@@ -177,7 +177,9 @@ size_t gral_file_get_size(struct gral_file *file);
 void *gral_file_map(struct gral_file *file, size_t size);
 void gral_file_unmap(void *address, size_t size);
 void gral_file_rename(char const *old_path, char const *new_path);
+void gral_file_remove(char const *path);
 void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data);
+void gral_directory_remove(char const *path);
 
 
 /*=========
