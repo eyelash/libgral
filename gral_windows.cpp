@@ -1126,9 +1126,9 @@ void gral_file_write(gral_file *file, void const *buffer, size_t size) {
 }
 
 size_t gral_file_get_size(gral_file *file) {
-	DWORD size_high;
-	DWORD size_low = GetFileSize(file, &size_high);
-	return (DWORD64)size_high << 32 | size_low;
+	LARGE_INTEGER size;
+	GetFileSizeEx(file, &size);
+	return size.QuadPart;
 }
 
 void *gral_file_map(gral_file *file, size_t size) {
@@ -1179,7 +1179,7 @@ void gral_directory_remove(char const *path) {
 static double get_frequency() {
 	LARGE_INTEGER frequency;
 	QueryPerformanceFrequency(&frequency);
-	return frequency.QuadPart;
+	return (double)frequency.QuadPart;
 }
 
 double gral_time_get_monotonic() {
@@ -1253,15 +1253,7 @@ static int fill_buffer(IMFTransform *resampler, BYTE *device_buffer, UINT32 devi
 	return 1;
 }
 
-void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
-	ComPointer<IMMDeviceEnumerator> device_enumerator;
-	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
-	ComPointer<IMMDevice> device;
-	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
-	ComPointer<IAudioClient> audio_client;
-	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
-	WAVEFORMATEX *format;
-	audio_client->GetMixFormat(&format);
+static ComPointer<IMFTransform> create_resampler(WAVEFORMATEX *format) {
 	ComPointer<IMFTransform> resampler;
 	CoCreateInstance(__uuidof(CResamplerMediaObject), NULL, CLSCTX_ALL, __uuidof(IMFTransform), (void **)&resampler);
 	ComPointer<IMFMediaType> input_type;
@@ -1279,6 +1271,19 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	MFCreateMediaType(&output_type);
 	MFInitMediaTypeFromWaveFormatEx(output_type, format, sizeof(WAVEFORMATEX) + format->cbSize);
 	resampler->SetOutputType(0, output_type, 0);
+	return resampler;
+}
+
+void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	ComPointer<IMMDeviceEnumerator> device_enumerator;
+	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
+	ComPointer<IMMDevice> device;
+	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
+	ComPointer<IAudioClient> audio_client;
+	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
+	WAVEFORMATEX *format;
+	audio_client->GetMixFormat(&format);
+	ComPointer<IMFTransform> resampler = create_resampler(format);
 	audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 0, 0, format, NULL);
 	UINT32 buffer_size;
 	audio_client->GetBufferSize(&buffer_size);
