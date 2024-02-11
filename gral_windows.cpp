@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2023 Elias Aebi
+Copyright (c) 2016-2024 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -563,12 +563,17 @@ int gral_application_run(gral_application *application, int argc_, char **argv_)
 	}
 	LocalFree(argv);
 	MSG message;
-	while (GetMessage(&message, NULL, 0, 0)) {
-		TranslateMessage(&message);
-		DispatchMessage(&message);
+	while (TRUE) {
+		while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
+			if (message.message == WM_QUIT) {
+				application->iface.quit(application->user_data);
+				return 0;
+			}
+			TranslateMessage(&message);
+			DispatchMessage(&message);
+		}
+		MsgWaitForMultipleObjectsEx(0, NULL, INFINITE, QS_ALLINPUT, MWMO_ALERTABLE);
 	}
-	application->iface.quit(application->user_data);
-	return 0;
 }
 
 
@@ -1169,6 +1174,60 @@ void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *
 
 void gral_directory_remove(char const *path) {
 	RemoveDirectory(utf8_to_utf16(path));
+}
+
+struct gral_directory_watcher {
+	HANDLE directory;
+	OVERLAPPED overlapped;
+	void (*callback)(void *user_data);
+	void *user_data;
+	char buffer[4096];
+	static void completion_routine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped) {
+		gral_directory_watcher *watcher = (gral_directory_watcher *)lpOverlapped->hEvent;
+		if (dwErrorCode == ERROR_OPERATION_ABORTED) {
+			delete watcher;
+			return;
+		}
+		DWORD offset = 0;
+		while (TRUE) {
+			PFILE_NOTIFY_INFORMATION information = (PFILE_NOTIFY_INFORMATION)(watcher->buffer + offset);
+			if (information->Action != FILE_ACTION_RENAMED_OLD_NAME) {
+				watcher->callback(watcher->user_data);
+			}
+			if (information->NextEntryOffset == 0) {
+				break;
+			}
+			offset += information->NextEntryOffset;
+		}
+		watcher->watch();
+	}
+	gral_directory_watcher(char const *path, void (*callback)(void *user_data), void *user_data) {
+		directory = CreateFile(utf8_to_utf16(path), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+		ZeroMemory(&overlapped, sizeof(overlapped));
+		overlapped.hEvent = this;
+		this->callback = callback;
+		this->user_data = user_data;
+	}
+	~gral_directory_watcher() {
+		CloseHandle(directory);
+	}
+	void watch() {
+		const DWORD notify_filter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_SECURITY;
+		ReadDirectoryChangesW(directory, buffer, sizeof(buffer), FALSE, notify_filter, NULL, &overlapped, completion_routine);
+	}
+	void cancel() {
+		CancelIoEx(directory, &overlapped);
+	}
+};
+
+gral_directory_watcher *gral_directory_watch(char const *path, void (*callback)(void *user_data), void *user_data) {
+	gral_directory_watcher *watcher = new gral_directory_watcher(path, callback, user_data);
+	watcher->watch();
+	return watcher;
+}
+
+void gral_directory_watcher_delete(gral_directory_watcher *watcher) {
+	watcher->cancel();
 }
 
 

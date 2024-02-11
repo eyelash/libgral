@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2023 Elias Aebi
+Copyright (c) 2016-2024 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -766,6 +766,15 @@ void gral_directory_iterate(char const *path, void (*callback)(char const *name,
 
 void gral_directory_remove(char const *path) {
 	rmdir(path);
+}
+
+struct gral_directory_watcher *gral_directory_watch(char const *path, void (*callback)(void *user_data), void *user_data) {
+	// TODO: implement
+	return NULL;
+}
+
+void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watcher) {
+	// TODO: implement
 }
 
 
