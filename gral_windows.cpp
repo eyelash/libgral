@@ -1182,7 +1182,7 @@ struct gral_directory_watcher {
 	void (*callback)(void *user_data);
 	void *user_data;
 	char buffer[4096];
-	static void completion_routine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped) {
+	static void CALLBACK completion_routine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped) {
 		gral_directory_watcher *watcher = (gral_directory_watcher *)lpOverlapped->hEvent;
 		if (dwErrorCode == ERROR_OPERATION_ABORTED) {
 			delete watcher;
