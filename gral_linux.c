@@ -652,6 +652,7 @@ static void timer_destroy(gpointer user_data) {
 	callback_data->destroy(callback_data->user_data);
 	g_slice_free(TimerCallbackData, callback_data);
 }
+
 struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, int (*callback)(void *user_data), void (*destroy)(void *user_data), void *user_data) {
 	TimerCallbackData *callback_data = g_slice_new(TimerCallbackData);
 	callback_data->callback = callback;
@@ -694,6 +695,8 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
 #include <sys/mman.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <sys/inotify.h>
+#include <glib-unix.h>
 
 struct gral_file *gral_file_open_read(char const *path) {
 	int fd = open(path, O_RDONLY);
@@ -768,13 +771,39 @@ void gral_directory_remove(char const *path) {
 	rmdir(path);
 }
 
+typedef struct {
+	void (*callback)(void *user_data);
+	void *user_data;
+	int fd;
+} InotifyCallbackData;
+static gboolean inotify_callback(gint fd, GIOCondition condition, gpointer user_data) {
+	InotifyCallbackData *callback_data = user_data;
+	char buffer[4096];
+	ssize_t size = read(fd, buffer, sizeof(buffer));
+	struct inotify_event *event;
+	for (ssize_t i = 0; i < size; i += sizeof(*event) + event->len) {
+		event = (struct inotify_event *)(buffer + i);
+		callback_data->callback(callback_data->user_data);
+	}
+	return G_SOURCE_CONTINUE;
+}
+static void inotify_destroy(gpointer user_data) {
+	InotifyCallbackData *callback_data = user_data;
+	close(callback_data->fd);
+	g_slice_free(InotifyCallbackData, callback_data);
+}
+
 struct gral_directory_watcher *gral_directory_watch(char const *path, void (*callback)(void *user_data), void *user_data) {
-	// TODO: implement
-	return NULL;
+	InotifyCallbackData *callback_data = g_slice_new(InotifyCallbackData);
+	callback_data->callback = callback;
+	callback_data->user_data = user_data;
+	callback_data->fd = inotify_init1(IN_NONBLOCK);
+	inotify_add_watch(callback_data->fd, path, IN_ATTRIB | IN_CREATE | IN_DELETE | IN_MODIFY | IN_MOVE);
+	return (struct gral_directory_watcher *)(intptr_t)g_unix_fd_add_full(G_PRIORITY_DEFAULT, callback_data->fd, G_IO_IN, inotify_callback, callback_data, inotify_destroy);
 }
 
 void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watcher) {
-	// TODO: implement
+	g_source_remove((guint)(intptr_t)directory_watcher);
 }
 
 
