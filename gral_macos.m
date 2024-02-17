@@ -136,7 +136,7 @@ void gral_image_delete(struct gral_image *image) {
 }
 
 struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size) {
-	CFStringRef string = CFStringCreateWithCString(NULL, name, kCFStringEncodingUTF8);
+	CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, name, kCFStringEncodingUTF8);
 	CTFontRef font = CTFontCreateWithName(string, size, NULL);
 	CFRelease(string);
 	return (struct gral_font *)font;
@@ -160,7 +160,7 @@ void gral_font_get_metrics(struct gral_window *window, struct gral_font *font, f
 }
 
 struct gral_text *gral_text_create(struct gral_window *window, char const *text, struct gral_font *font) {
-	CFStringRef string = CFStringCreateWithCString(NULL, text, kCFStringEncodingUTF8);
+	CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, text, kCFStringEncodingUTF8);
 	CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(NULL, 1, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	CFDictionarySetValue(attributes, kCTFontAttributeName, font);
 	CFAttributedStringRef attributed_string = CFAttributedStringCreate(NULL, string, attributes);
@@ -784,13 +784,49 @@ void gral_directory_remove(char const *path) {
 	rmdir(path);
 }
 
+static void event_stream_callback(ConstFSEventStreamRef streamRef, void *info, size_t numEvents, void *eventPaths, FSEventStreamEventFlags const *eventFlags, FSEventStreamEventId const *eventIds) {
+	CallbackObject *callback_object = info;
+	for (size_t i = 0; i < numEvents; i++) {
+		callback_object->callback(callback_object->user_data);
+	}
+}
+static void callback_object_release(void const *info) {
+	CallbackObject *callback_object = info;
+	[callback_object release];
+}
+static void const *callback_object_retain(void const *info) {
+	CallbackObject *callback_object = info;
+	[callback_object retain];
+	return info;
+}
+
 struct gral_directory_watcher *gral_directory_watch(char const *path, void (*callback)(void *user_data), void *user_data) {
-	// TODO: implement
-	return NULL;
+	CallbackObject *callback_object = [[CallbackObject alloc] init];
+	callback_object->callback = callback;
+	callback_object->user_data = user_data;
+	FSEventStreamContext context;
+	context.copyDescription = NULL;
+	context.info = callback_object;
+	context.release = callback_object_release;
+	context.retain = callback_object_retain;
+	context.version = 0;
+	CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, path, kCFStringEncodingUTF8);
+	CFArrayRef paths = CFArrayCreate(kCFAllocatorDefault, (void const **)&string, 1, &kCFTypeArrayCallBacks);
+	CFRelease(string);
+	FSEventStreamRef event_stream = FSEventStreamCreate(kCFAllocatorDefault, event_stream_callback, &context, paths, kFSEventStreamEventIdSinceNow, 0.0, kFSEventStreamCreateFlagNone);
+	CFRelease(paths);
+	[callback_object release];
+	FSEventStreamScheduleWithRunLoop(event_stream, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+	FSEventStreamStart(event_stream);
+	return (struct gral_directory_watcher *)event_stream;
 }
 
 void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watcher) {
-	// TODO: implement
+	FSEventStreamRef event_stream = (FSEventStreamRef)directory_watcher;
+	FSEventStreamStop(event_stream);
+	//FSEventStreamUnscheduleFromRunLoop(event_stream, );
+	FSEventStreamInvalidate(event_stream);
+	FSEventStreamRelease(event_stream);
 }
 
 
