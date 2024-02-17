@@ -54,13 +54,13 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 	return i8;
 }
 
-@interface CallbackObject: NSObject {
+@interface GralCallbackObject: NSObject {
 @public
 	void (*callback)(void *user_data);
 	void *user_data;
 }
 @end
-@implementation CallbackObject
+@implementation GralCallbackObject
 - (void)invoke:(id)object {
 	callback(user_data);
 }
@@ -136,7 +136,7 @@ void gral_image_delete(struct gral_image *image) {
 }
 
 struct gral_font *gral_font_create(struct gral_window *window, char const *name, float size) {
-	CFStringRef string = CFStringCreateWithCString(NULL, name, kCFStringEncodingUTF8);
+	CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, name, kCFStringEncodingUTF8);
 	CTFontRef font = CTFontCreateWithName(string, size, NULL);
 	CFRelease(string);
 	return (struct gral_font *)font;
@@ -160,7 +160,7 @@ void gral_font_get_metrics(struct gral_window *window, struct gral_font *font, f
 }
 
 struct gral_text *gral_text_create(struct gral_window *window, char const *text, struct gral_font *font) {
-	CFStringRef string = CFStringCreateWithCString(NULL, text, kCFStringEncodingUTF8);
+	CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, text, kCFStringEncodingUTF8);
 	CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(NULL, 1, &kCFCopyStringDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	CFDictionarySetValue(attributes, kCTFontAttributeName, font);
 	CFAttributedStringRef attributed_string = CFAttributedStringCreate(NULL, string, attributes);
@@ -679,7 +679,7 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 }
 
 struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data) {
-	CallbackObject *callback_object = [[CallbackObject alloc] init];
+	GralCallbackObject *callback_object = [[GralCallbackObject alloc] init];
 	callback_object->callback = callback;
 	callback_object->user_data = user_data;
 	NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:callback_object selector:@selector(invoke:) userInfo:nil repeats:YES];
@@ -692,7 +692,7 @@ void gral_timer_delete(struct gral_timer *timer) {
 }
 
 void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data) {
-	CallbackObject *callback_object = [[CallbackObject alloc] init];
+	GralCallbackObject *callback_object = [[GralCallbackObject alloc] init];
 	callback_object->callback = callback;
 	callback_object->user_data = user_data;
 	[callback_object performSelectorOnMainThread:@selector(invoke:) withObject:nil waitUntilDone:NO];
@@ -710,6 +710,7 @@ void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data)
 #include <sys/mman.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <sys/event.h>
 
 struct gral_file *gral_file_open_read(char const *path) {
 	int fd = open(path, O_RDONLY);
@@ -793,13 +794,69 @@ void gral_directory_remove(char const *path) {
 	rmdir(path);
 }
 
+@interface GralDirectoryWatcher: GralCallbackObject {
+@public
+	int fd;
+}
+@end
+@implementation GralDirectoryWatcher
+- (void)dealloc {
+	close(fd);
+	[super dealloc];
+}
+@end
+
+static void gral_directory_watcher_release(void *info) {
+	GralDirectoryWatcher *directory_watcher = info;
+	[directory_watcher release];
+}
+static void *gral_directory_watcher_retain(void *info) {
+	GralDirectoryWatcher *directory_watcher = info;
+	[directory_watcher retain];
+	return info;
+}
+
+static void directory_watcher_callback(CFFileDescriptorRef fdref, CFOptionFlags flags, void *info) {
+	GralDirectoryWatcher *directory_watcher = info;
+	int kq = CFFileDescriptorGetNativeDescriptor(fdref);
+	struct kevent event;
+	kevent(kq, NULL, 0, &event, 1, NULL);
+	directory_watcher->callback(directory_watcher->user_data);
+	CFFileDescriptorEnableCallBacks(fdref, kCFFileDescriptorReadCallBack);
+}
+
 struct gral_directory_watcher *gral_directory_watch(char const *path, void (*callback)(void *user_data), void *user_data) {
-	// TODO: implement
-	return NULL;
+	GralDirectoryWatcher *directory_watcher = [[GralDirectoryWatcher alloc] init];
+	directory_watcher->callback = callback;
+	directory_watcher->user_data = user_data;
+	directory_watcher->fd = open(path, O_EVTONLY);
+	int kq = kqueue();
+	struct kevent event;
+	event.ident = directory_watcher->fd;
+	event.filter = EVFILT_VNODE;
+	event.flags = EV_ADD | EV_CLEAR;
+	event.fflags = NOTE_WRITE;
+	event.data = 0;
+	event.udata = NULL;
+	kevent(kq, &event, 1, NULL, 0, NULL);
+	CFFileDescriptorContext context;
+	context.copyDescription = NULL;
+	context.info = directory_watcher;
+	context.release = gral_directory_watcher_release;
+	context.retain = gral_directory_watcher_retain;
+	context.version = 0;
+	CFFileDescriptorRef fdref = CFFileDescriptorCreate(kCFAllocatorDefault, kq, TRUE, &directory_watcher_callback, &context);
+	CFRunLoopSourceRef source = CFFileDescriptorCreateRunLoopSource(kCFAllocatorDefault, fdref, 0);
+	CFRunLoopAddSource(CFRunLoopGetMain(), source, kCFRunLoopDefaultMode);
+	CFRelease(source);
+	CFFileDescriptorEnableCallBacks(fdref, kCFFileDescriptorReadCallBack);
+	[directory_watcher release];
+	return (struct gral_directory_watcher *)fdref;
 }
 
 void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watcher) {
-	// TODO: implement
+	CFFileDescriptorInvalidate((CFFileDescriptorRef)directory_watcher);
+	CFRelease((CFFileDescriptorRef)directory_watcher);
 }
 
 
