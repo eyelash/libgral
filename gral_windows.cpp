@@ -201,8 +201,7 @@ struct WindowData {
 };
 
 struct gral_timer {
-	int (*callback)(void *user_data);
-	void (*destroy)(void *user_data);
+	void (*callback)(void *user_data);
 	void *user_data;
 };
 
@@ -462,11 +461,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_TIMER:
 		{
 			gral_timer *timer = (gral_timer *)wParam;
-			if (!timer->callback(timer->user_data)) {
-				KillTimer(hwnd, (UINT_PTR)timer);
-				timer->destroy(timer->user_data);
-				delete timer;
-			}
+			timer->callback(timer->user_data);
 			return 0;
 		}
 	case WM_SIZE:
@@ -1069,10 +1064,9 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(char cons
 	CloseClipboard();
 }
 
-gral_timer *gral_window_create_timer(gral_window *window, int milliseconds, int (*callback)(void *user_data), void (*destroy)(void *user_data), void *user_data) {
+gral_timer *gral_window_create_timer(gral_window *window, int milliseconds, void (*callback)(void *user_data), void *user_data) {
 	gral_timer *timer = new gral_timer();
 	timer->callback = callback;
-	timer->destroy = destroy;
 	timer->user_data = user_data;
 	SetTimer((HWND)window, (UINT_PTR)timer, milliseconds, NULL);
 	return timer;
@@ -1080,7 +1074,6 @@ gral_timer *gral_window_create_timer(gral_window *window, int milliseconds, int 
 
 void gral_window_delete_timer(gral_window *window, gral_timer *timer) {
 	KillTimer((HWND)window, (UINT_PTR)timer);
-	timer->destroy(timer->user_data);
 	delete timer;
 }
 

@@ -669,26 +669,18 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 
 @interface TimerCallbackObject: NSObject {
 @public
-	int (*callback)(void *user_data);
-	void (*destroy)(void *user_data);
+	void (*callback)(void *user_data);
 	void *user_data;
 }
 @end
 @implementation TimerCallbackObject
 - (void)invoke:(NSTimer *)timer {
-	if (!callback(user_data)) {
-		[timer invalidate];
-	}
-}
-- (void)dealloc {
-	destroy(user_data);
-	[super dealloc];
+	callback(user_data);
 }
 @end
-struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, int (*callback)(void *user_data), void (*destroy)(void *user_data), void *user_data) {
+struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, void (*callback)(void *user_data), void *user_data) {
 	TimerCallbackObject *callback_object = [[TimerCallbackObject alloc] init];
 	callback_object->callback = callback;
-	callback_object->destroy = destroy;
 	callback_object->user_data = user_data;
 	NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:callback_object selector:@selector(invoke:) userInfo:nil repeats:YES];
 	[callback_object release];
