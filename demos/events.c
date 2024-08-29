@@ -40,7 +40,7 @@ static void mouse_button_press(float x, float y, int button, int modifiers, void
 	printf("mouse button press: {%f, %f} (modifiers: %X)\n", x, y, modifiers);
 	struct demo *demo = user_data;
 	if (demo->timer) {
-		gral_window_delete_timer(demo->window, demo->timer);
+		gral_timer_delete(demo->timer);
 		demo->timer = 0;
 	}
 }
@@ -126,7 +126,7 @@ static void create_window(void *user_data) {
 		&focus_leave
 	};
 	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &interface, demo);
-	demo->timer = gral_window_create_timer(demo->window, 1000, &timer, demo);
+	demo->timer = gral_timer_create(1000, &timer, demo);
 }
 
 static void open_empty(void *user_data) {

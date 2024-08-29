@@ -157,9 +157,10 @@ void gral_window_show_open_file_dialog(struct gral_window *window, void (*callba
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, char const *text);
 void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(char const *text, void *user_data), void *user_data);
-struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, void (*callback)(void *user_data), void *user_data);
-void gral_window_delete_timer(struct gral_window *window, struct gral_timer *timer);
 void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data);
+
+struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data);
+void gral_timer_delete(struct gral_timer *timer);
 
 
 /*=========

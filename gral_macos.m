@@ -667,30 +667,6 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 	}
 }
 
-@interface TimerCallbackObject: NSObject {
-@public
-	void (*callback)(void *user_data);
-	void *user_data;
-}
-@end
-@implementation TimerCallbackObject
-- (void)invoke:(NSTimer *)timer {
-	callback(user_data);
-}
-@end
-struct gral_timer *gral_window_create_timer(struct gral_window *window, int milliseconds, void (*callback)(void *user_data), void *user_data) {
-	TimerCallbackObject *callback_object = [[TimerCallbackObject alloc] init];
-	callback_object->callback = callback;
-	callback_object->user_data = user_data;
-	NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:callback_object selector:@selector(invoke:) userInfo:nil repeats:YES];
-	[callback_object release];
-	return (struct gral_timer *)timer;
-}
-
-void gral_window_delete_timer(struct gral_window *window, struct gral_timer *timer) {
-	[(NSTimer *)timer invalidate];
-}
-
 @interface MainThreadCallbackObject: NSObject {
 @public
 	void (*callback)(void *user_data);
@@ -708,6 +684,31 @@ void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)
 	callback_object->user_data = user_data;
 	[callback_object performSelectorOnMainThread:@selector(invoke:) withObject:nil waitUntilDone:NO];
 	[callback_object release];
+}
+
+@interface TimerCallbackObject: NSObject {
+@public
+	void (*callback)(void *user_data);
+	void *user_data;
+}
+@end
+@implementation TimerCallbackObject
+- (void)invoke:(NSTimer *)timer {
+	callback(user_data);
+}
+@end
+
+struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data) {
+	TimerCallbackObject *callback_object = [[TimerCallbackObject alloc] init];
+	callback_object->callback = callback;
+	callback_object->user_data = user_data;
+	NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:callback_object selector:@selector(invoke:) userInfo:nil repeats:YES];
+	[callback_object release];
+	return (struct gral_timer *)timer;
+}
+
+void gral_timer_delete(struct gral_timer *timer) {
+	[(NSTimer *)timer invalidate];
 }
 
 

@@ -203,6 +203,7 @@ struct WindowData {
 struct gral_timer {
 	void (*callback)(void *user_data);
 	void *user_data;
+	HANDLE timer;
 };
 
 
@@ -458,12 +459,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_KILLFOCUS:
 		window_data->iface.focus_leave(window_data->user_data);
 		return 0;
-	case WM_TIMER:
-		{
-			gral_timer *timer = (gral_timer *)wParam;
-			timer->callback(timer->user_data);
-			return 0;
-		}
 	case WM_SIZE:
 		{
 			WORD width = LOWORD(lParam);
@@ -1064,21 +1059,30 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(char cons
 	CloseClipboard();
 }
 
-gral_timer *gral_window_create_timer(gral_window *window, int milliseconds, void (*callback)(void *user_data), void *user_data) {
+void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
+	PostMessage((HWND)window, WM_USER, (WPARAM)callback, (LPARAM)user_data);
+}
+
+static void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
+	gral_timer *timer = (gral_timer *)lpArgToCompletionRoutine;
+	timer->callback(timer->user_data);
+}
+
+gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data) {
 	gral_timer *timer = new gral_timer();
 	timer->callback = callback;
 	timer->user_data = user_data;
-	SetTimer((HWND)window, (UINT_PTR)timer, milliseconds, NULL);
+	timer->timer = CreateWaitableTimer(NULL, FALSE, NULL);
+	LARGE_INTEGER due_time;
+	due_time.QuadPart = (LONGLONG)milliseconds * -10000;
+	SetWaitableTimer(timer->timer, &due_time, milliseconds, &timer_completion_routine, timer, FALSE);
 	return timer;
 }
 
-void gral_window_delete_timer(gral_window *window, gral_timer *timer) {
-	KillTimer((HWND)window, (UINT_PTR)timer);
+void gral_timer_delete(gral_timer *timer) {
+	CancelWaitableTimer(timer->timer);
+	CloseHandle(timer->timer);
 	delete timer;
-}
-
-void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
-	PostMessage((HWND)window, WM_USER, (WPARAM)callback, (LPARAM)user_data);
 }
 
 
@@ -1206,7 +1210,7 @@ struct gral_directory_watcher {
 	}
 	void watch() {
 		const DWORD notify_filter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_SECURITY;
-		ReadDirectoryChangesW(directory, buffer, sizeof(buffer), FALSE, notify_filter, NULL, &overlapped, completion_routine);
+		ReadDirectoryChangesW(directory, buffer, sizeof(buffer), FALSE, notify_filter, NULL, &overlapped, &completion_routine);
 	}
 	void cancel() {
 		CancelIoEx(directory, &overlapped);
