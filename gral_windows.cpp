@@ -479,13 +479,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			}
 			return 0;
 		}
-	case WM_USER:
-		{
-			void (*callback)(void *user_data) = (void (*)(void *))wParam;
-			void *user_data = (void *)lParam;
-			callback(user_data);
-			return 0;
-		}
 	case WM_CLOSE:
 		{
 			if (window_data->iface.close(window_data->user_data)) {
@@ -1059,8 +1052,25 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(char cons
 	CloseClipboard();
 }
 
-void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
-	PostMessage((HWND)window, WM_USER, (WPARAM)callback, (LPARAM)user_data);
+struct MainThreadCallbackData {
+	void (*callback)(void *user_data);
+	void *user_data;
+};
+
+static void CALLBACK main_thread_completion_routine(ULONG_PTR parameter) {
+	MainThreadCallbackData *callback_data = (MainThreadCallbackData *)parameter;
+	callback_data->callback(callback_data->user_data);
+	delete callback_data;
+}
+
+void gral_window_run_on_main_thread(gral_window *window, void (*callback)(void *user_data), void *user_data) {
+	MainThreadCallbackData *callback_data = new MainThreadCallbackData();
+	callback_data->callback = callback;
+	callback_data->user_data = user_data;
+	DWORD thread_id = GetWindowThreadProcessId((HWND)window, NULL);
+	HANDLE thread = OpenThread(THREAD_SET_CONTEXT, FALSE, thread_id);
+	QueueUserAPC(&main_thread_completion_routine, thread, (ULONG_PTR)callback_data);
+	CloseHandle(thread);
 }
 
 static void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
