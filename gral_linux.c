@@ -641,25 +641,6 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 typedef struct {
 	void (*callback)(void *user_data);
 	void *user_data;
-} IdleCallbackData;
-static gboolean idle_callback(gpointer user_data) {
-	IdleCallbackData *callback_data = user_data;
-	callback_data->callback(callback_data->user_data);
-	return G_SOURCE_REMOVE;
-}
-static void idle_destroy(gpointer user_data) {
-	g_slice_free(IdleCallbackData, user_data);
-}
-void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
-	IdleCallbackData *callback_data = g_slice_new(IdleCallbackData);
-	callback_data->callback = callback;
-	callback_data->user_data = user_data;
-	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, idle_callback, callback_data, idle_destroy);
-}
-
-typedef struct {
-	void (*callback)(void *user_data);
-	void *user_data;
 } TimerCallbackData;
 static gboolean timer_callback(gpointer user_data) {
 	TimerCallbackData *callback_data = user_data;
@@ -680,6 +661,25 @@ struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *us
 
 void gral_timer_delete(struct gral_timer *timer) {
 	g_source_remove((guint)(intptr_t)timer);
+}
+
+typedef struct {
+	void (*callback)(void *user_data);
+	void *user_data;
+} IdleCallbackData;
+static gboolean idle_callback(gpointer user_data) {
+	IdleCallbackData *callback_data = user_data;
+	callback_data->callback(callback_data->user_data);
+	return G_SOURCE_REMOVE;
+}
+static void idle_destroy(gpointer user_data) {
+	g_slice_free(IdleCallbackData, user_data);
+}
+void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data) {
+	IdleCallbackData *callback_data = g_slice_new(IdleCallbackData);
+	callback_data->callback = callback;
+	callback_data->user_data = user_data;
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, idle_callback, callback_data, idle_destroy);
 }
 
 

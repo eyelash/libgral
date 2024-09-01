@@ -152,6 +152,7 @@ static ID2D1Factory *factory;
 static ID2D1StrokeStyle *stroke_style;
 static IWICImagingFactory *imaging_factory;
 static IDWriteFactory *dwrite_factory;
+static DWORD main_thread_id;
 
 struct gral_draw_context {
 	ID2D1HwndRenderTarget *target;
@@ -534,6 +535,7 @@ void gral_application_delete(gral_application *application) {
 }
 
 int gral_application_run(gral_application *application, int argc_, char **argv_) {
+	main_thread_id = GetCurrentThreadId();
 	int argc;
 	LPWSTR *argv = CommandLineToArgvW(GetCommandLine(), &argc);
 	if (argc > 1) {
@@ -1052,27 +1054,6 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(char cons
 	CloseClipboard();
 }
 
-struct MainThreadCallbackData {
-	void (*callback)(void *user_data);
-	void *user_data;
-};
-
-static void CALLBACK main_thread_completion_routine(ULONG_PTR parameter) {
-	MainThreadCallbackData *callback_data = (MainThreadCallbackData *)parameter;
-	callback_data->callback(callback_data->user_data);
-	delete callback_data;
-}
-
-void gral_window_run_on_main_thread(gral_window *window, void (*callback)(void *user_data), void *user_data) {
-	MainThreadCallbackData *callback_data = new MainThreadCallbackData();
-	callback_data->callback = callback;
-	callback_data->user_data = user_data;
-	DWORD thread_id = GetWindowThreadProcessId((HWND)window, NULL);
-	HANDLE thread = OpenThread(THREAD_SET_CONTEXT, FALSE, thread_id);
-	QueueUserAPC(&main_thread_completion_routine, thread, (ULONG_PTR)callback_data);
-	CloseHandle(thread);
-}
-
 static void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
 	gral_timer *timer = (gral_timer *)lpArgToCompletionRoutine;
 	timer->callback(timer->user_data);
@@ -1093,6 +1074,26 @@ void gral_timer_delete(gral_timer *timer) {
 	CancelWaitableTimer(timer->timer);
 	CloseHandle(timer->timer);
 	delete timer;
+}
+
+struct MainThreadCallbackData {
+	void (*callback)(void *user_data);
+	void *user_data;
+};
+
+static void CALLBACK main_thread_completion_routine(ULONG_PTR parameter) {
+	MainThreadCallbackData *callback_data = (MainThreadCallbackData *)parameter;
+	callback_data->callback(callback_data->user_data);
+	delete callback_data;
+}
+
+void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data) {
+	MainThreadCallbackData *callback_data = new MainThreadCallbackData();
+	callback_data->callback = callback;
+	callback_data->user_data = user_data;
+	HANDLE thread = OpenThread(THREAD_SET_CONTEXT, FALSE, main_thread_id);
+	QueueUserAPC(&main_thread_completion_routine, thread, (ULONG_PTR)callback_data);
+	CloseHandle(thread);
 }
 
 

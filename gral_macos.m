@@ -667,25 +667,6 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 	}
 }
 
-@interface MainThreadCallbackObject: NSObject {
-@public
-	void (*callback)(void *user_data);
-	void *user_data;
-}
-@end
-@implementation MainThreadCallbackObject
-- (void)invoke:(id)object {
-	callback(user_data);
-}
-@end
-void gral_window_run_on_main_thread(struct gral_window *window, void (*callback)(void *user_data), void *user_data) {
-	MainThreadCallbackObject *callback_object = [[MainThreadCallbackObject alloc] init];
-	callback_object->callback = callback;
-	callback_object->user_data = user_data;
-	[callback_object performSelectorOnMainThread:@selector(invoke:) withObject:nil waitUntilDone:NO];
-	[callback_object release];
-}
-
 @interface TimerCallbackObject: NSObject {
 @public
 	void (*callback)(void *user_data);
@@ -709,6 +690,25 @@ struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *us
 
 void gral_timer_delete(struct gral_timer *timer) {
 	[(NSTimer *)timer invalidate];
+}
+
+@interface MainThreadCallbackObject: NSObject {
+@public
+	void (*callback)(void *user_data);
+	void *user_data;
+}
+@end
+@implementation MainThreadCallbackObject
+- (void)invoke:(id)object {
+	callback(user_data);
+}
+@end
+void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data) {
+	MainThreadCallbackObject *callback_object = [[MainThreadCallbackObject alloc] init];
+	callback_object->callback = callback;
+	callback_object->user_data = user_data;
+	[callback_object performSelectorOnMainThread:@selector(invoke:) withObject:nil waitUntilDone:NO];
+	[callback_object release];
 }
 
 
