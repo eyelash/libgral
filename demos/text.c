@@ -103,6 +103,10 @@ static void focus_leave(void *user_data) {
 
 }
 
+static void activate_menu_item(int id, void *user_data) {
+
+}
+
 static void create_window(void *user_data) {
 	struct demo_application *application = user_data;
 	struct demo_window *window = malloc(sizeof(struct demo_window));
@@ -123,7 +127,8 @@ static void create_window(void *user_data) {
 		&key_release,
 		&text,
 		&focus_enter,
-		&focus_leave
+		&focus_leave,
+		&activate_menu_item
 	};
 	window->window = gral_window_create(application->application, 600, 400, "gral text demo", &window_interface, window);
 	struct gral_font *font = gral_font_create_default(window->window, 16.0f);

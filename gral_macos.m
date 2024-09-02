@@ -702,6 +702,10 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 		interface->key_release(0, get_key_code(key_code), user_data);
 	}
 }
+- (void)menuItemActivated:(id)sender {
+	int id = [(NSMenuItem *)sender tag];
+	return interface->activate_menu_item(id, user_data);
+}
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
 	return NO;
@@ -865,6 +869,32 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 	if (text) {
 		callback([text UTF8String], user_data);
 	}
+}
+
+void gral_window_show_context_menu(struct gral_window *window, struct gral_menu *menu, float x, float y) {
+	[(NSMenu *)menu popUpMenuPositioningItem:nil atLocation:NSMakePoint(x, y) inView:[(GralWindow *)window contentView]];
+}
+
+struct gral_menu *gral_menu_create(void) {
+	NSMenu *menu = [[NSMenu alloc] init];
+	return (struct gral_menu *)menu;
+}
+
+void gral_menu_delete(struct gral_menu *menu) {
+	[(NSMenu *)menu release];
+}
+
+void gral_menu_append_item(struct gral_menu *menu, char const *text, int id) {
+	NSMenuItem *item = [[NSMenuItem alloc] init];
+	[item setTitle:[NSString stringWithUTF8String:text]];
+	[item setTag:id];
+	[item setAction:@selector(menuItemActivated:)];
+	[(NSMenu *)menu addItem:item];
+	[item release];
+}
+
+void gral_menu_append_separator(struct gral_menu *menu) {
+	[(NSMenu *)menu addItem:[NSMenuItem separatorItem]];
 }
 
 struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data) {

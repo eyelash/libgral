@@ -229,6 +229,10 @@ static void focus_leave(void *user_data) {
 	printf("focus leave\n");
 }
 
+static void activate_menu_item(int id, void *user_data) {
+	printf("activate menu item %d\n", id);
+}
+
 static void timer(void *user_data) {
 	printf("timer %f\n", gral_time_get_monotonic());
 }
@@ -265,7 +269,8 @@ static void create_window(void *user_data) {
 		&key_release,
 		&text,
 		&focus_enter,
-		&focus_leave
+		&focus_leave,
+		&activate_menu_item
 	};
 	window->window = gral_window_create(application->application, 600, 400, "gral events demo", &window_interface, window);
 	window->application = application;

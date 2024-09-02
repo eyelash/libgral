@@ -475,6 +475,14 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 			}
 			return 0;
 		}
+	case WM_COMMAND:
+		{
+			int id = LOWORD(wParam);
+			if (HIWORD(wParam) == 0) {
+				window_data->iface->activate_menu_item(id, window_data->user_data);
+			}
+			return 0;
+		}
 	case WM_CLOSE:
 		{
 			if (window_data->iface->close(window_data->user_data)) {
@@ -1103,6 +1111,31 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(char cons
 		GlobalUnlock(handle);
 	}
 	CloseClipboard();
+}
+
+void gral_window_show_context_menu(gral_window *window, gral_menu *menu, float x, float y) {
+	POINT point;
+	point.x = (LONG)x;
+	point.y = (LONG)y;
+	ClientToScreen((HWND)window, &point);
+	TrackPopupMenuEx((HMENU)menu, TPM_LEFTALIGN | TPM_TOPALIGN, point.x, point.y, (HWND)window, NULL);
+}
+
+gral_menu *gral_menu_create() {
+	HMENU menu = CreatePopupMenu();
+	return (gral_menu *)menu;
+}
+
+void gral_menu_delete(gral_menu *menu) {
+	DestroyMenu((HMENU)menu);
+}
+
+void gral_menu_append_item(gral_menu *menu, char const *text, int id) {
+	AppendMenu((HMENU)menu, MF_STRING, id, utf8_to_utf16(text));
+}
+
+void gral_menu_append_separator(gral_menu *menu) {
+	AppendMenu((HMENU)menu, MF_SEPARATOR, 0, NULL);
 }
 
 static void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {

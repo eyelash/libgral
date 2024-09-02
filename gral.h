@@ -95,7 +95,9 @@ struct gral_window_interface {
 	void (*text)(char const *s, void *user_data);
 	void (*focus_enter)(void *user_data);
 	void (*focus_leave)(void *user_data);
+	void (*activate_menu_item)(int id, void *user_data);
 };
+struct gral_menu;
 struct gral_timer;
 struct gral_file;
 struct gral_directory_watcher;
@@ -172,6 +174,12 @@ void gral_window_show_open_file_dialog(struct gral_window *window, void (*callba
 void gral_window_show_save_file_dialog(struct gral_window *window, void (*callback)(char const *file, void *user_data), void *user_data);
 void gral_window_clipboard_copy(struct gral_window *window, char const *text);
 void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(char const *text, void *user_data), void *user_data);
+void gral_window_show_context_menu(struct gral_window *window, struct gral_menu *menu, float x, float y);
+
+struct gral_menu *gral_menu_create(void);
+void gral_menu_delete(struct gral_menu *menu);
+void gral_menu_append_item(struct gral_menu *menu, char const *text, int id);
+void gral_menu_append_separator(struct gral_menu *menu);
 
 struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data);
 void gral_timer_delete(struct gral_timer *timer);

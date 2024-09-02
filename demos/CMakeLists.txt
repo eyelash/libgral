@@ -19,5 +19,8 @@ target_link_libraries(file gral)
 add_executable(file_dialogs file_dialogs.c)
 target_link_libraries(file_dialogs gral)
 
+add_executable(menu menu.c)
+target_link_libraries(menu gral)
+
 add_executable(text text.c)
 target_link_libraries(text gral)

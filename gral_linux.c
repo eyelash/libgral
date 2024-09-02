@@ -336,8 +336,15 @@ static void gral_window_finalize(GObject *object) {
 	window->interface->destroy(window->user_data);
 	G_OBJECT_CLASS(gral_window_parent_class)->finalize(object);
 }
+static void gral_window_activate_menu_item(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GralWindow *window = GRAL_WINDOW(user_data);
+	window->interface->activate_menu_item(g_variant_get_int32(parameter), window->user_data);
+}
 static void gral_window_init(GralWindow *window) {
-
+	GSimpleAction *action = g_simple_action_new("activate-menu-item", G_VARIANT_TYPE_INT32);
+	g_signal_connect_object(action, "activate", G_CALLBACK(gral_window_activate_menu_item), window, 0);
+	g_action_map_add_action(G_ACTION_MAP(window), G_ACTION(action));
+	g_object_unref(action);
 }
 static void gral_window_class_init(GralWindowClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
@@ -702,6 +709,37 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 	callback_data->callback = callback;
 	callback_data->user_data = user_data;
 	gtk_clipboard_request_text(clipboard, paste_callback, callback_data);
+}
+
+void gral_window_show_context_menu(struct gral_window *window, struct gral_menu *menu, float x, float y) {
+	GtkWidget *area = gtk_bin_get_child(GTK_BIN(window));
+	if (gtk_menu_get_attach_widget(GTK_MENU(menu)) == NULL) {
+		gtk_menu_attach_to_widget(GTK_MENU(menu), area, NULL);
+	}
+	gtk_widget_show_all(GTK_WIDGET(menu));
+	GdkRectangle rect = {x, y, 1, 1};
+	gtk_menu_popup_at_rect(GTK_MENU(menu), gtk_widget_get_window(area), &rect, GDK_GRAVITY_SOUTH_EAST, GDK_GRAVITY_NORTH_WEST, NULL);
+}
+
+struct gral_menu *gral_menu_create(void) {
+	GtkWidget *menu = gtk_menu_new();
+	g_object_ref_sink(menu);
+	return (struct gral_menu *)menu;
+}
+
+void gral_menu_delete(struct gral_menu *menu) {
+	g_object_unref(menu);
+}
+
+void gral_menu_append_item(struct gral_menu *menu, char const *text, int id) {
+	GtkWidget *item = gtk_menu_item_new_with_label(text);
+	gtk_actionable_set_action_name(GTK_ACTIONABLE(item), "win.activate-menu-item");
+	gtk_actionable_set_action_target(GTK_ACTIONABLE(item), "i", id);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+}
+
+void gral_menu_append_separator(struct gral_menu *menu) {
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
 }
 
 typedef struct {

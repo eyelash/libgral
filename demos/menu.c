@@ -8,10 +8,12 @@ struct demo_application {
 
 struct demo_window {
 	struct gral_window *window;
+	struct gral_menu *menu;
 };
 
 static void destroy(void *user_data) {
 	struct demo_window *window = user_data;
+	gral_menu_delete(window->menu);
 	free(window);
 }
 
@@ -43,16 +45,11 @@ static void mouse_move_relative(float dx, float dy, void *user_data) {
 
 }
 
-static void paste_callback(char const *text, void *user_data) {
-	printf("paste: %s\n", text);
-}
-
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
 	struct demo_window *window = user_data;
-	if (button == GRAL_PRIMARY_MOUSE_BUTTON)
-		gral_window_clipboard_copy(window->window, "gral clipboard test");
-	else if (button == GRAL_SECONDARY_MOUSE_BUTTON)
-		gral_window_clipboard_paste(window->window, paste_callback, NULL);
+	if (button == GRAL_SECONDARY_MOUSE_BUTTON || (modifiers & GRAL_MODIFIER_CONTROL)) {
+		gral_window_show_context_menu(window->window, window->menu, x, y);
+	}
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
@@ -88,7 +85,7 @@ static void focus_leave(void *user_data) {
 }
 
 static void activate_menu_item(int id, void *user_data) {
-
+	printf("activate menu item %d\n", id);
 }
 
 static void create_window(void *user_data) {
@@ -114,7 +111,13 @@ static void create_window(void *user_data) {
 		&focus_leave,
 		&activate_menu_item
 	};
-	window->window = gral_window_create(application->application, 800, 600, "gral clipboard demo", &window_interface, window);
+	window->window = gral_window_create(application->application, 600, 400, "gral menu demo", &window_interface, window);
+	window->menu = gral_menu_create();
+	gral_menu_append_item(window->menu, "First", 1);
+	gral_menu_append_item(window->menu, "Second", 2);
+	gral_menu_append_item(window->menu, "Third", 3);
+	gral_menu_append_separator(window->menu);
+	gral_menu_append_item(window->menu, "Last", 99);
 	gral_window_show(window->window);
 }
 
@@ -137,7 +140,7 @@ static void quit(void *user_data) {
 int main(int argc, char **argv) {
 	struct demo_application application;
 	static struct gral_application_interface const application_interface = {&start, &open_empty, &open_file, &quit};
-	application.application = gral_application_create("com.github.eyelash.libgral.demos.clipboard", &application_interface, &application);
+	application.application = gral_application_create("com.github.eyelash.libgral.demos.menu", &application_interface, &application);
 	int result = gral_application_run(application.application, argc, argv);
 	gral_application_delete(application.application);
 	return result;
