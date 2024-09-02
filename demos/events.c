@@ -43,6 +43,17 @@ static void mouse_button_press(float x, float y, int button, int modifiers, void
 		gral_timer_delete(demo->timer);
 		demo->timer = 0;
 	}
+	if (button == GRAL_SECONDARY_MOUSE_BUTTON) {
+		static struct gral_menu_item items[] = {
+			{"First"},
+			{"Second"},
+			{"Third"},
+			{"-"},
+			{"Last"},
+			{NULL}
+		};
+		gral_window_show_context_menu(demo->window, x, y, items);
+	}
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {

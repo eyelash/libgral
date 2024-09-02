@@ -678,6 +678,24 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 	}
 }
 
+void gral_window_show_context_menu(struct gral_window *window, float x, float y, struct gral_menu_item *items) {
+	NSMenu *menu = [[NSMenu alloc] init];
+	for (; items->text; ++items) {
+		NSMenuItem *item;
+		if (items->text[0] == '-') {
+			item = [NSMenuItem separatorItem];
+		}
+		else {
+			item = [[NSMenuItem alloc] init];
+			item.title = [NSString stringWithUTF8String:items->text];
+		}
+		[menu addItem:item];
+		[item release];
+	}
+	[NSMenu popUpContextMenu:menu withEvent:[NSApp currentEvent] forView:[(GralWindow *)window contentView]];
+	[menu release];
+}
+
 struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data) {
 	GralCallbackObject *callback_object = [[GralCallbackObject alloc] init];
 	callback_object->callback = callback;
