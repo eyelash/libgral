@@ -1105,6 +1105,29 @@ void gral_window_clipboard_paste(gral_window *window, void (*callback)(char cons
 	CloseClipboard();
 }
 
+void gral_window_show_context_menu(gral_window *window, float x, float y, gral_menu_item *items) {
+	HMENU menu = CreatePopupMenu();
+	for (; items->text; ++items) {
+		MENUITEMINFO item;
+		item.cbSize = sizeof(MENUITEMINFO);
+		item.fMask = 0;
+		if (items->text[0] == '-') {
+			AppendMenu(menu, MF_SEPARATOR, 0, NULL);
+		}
+		else {
+			item.fType = MFT_STRING;
+			AppendMenu(menu, MF_STRING, 0, utf8_to_utf16(items->text));
+		}
+		//InsertMenuItem(menu, );
+	}
+	POINT point;
+	point.x = (LONG)x;
+	point.y = (LONG)y;
+	ClientToScreen((HWND)window, &point);
+	TrackPopupMenuEx(menu, TPM_LEFTALIGN | TPM_TOPALIGN, point.x, point.y, (HWND)window, NULL);
+	DestroyMenu(menu);
+}
+
 static void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
 	gral_timer *timer = (gral_timer *)lpArgToCompletionRoutine;
 	timer->callback(timer->user_data);

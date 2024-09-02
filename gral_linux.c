@@ -703,6 +703,25 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 	gtk_clipboard_request_text(clipboard, paste_callback, callback_data);
 }
 
+void gral_window_show_context_menu(struct gral_window *window, float x, float y, struct gral_menu_item *items) {
+	GtkWidget *area = gtk_bin_get_child(GTK_BIN(window));
+	GtkWidget *menu = gtk_menu_new();
+	gtk_menu_attach_to_widget(GTK_MENU(menu), area, NULL);
+	for (; items->text; ++items) {
+		GtkWidget *item;
+		if (items->text[0] == '-') {
+			item = gtk_separator_menu_item_new();
+		}
+		else {
+			item = gtk_menu_item_new_with_label(items->text);
+		}
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+	}
+	gtk_widget_show_all(menu);
+	GdkRectangle rect = {x, y, 1, 1};
+	gtk_menu_popup_at_rect(GTK_MENU(menu), gtk_widget_get_window(area), &rect, GDK_GRAVITY_SOUTH_EAST, GDK_GRAVITY_NORTH_WEST, NULL);
+}
+
 typedef struct {
 	void (*callback)(void *user_data);
 	void *user_data;
