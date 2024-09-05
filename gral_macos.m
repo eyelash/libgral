@@ -54,6 +54,18 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 	return i8;
 }
 
+@interface CallbackObject: NSObject {
+@public
+	void (*callback)(void *user_data);
+	void *user_data;
+}
+@end
+@implementation CallbackObject
+- (void)invoke:(id)object {
+	callback(user_data);
+}
+@end
+
 
 /*================
     APPLICATION
@@ -667,20 +679,8 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 	}
 }
 
-@interface TimerCallbackObject: NSObject {
-@public
-	void (*callback)(void *user_data);
-	void *user_data;
-}
-@end
-@implementation TimerCallbackObject
-- (void)invoke:(NSTimer *)timer {
-	callback(user_data);
-}
-@end
-
 struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data) {
-	TimerCallbackObject *callback_object = [[TimerCallbackObject alloc] init];
+	CallbackObject *callback_object = [[CallbackObject alloc] init];
 	callback_object->callback = callback;
 	callback_object->user_data = user_data;
 	NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:milliseconds/1000.0 target:callback_object selector:@selector(invoke:) userInfo:nil repeats:YES];
@@ -692,19 +692,8 @@ void gral_timer_delete(struct gral_timer *timer) {
 	[(NSTimer *)timer invalidate];
 }
 
-@interface MainThreadCallbackObject: NSObject {
-@public
-	void (*callback)(void *user_data);
-	void *user_data;
-}
-@end
-@implementation MainThreadCallbackObject
-- (void)invoke:(id)object {
-	callback(user_data);
-}
-@end
 void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data) {
-	MainThreadCallbackObject *callback_object = [[MainThreadCallbackObject alloc] init];
+	CallbackObject *callback_object = [[CallbackObject alloc] init];
 	callback_object->callback = callback;
 	callback_object->user_data = user_data;
 	[callback_object performSelectorOnMainThread:@selector(invoke:) withObject:nil waitUntilDone:NO];
