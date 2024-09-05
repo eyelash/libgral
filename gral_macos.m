@@ -722,15 +722,15 @@ struct gral_file *gral_file_open_write(char const *path) {
 	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
 }
 
-struct gral_file *gral_file_get_stdin(void) {
+struct gral_file *gral_file_get_standard_input(void) {
 	return (struct gral_file *)STDIN_FILENO;
 }
 
-struct gral_file *gral_file_get_stdout(void) {
+struct gral_file *gral_file_get_standard_output(void) {
 	return (struct gral_file *)STDOUT_FILENO;
 }
 
-struct gral_file *gral_file_get_stderr(void) {
+struct gral_file *gral_file_get_standard_error(void) {
 	return (struct gral_file *)STDERR_FILENO;
 }
 

@@ -170,9 +170,9 @@ void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data)
 
 struct gral_file *gral_file_open_read(char const *path);
 struct gral_file *gral_file_open_write(char const *path);
-struct gral_file *gral_file_get_stdin(void);
-struct gral_file *gral_file_get_stdout(void);
-struct gral_file *gral_file_get_stderr(void);
+struct gral_file *gral_file_get_standard_input(void);
+struct gral_file *gral_file_get_standard_output(void);
+struct gral_file *gral_file_get_standard_error(void);
 void gral_file_close(struct gral_file *file);
 size_t gral_file_read(struct gral_file *file, void *buffer, size_t size);
 void gral_file_write(struct gral_file *file, void const *buffer, size_t size);

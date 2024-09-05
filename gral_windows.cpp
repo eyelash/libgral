@@ -1109,15 +1109,15 @@ gral_file *gral_file_open_write(char const *path) {
 	return handle == INVALID_HANDLE_VALUE ? NULL : (gral_file *)handle;
 }
 
-gral_file *gral_file_get_stdin() {
+gral_file *gral_file_get_standard_input() {
 	return (gral_file *)GetStdHandle(STD_INPUT_HANDLE);
 }
 
-gral_file *gral_file_get_stdout() {
+gral_file *gral_file_get_standard_output() {
 	return (gral_file *)GetStdHandle(STD_OUTPUT_HANDLE);
 }
 
-gral_file *gral_file_get_stderr() {
+gral_file *gral_file_get_standard_error() {
 	return (gral_file *)GetStdHandle(STD_ERROR_HANDLE);
 }
 
