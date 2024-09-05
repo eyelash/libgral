@@ -167,9 +167,6 @@ struct gral_image {
 	int height;
 	void *data;
 	gral_image(int width, int height, void *data): width(width), height(height), data(data) {}
-	~gral_image() {
-		free(data);
-	}
 };
 
 struct gral_text {
@@ -276,7 +273,7 @@ int get_modifiers() {
 	return modifiers;
 }
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	WindowData *window_data = (WindowData *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	switch (uMsg) {
 	case WM_PAINT:
@@ -510,13 +507,13 @@ gral_application *gral_application_create(char const *id, gral_application_inter
 	DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), (IUnknown **)&dwrite_factory);
 	WNDCLASS window_class;
 	window_class.style = CS_DBLCLKS;
-	window_class.lpfnWndProc = &WndProc;
+	window_class.lpfnWndProc = &window_procedure;
 	window_class.cbClsExtra = 0;
 	window_class.cbWndExtra = 0;
 	window_class.hInstance = hInstance;
 	window_class.hIcon = NULL;
 	window_class.hCursor = NULL;
-	window_class.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
+	window_class.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	window_class.lpszMenuName = NULL;
 	window_class.lpszClassName = L"gral_window";
 	RegisterClass(&window_class);
@@ -668,6 +665,7 @@ gral_image *gral_image_create(int width, int height, void *data) {
 }
 
 void gral_image_delete(gral_image *image) {
+	free(image->data);
 	delete image;
 }
 
@@ -1220,7 +1218,7 @@ struct gral_directory_watcher {
 		CloseHandle(directory);
 	}
 	void watch() {
-		const DWORD notify_filter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_SECURITY;
+		DWORD const notify_filter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_LAST_ACCESS | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_SECURITY;
 		ReadDirectoryChangesW(directory, buffer, sizeof(buffer), FALSE, notify_filter, NULL, &overlapped, &completion_routine);
 	}
 	void cancel() {
@@ -1250,7 +1248,7 @@ static double get_frequency() {
 }
 
 double gral_time_get_monotonic() {
-	static const double frequency = get_frequency();
+	static double const frequency = get_frequency();
 	LARGE_INTEGER count;
 	QueryPerformanceCounter(&count);
 	return count.QuadPart / frequency;
