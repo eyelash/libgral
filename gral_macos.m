@@ -71,13 +71,13 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
     APPLICATION
  ================*/
 
-@interface GralApplicationDelegate: NSObject<NSApplicationDelegate> {
+@interface GralApplication: NSApplication<NSApplicationDelegate> {
 @public
 	struct gral_application_interface interface;
 	void *user_data;
 }
 @end
-@implementation GralApplicationDelegate
+@implementation GralApplication
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
 	return YES;
 }
@@ -97,11 +97,10 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 @end
 
 struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data) {
-	NSApplication *application = [NSApplication sharedApplication];
-	GralApplicationDelegate *delegate = [[GralApplicationDelegate alloc] init];
-	delegate->interface = *interface;
-	delegate->user_data = user_data;
-	[application setDelegate:delegate];
+	GralApplication *application = [GralApplication sharedApplication];
+	application->interface = *interface;
+	application->user_data = user_data;
+	[application setDelegate:application];
 	return (struct gral_application *)application;
 }
 
@@ -110,7 +109,7 @@ void gral_application_delete(struct gral_application *application) {
 }
 
 int gral_application_run(struct gral_application *application, int argc, char **argv) {
-	[NSApp run];
+	[(GralApplication *)application run];
 	return 0;
 }
 
