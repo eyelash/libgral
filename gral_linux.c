@@ -731,9 +731,9 @@ void gral_file_write(struct gral_file *file, void const *buffer, size_t size) {
 }
 
 size_t gral_file_get_size(struct gral_file *file) {
-	struct stat stat;
-	fstat((int)(intptr_t)file, &stat);
-	return stat.st_size;
+	struct stat s;
+	fstat((int)(intptr_t)file, &s);
+	return s.st_size;
 }
 
 void *gral_file_map(struct gral_file *file, size_t size) {
@@ -742,6 +742,15 @@ void *gral_file_map(struct gral_file *file, size_t size) {
 
 void gral_file_unmap(void *address, size_t size) {
 	munmap(address, size);
+}
+
+int gral_file_get_type(char const *path) {
+	struct stat s;
+	if (stat(path, &s) == 0) {
+		if (S_ISREG(s.st_mode)) return GRAL_FILE_TYPE_REGULAR;
+		if (S_ISDIR(s.st_mode)) return GRAL_FILE_TYPE_DIRECTORY;
+	}
+	return GRAL_FILE_TYPE_INVALID;
 }
 
 void gral_file_rename(char const *old_path, char const *new_path) {

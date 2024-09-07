@@ -1153,6 +1153,15 @@ void gral_file_unmap(void *address, size_t size) {
 	UnmapViewOfFile(address);
 }
 
+int gral_file_get_type(char const *path) {
+	DWORD attributes = GetFileAttributes(utf8_to_utf16(path));
+	if (attributes != INVALID_FILE_ATTRIBUTES) {
+		if (attributes & FILE_ATTRIBUTE_DIRECTORY) return GRAL_FILE_TYPE_DIRECTORY;
+		else return GRAL_FILE_TYPE_REGULAR;
+	}
+	return GRAL_FILE_TYPE_INVALID;
+}
+
 void gral_file_rename(char const *old_path, char const *new_path) {
 	MoveFileEx(utf8_to_utf16(old_path), utf8_to_utf16(new_path), MOVEFILE_REPLACE_EXISTING);
 }

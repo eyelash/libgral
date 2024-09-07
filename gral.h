@@ -53,6 +53,11 @@ enum {
 	GRAL_CURSOR_VERTICAL_ARROWS = 5,
 	GRAL_CURSOR_NONE = 0
 };
+enum {
+	GRAL_FILE_TYPE_REGULAR,
+	GRAL_FILE_TYPE_DIRECTORY,
+	GRAL_FILE_TYPE_INVALID
+};
 
 struct gral_application;
 struct gral_application_interface {
@@ -179,6 +184,7 @@ void gral_file_write(struct gral_file *file, void const *buffer, size_t size);
 size_t gral_file_get_size(struct gral_file *file);
 void *gral_file_map(struct gral_file *file, size_t size);
 void gral_file_unmap(void *address, size_t size);
+int gral_file_get_type(char const *path);
 void gral_file_rename(char const *old_path, char const *new_path);
 void gral_file_remove(char const *path);
 void gral_directory_create(char const *path);
