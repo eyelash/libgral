@@ -5,6 +5,7 @@ struct demo {
 	struct gral_application *application;
 	struct gral_window *window;
 	struct gral_timer *timer;
+	struct gral_midi *midi;
 };
 
 static int close(void *user_data) {
@@ -105,9 +106,21 @@ static void timer(void *user_data) {
 	printf("timer %f\n", gral_time_get_monotonic());
 }
 
+static void note_on(unsigned char note, unsigned char velocity, void *user_data) {
+	printf("note on: %u (%u)\n", note, velocity);
+}
+
+static void note_off(unsigned char note, void *user_data) {
+	printf("note off: %u\n", note);
+}
+
+static void control_change(unsigned char controller, unsigned char value, void *user_data) {
+	printf("control change: %u, %u\n", controller, value);
+}
+
 static void create_window(void *user_data) {
 	struct demo *demo = user_data;
-	struct gral_window_interface interface = {
+	struct gral_window_interface window_interface = {
 		&close,
 		&draw,
 		&resize,
@@ -125,8 +138,14 @@ static void create_window(void *user_data) {
 		&focus_enter,
 		&focus_leave
 	};
-	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &interface, demo);
+	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &window_interface, demo);
 	demo->timer = gral_timer_create(1000, &timer, demo);
+	struct gral_midi_interface midi_interface = {
+		&note_on,
+		&note_off,
+		&control_change
+	};
+	demo->midi = gral_midi_create(demo->application, "gral events demo", &midi_interface, demo);
 }
 
 static void open_empty(void *user_data) {
@@ -148,6 +167,7 @@ int main(int argc, char **argv) {
 	struct gral_application_interface interface = {&open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.events", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
+	gral_midi_delete(demo.midi);
 	gral_window_delete(demo.window);
 	gral_application_delete(demo.application);
 	return result;

@@ -98,6 +98,12 @@ struct gral_window_interface {
 struct gral_timer;
 struct gral_file;
 struct gral_directory_watcher;
+struct gral_midi;
+struct gral_midi_interface {
+	void (*note_on)(unsigned char note, unsigned char velocity, void *user_data);
+	void (*note_off)(unsigned char note, void *user_data);
+	void (*control_change)(unsigned char controller, unsigned char value, void *user_data);
+};
 
 
 /*================
@@ -206,6 +212,15 @@ double gral_time_get_monotonic(void);
  ==========*/
 
 void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data);
+
+
+/*=========
+    MIDI
+ =========*/
+
+struct gral_midi *gral_midi_create(struct gral_application *application, char const *name, struct gral_midi_interface const *interface, void *user_data);
+void gral_midi_delete(struct gral_midi *midi);
+
 
 #ifdef __cplusplus
 }

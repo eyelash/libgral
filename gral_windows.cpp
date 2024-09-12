@@ -1390,3 +1390,55 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	render_client->Release();
 	CoTaskMemFree(format);
 }
+
+
+/*=========
+    MIDI
+ =========*/
+
+struct gral_midi {
+	gral_midi_interface iface;
+	void *user_data;
+	HMIDIIN midi;
+};
+
+static void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
+	// TODO: call the callbacks on the main thread
+	gral_midi *midi = (gral_midi *)dwInstance;
+	switch (wMsg) {
+	case MIM_DATA:
+		{
+			if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0x80) {
+				midi->iface.note_off(HIBYTE(LOWORD(dwParam1)), midi->user_data);
+			}
+			else if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0x90) {
+				midi->iface.note_on(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
+			}
+			else if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0xB0) {
+				midi->iface.control_change(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
+			}
+			return;
+		}
+	default:
+		return;
+	}
+}
+
+gral_midi *gral_midi_create(gral_application *application, char const *name, gral_midi_interface const *iface, void *user_data) {
+	gral_midi *midi = new gral_midi();
+	midi->iface = *iface;
+	midi->user_data = user_data;
+	midi->midi = NULL;
+	if (midiInGetNumDevs() > 0) {
+		midiInOpen(&midi->midi, 0, (DWORD_PTR)&midi_callback, (DWORD_PTR)midi, CALLBACK_FUNCTION);
+		midiInStart(midi->midi);
+	}
+	return midi;
+}
+
+void gral_midi_delete(gral_midi *midi) {
+	if (midi->midi) {
+		midiInClose(midi->midi);
+	}
+	delete midi;
+}

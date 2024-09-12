@@ -860,3 +860,91 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	snd_pcm_drain(pcm);
 	snd_pcm_close(pcm);
 }
+
+
+/*=========
+    MIDI
+ =========*/
+
+struct gral_midi {
+	struct gral_midi_interface interface;
+	void *user_data;
+	snd_seq_t *seq;
+	int port;
+	guint source_id;
+};
+
+static void midi_connect_port(struct gral_midi *midi, int client, snd_seq_port_info_t *port_info) {
+	int port = snd_seq_port_info_get_port(port_info);
+	unsigned int capability = snd_seq_port_info_get_capability(port_info);
+	//int direction = snd_seq_port_info_get_direction(port_info);
+	if (capability & SND_SEQ_PORT_CAP_NO_EXPORT) {
+		return;
+	}
+	if ((capability & SND_SEQ_PORT_CAP_READ) && (capability & SND_SEQ_PORT_CAP_SUBS_READ)) {
+		//g_print("connecting to %s - %s\n", snd_seq_client_info_get_name(client_info), snd_seq_port_info_get_name(port_info));
+		snd_seq_connect_from(midi->seq, midi->port, client, port);
+	}
+}
+
+static gboolean midi_callback(gint fd, GIOCondition condition, gpointer user_data) {
+	struct gral_midi *midi = user_data;
+	snd_seq_event_t *event;
+	while (snd_seq_event_input(midi->seq, &event) > 0) {
+		switch (event->type) {
+		case SND_SEQ_EVENT_NOTEON:
+			midi->interface.note_on(event->data.note.note, event->data.note.velocity, midi->user_data);
+			break;
+		case SND_SEQ_EVENT_NOTEOFF:
+			midi->interface.note_off(event->data.note.note, midi->user_data);
+			break;
+		case SND_SEQ_EVENT_CONTROLLER:
+			midi->interface.control_change(event->data.control.param, event->data.control.value, midi->user_data);
+			break;
+		case SND_SEQ_EVENT_PORT_START:
+			{
+				snd_seq_port_info_t *port_info;
+				snd_seq_port_info_alloca(&port_info);
+				snd_seq_get_any_port_info(midi->seq, event->data.addr.client, event->data.addr.port, port_info);
+				midi_connect_port(midi, event->data.addr.client, port_info);
+				break;
+			}
+		default:
+			break;
+		}
+	}
+	return G_SOURCE_CONTINUE;
+}
+
+struct gral_midi *gral_midi_create(struct gral_application *application, char const *name, struct gral_midi_interface const *interface, void *user_data) {
+	struct gral_midi *midi = malloc(sizeof(struct gral_midi));
+	midi->interface = *interface;
+	midi->user_data = user_data;
+	snd_seq_open(&midi->seq, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK);
+	snd_seq_set_client_name(midi->seq, name);
+	int client_id = snd_seq_client_id(midi->seq);
+	midi->port = snd_seq_create_simple_port(midi->seq, name, SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE, SND_SEQ_PORT_TYPE_MIDI_GENERIC);
+	snd_seq_client_info_t *client_info;
+	snd_seq_client_info_alloca(&client_info);
+	snd_seq_port_info_t *port_info;
+	snd_seq_port_info_alloca(&port_info);
+	snd_seq_client_info_set_client(client_info, -1);
+	while (snd_seq_query_next_client(midi->seq, client_info) >= 0) {
+		int client = snd_seq_client_info_get_client(client_info);
+		snd_seq_port_info_set_client(port_info, client);
+		snd_seq_port_info_set_port(port_info, -1);
+		while (snd_seq_query_next_port(midi->seq, port_info) >= 0) {
+			midi_connect_port(midi, client, port_info);
+		}
+	}
+	struct pollfd pfd;
+	snd_seq_poll_descriptors(midi->seq, &pfd, 1, POLLIN);
+	midi->source_id = g_unix_fd_add(pfd.fd, pfd.events, &midi_callback, midi);
+	return midi;
+}
+
+void gral_midi_delete(struct gral_midi *midi) {
+	g_source_remove(midi->source_id);
+	snd_seq_close(midi->seq);
+	free(midi);
+}

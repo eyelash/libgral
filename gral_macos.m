@@ -921,3 +921,77 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	CFRunLoopRun();
 	AudioQueueDispose(queue, NO);
 }
+
+
+/*=========
+    MIDI
+ =========*/
+
+struct gral_midi {
+	struct gral_midi_interface interface;
+	void *user_data;
+	MIDIClientRef client;
+	MIDIPortRef port;
+};
+
+static void midi_callback(MIDINotification const *notification, void *user_data) {
+	struct gral_midi *midi = user_data;
+	if (notification->messageID == kMIDIMsgObjectAdded) {
+		MIDIObjectAddRemoveNotification *add_remove_notification = (MIDIObjectAddRemoveNotification *)notification;
+		if (add_remove_notification->childType == kMIDIObjectType_Source) {
+			MIDIPortConnectSource(midi->port, add_remove_notification->child, NULL);
+		}
+	}
+}
+
+static void midi_read_callback(MIDIPacketList const *packet_list, void *user_data, void *srcConnRefCon) {
+	struct gral_midi *midi = user_data;
+	MIDIPacket const *packet = packet_list->packet;
+	for (UInt32 i = 0; i < packet_list->numPackets; i++) {
+		for (UInt16 j = 0; j < packet->length; j++) {
+			if ((packet->data[j] & 0xF0) == 0x80 && j + 2 < packet->length) {
+				Byte note = packet->data[j+1];
+				Byte velocity = packet->data[j+2];
+				midi->interface.note_off(note, midi->user_data);
+				j += 2;
+			}
+			else if ((packet->data[j] & 0xF0) == 0x90 && j + 2 < packet->length) {
+				Byte note = packet->data[j+1];
+				Byte velocity = packet->data[j+2];
+				midi->interface.note_on(note, velocity, midi->user_data);
+				j += 2;
+			}
+			else if ((packet->data[j] & 0xF0) == 0xB0 && j + 2 < packet->length) {
+				Byte controller = packet->data[j+1];
+				Byte value = packet->data[j+2];
+				midi->interface.control_change(controller, value, midi->user_data);
+				j += 2;
+			}
+		}
+		packet = MIDIPacketNext(packet);
+	}
+}
+
+struct gral_midi *gral_midi_create(struct gral_application *application, char const *name, struct gral_midi_interface const *interface, void *user_data) {
+	struct gral_midi *midi = malloc(sizeof(struct gral_midi));
+	midi->interface = *interface;
+	midi->user_data = user_data;
+	CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, name, kCFStringEncodingUTF8);
+	MIDIClientCreate(string, &midi_callback, midi, &midi->client);
+	MIDIInputPortCreate(midi->client, string, &midi_read_callback, midi, &midi->port);
+	CFRelease(string);
+	ItemCount count = MIDIGetNumberOfSources();
+	for (ItemCount i = 0; i < count; i++) {
+		MIDIEndpointRef source = MIDIGetSource(i);
+		CFStringRef name = NULL;
+		MIDIObjectGetStringProperty(source, kMIDIPropertyName, &name);
+		MIDIPortConnectSource(midi->port, source, NULL);
+	}
+	return midi;
+}
+
+void gral_midi_delete(struct gral_midi *midi) {
+	// MIDIPortDispose();
+	MIDIClientDispose(midi->client);
+	free(midi);
+}
