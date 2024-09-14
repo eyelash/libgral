@@ -1,4 +1,5 @@
 #include <gral.h>
+#include <stdint.h>
 #include <stdio.h>
 
 struct demo {
