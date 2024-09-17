@@ -111,8 +111,8 @@ static void note_on(unsigned char note, unsigned char velocity, void *user_data)
 	printf("note on: %u (%u)\n", note, velocity);
 }
 
-static void note_off(unsigned char note, void *user_data) {
-	printf("note off: %u\n", note);
+static void note_off(unsigned char note, unsigned char velocity, void *user_data) {
+	printf("note off: %u (%u)\n", note, velocity);
 }
 
 static void control_change(unsigned char controller, unsigned char value, void *user_data) {

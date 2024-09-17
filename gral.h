@@ -100,7 +100,7 @@ struct gral_directory_watcher;
 struct gral_midi;
 struct gral_midi_interface {
 	void (*note_on)(unsigned char note, unsigned char velocity, void *user_data);
-	void (*note_off)(unsigned char note, void *user_data);
+	void (*note_off)(unsigned char note, unsigned char velocity, void *user_data);
 	void (*control_change)(unsigned char controller, unsigned char value, void *user_data);
 };
 

@@ -952,7 +952,7 @@ static void midi_read_callback(MIDIPacketList const *packet_list, void *user_dat
 			if ((packet->data[j] & 0xF0) == 0x80 && j + 2 < packet->length) {
 				Byte note = packet->data[j+1];
 				Byte velocity = packet->data[j+2];
-				midi->interface.note_off(note, midi->user_data);
+				midi->interface.note_off(note, velocity, midi->user_data);
 				j += 2;
 			}
 			else if ((packet->data[j] & 0xF0) == 0x90 && j + 2 < packet->length) {

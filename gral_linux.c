@@ -896,7 +896,7 @@ static gboolean midi_callback(gint fd, GIOCondition condition, gpointer user_dat
 			midi->interface.note_on(event->data.note.note, event->data.note.velocity, midi->user_data);
 			break;
 		case SND_SEQ_EVENT_NOTEOFF:
-			midi->interface.note_off(event->data.note.note, midi->user_data);
+			midi->interface.note_off(event->data.note.note, event->data.note.velocity, midi->user_data);
 			break;
 		case SND_SEQ_EVENT_CONTROLLER:
 			midi->interface.control_change(event->data.control.param, event->data.control.value, midi->user_data);
