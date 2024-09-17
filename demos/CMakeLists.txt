@@ -18,3 +18,7 @@ target_link_libraries(file_dialogs gral)
 
 add_executable(text text.c)
 target_link_libraries(text gral)
+
+add_executable(thread thread.cpp)
+target_link_libraries(thread gral)
+target_compile_features(thread PUBLIC cxx_std_11)
