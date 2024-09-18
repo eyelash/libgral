@@ -195,6 +195,7 @@ void gral_file_remove(char const *path);
 void gral_directory_create(char const *path);
 void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data);
 void gral_directory_remove(char const *path);
+char *gral_get_current_working_directory(void);
 struct gral_directory_watcher *gral_directory_watch(char const *path, void (*callback)(void *user_data), void *user_data);
 void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watcher);
 

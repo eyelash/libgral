@@ -1191,6 +1191,16 @@ void gral_directory_remove(char const *path) {
 	RemoveDirectory(utf8_to_utf16(path));
 }
 
+char *gral_get_current_working_directory() {
+	DWORD utf16_length = GetCurrentDirectory(0, NULL);
+	Buffer<wchar_t> utf16_buffer(utf16_length);
+	GetCurrentDirectory(utf16_length, utf16_buffer);
+	int utf8_length = WideCharToMultiByte(CP_UTF8, 0, utf16_buffer, utf16_length, NULL, 0, NULL, NULL);
+	char *utf8_buffer = (char *)malloc(utf8_length);
+	WideCharToMultiByte(CP_UTF8, 0, utf16_buffer, utf16_length, utf8_buffer, utf8_length, NULL, NULL);
+	return utf8_buffer;
+}
+
 struct gral_directory_watcher {
 	HANDLE directory;
 	OVERLAPPED overlapped;

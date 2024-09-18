@@ -794,6 +794,10 @@ void gral_directory_remove(char const *path) {
 	rmdir(path);
 }
 
+char *gral_get_current_working_directory(void) {
+	return getcwd(NULL, 0);
+}
+
 @interface GralDirectoryWatcher: GralCallbackObject {
 @public
 	int fd;
