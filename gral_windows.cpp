@@ -153,6 +153,7 @@ static ID2D1StrokeStyle *stroke_style;
 static IWICImagingFactory *imaging_factory;
 static IDWriteFactory *dwrite_factory;
 static DWORD main_thread_id;
+static int window_count = 0;
 
 struct gral_draw_context {
 	ID2D1HwndRenderTarget *target;
@@ -490,7 +491,10 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 				window_data->target->Release();
 			}
 			delete window_data;
-			PostQuitMessage(0);
+			window_count--;
+			if (window_count == 0) {
+				PostQuitMessage(0);
+			}
 			return 0;
 		}
 	default:
@@ -921,6 +925,7 @@ gral_window *gral_window_create(gral_application *application, int width, int he
 	window_data->cursor = LoadCursor(NULL, IDC_ARROW);
 	SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)window_data);
 	ShowWindow(hwnd, SW_SHOW);
+	window_count++;
 	return (gral_window *)hwnd;
 }
 
