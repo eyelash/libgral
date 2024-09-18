@@ -30,6 +30,11 @@ struct _GralApplication {
 };
 G_DEFINE_TYPE(GralApplication, gral_application, GTK_TYPE_APPLICATION)
 
+static void gral_application_startup(GApplication *gapplication) {
+	G_APPLICATION_CLASS(gral_application_parent_class)->startup(gapplication);
+	GralApplication *application = GRAL_APPLICATION(gapplication);
+	application->interface.start(application->user_data);
+}
 static void gral_application_activate(GApplication *gapplication) {
 	GralApplication *application = GRAL_APPLICATION(gapplication);
 	application->interface.open_empty(application->user_data);
@@ -52,6 +57,7 @@ static void gral_application_init(GralApplication *application) {
 }
 static void gral_application_class_init(GralApplicationClass *class) {
 	GApplicationClass *application_class = G_APPLICATION_CLASS(class);
+	application_class->startup = gral_application_startup;
 	application_class->activate = gral_application_activate;
 	application_class->open = gral_application_open;
 	application_class->shutdown = gral_application_shutdown;

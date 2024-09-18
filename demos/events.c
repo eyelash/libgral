@@ -149,6 +149,10 @@ static void create_window(void *user_data) {
 	demo->midi = gral_midi_create(demo->application, "gral events demo", &midi_interface, demo);
 }
 
+static void start(void *user_data) {
+	printf("start\n");
+}
+
 static void open_empty(void *user_data) {
 	printf("open empty\n");
 	create_window(user_data);
@@ -165,7 +169,7 @@ static void quit(void *user_data) {
 
 int main(int argc, char **argv) {
 	struct demo demo;
-	struct gral_application_interface interface = {&open_empty, &open_file, &quit};
+	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.events", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
 	gral_midi_delete(demo.midi);

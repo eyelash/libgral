@@ -81,6 +81,9 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
 	return YES;
 }
+- (void)applicationWillFinishLaunching:(NSNotification *)notification {
+	interface.start(user_data);
+}
 - (BOOL)applicationOpenUntitledFile:(NSApplication *)sender {
 	interface.open_empty(user_data);
 	return YES;

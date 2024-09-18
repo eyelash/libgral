@@ -60,6 +60,7 @@ enum {
 
 struct gral_application;
 struct gral_application_interface {
+	void (*start)(void *user_data);
 	void (*open_empty)(void *user_data);
 	void (*open_file)(char const *path, void *user_data);
 	void (*quit)(void *user_data);

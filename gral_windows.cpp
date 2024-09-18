@@ -537,6 +537,7 @@ void gral_application_delete(gral_application *application) {
 
 int gral_application_run(gral_application *application, int argc_, char **argv_) {
 	main_thread_id = GetCurrentThreadId();
+	application->iface.start(application->user_data);
 	int argc;
 	LPWSTR *argv = CommandLineToArgvW(GetCommandLine(), &argc);
 	if (argc > 1) {

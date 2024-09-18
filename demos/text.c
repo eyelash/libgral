@@ -124,6 +124,10 @@ static void create_window(void *user_data) {
 	gral_font_delete(font);
 }
 
+static void start(void *user_data) {
+
+}
+
 static void open_empty(void *user_data) {
 	create_window(user_data);
 }
@@ -138,7 +142,7 @@ static void quit(void *user_data) {
 
 int main(int argc, char **argv) {
 	struct demo demo;
-	struct gral_application_interface interface = {&open_empty, &open_file, &quit};
+	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.text", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
 	gral_text_delete(demo.text);
