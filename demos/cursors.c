@@ -7,6 +7,10 @@ struct demo {
 	int cursor;
 };
 
+static void destroy(void *user_data) {
+
+}
+
 static int close(void *user_data) {
 	return 1;
 }
@@ -107,6 +111,7 @@ static void focus_leave(void *user_data) {
 static void create_window(void *user_data) {
 	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
+		&destroy,
 		&close,
 		&draw,
 		&resize,
@@ -149,7 +154,6 @@ int main(int argc, char **argv) {
 	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.cursors", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
-	gral_window_delete(demo.window);
 	gral_application_delete(demo.application);
 	return result;
 }

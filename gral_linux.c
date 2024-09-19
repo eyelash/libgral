@@ -307,12 +307,19 @@ static gboolean gral_window_delete_event(GtkWidget *widget, GdkEventAny *event) 
 	GralWindow *window = GRAL_WINDOW(widget);
 	return !window->interface.close(window->user_data);
 }
+static void gral_window_finalize(GObject *object) {
+	GralWindow *window = GRAL_WINDOW(object);
+	window->interface.destroy(window->user_data);
+	G_OBJECT_CLASS(gral_window_parent_class)->finalize(object);
+}
 static void gral_window_init(GralWindow *window) {
 
 }
 static void gral_window_class_init(GralWindowClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
 	widget_class->delete_event = gral_window_delete_event;
+	GObjectClass *object_class = G_OBJECT_CLASS(class);
+	object_class->finalize = gral_window_finalize;
 }
 
 #define GRAL_TYPE_AREA gral_area_get_type()
@@ -496,7 +503,6 @@ static void gral_area_class_init(GralAreaClass *class) {
 
 struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data) {
 	GralWindow *window = g_object_new(GRAL_TYPE_WINDOW, "application", application, NULL);
-	g_object_ref_sink(window);
 	window->interface = *interface;
 	window->user_data = user_data;
 	window->is_cursor_hidden = FALSE;
@@ -508,10 +514,6 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	gtk_container_add(GTK_CONTAINER(window), area);
 	gtk_widget_show_all(GTK_WIDGET(window));
 	return (struct gral_window *)window;
-}
-
-void gral_window_delete(struct gral_window *window) {
-	g_object_unref(window);
 }
 
 void gral_window_set_title(struct gral_window *window, char const *title) {

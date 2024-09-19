@@ -487,6 +487,7 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 		}
 	case WM_DESTROY:
 		{
+			window_data->iface.destroy(window_data->user_data);
 			if (window_data->target) {
 				window_data->target->Release();
 			}
@@ -928,10 +929,6 @@ gral_window *gral_window_create(gral_application *application, int width, int he
 	ShowWindow(hwnd, SW_SHOW);
 	window_count++;
 	return (gral_window *)hwnd;
-}
-
-void gral_window_delete(gral_window *window) {
-
 }
 
 void gral_window_set_title(gral_window *window, char const *title) {

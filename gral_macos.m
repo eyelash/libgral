@@ -411,6 +411,10 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 - (void)windowDidResignKey:(NSNotification *)notification {
 	interface.focus_leave(user_data);
 }
+- (void)dealloc {
+	interface.destroy(user_data);
+	[super dealloc];
+}
 @end
 
 @interface GralView: NSView<NSTextInputClient> {
@@ -581,10 +585,6 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	[view release];
 	[window makeKeyAndOrderFront:nil];
 	return (struct gral_window *)window;
-}
-
-void gral_window_delete(struct gral_window *window) {
-	[(GralWindow *)window release];
 }
 
 void gral_window_set_title(struct gral_window *window, char const *title) {

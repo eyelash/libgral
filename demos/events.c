@@ -9,6 +9,10 @@ struct demo {
 	struct gral_midi *midi;
 };
 
+static void destroy(void *user_data) {
+	printf("destroy\n");
+}
+
 static int close(void *user_data) {
 	printf("close\n");
 	return 1;
@@ -122,6 +126,7 @@ static void control_change(unsigned char controller, unsigned char value, void *
 static void create_window(void *user_data) {
 	struct demo *demo = user_data;
 	struct gral_window_interface interface = {
+		&destroy,
 		&close,
 		&draw,
 		&resize,
@@ -171,7 +176,6 @@ int main(int argc, char **argv) {
 	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
 	demo.application = gral_application_create("com.github.eyelash.libgral.demos.events", &interface, &demo);
 	int result = gral_application_run(demo.application, argc, argv);
-	gral_window_delete(demo.window);
 	gral_application_delete(demo.application);
 	return result;
 }
