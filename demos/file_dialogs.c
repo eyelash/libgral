@@ -1,13 +1,18 @@
 #include <gral.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-struct demo {
+struct demo_application {
 	struct gral_application *application;
+};
+
+struct demo_window {
 	struct gral_window *window;
 };
 
 static void destroy(void *user_data) {
-
+	struct demo_window *window = user_data;
+	free(window);
 }
 
 static int close(void *user_data) {
@@ -55,11 +60,11 @@ static void file_callback(char const *path, void *user_data) {
 }
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
-	struct demo *demo = user_data;
+	struct demo_window *window = user_data;
 	if (button == GRAL_PRIMARY_MOUSE_BUTTON)
-		gral_window_show_open_file_dialog(demo->window, &file_callback, demo);
+		gral_window_show_open_file_dialog(window->window, &file_callback, window);
 	else if (button == GRAL_SECONDARY_MOUSE_BUTTON)
-		gral_window_show_save_file_dialog(demo->window, &file_callback, demo);
+		gral_window_show_save_file_dialog(window->window, &file_callback, window);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
@@ -95,8 +100,9 @@ static void focus_leave(void *user_data) {
 }
 
 static void create_window(void *user_data) {
-	struct demo *demo = user_data;
-	struct gral_window_interface interface = {
+	struct demo_application *application = user_data;
+	struct demo_window *window = malloc(sizeof(struct demo_window));
+	struct gral_window_interface window_interface = {
 		&destroy,
 		&close,
 		&draw,
@@ -115,7 +121,7 @@ static void create_window(void *user_data) {
 		&focus_enter,
 		&focus_leave
 	};
-	demo->window = gral_window_create(demo->application, 600, 400, "gral file dialog demo", &interface, demo);
+	window->window = gral_window_create(application->application, 600, 400, "gral file dialog demo", &window_interface, window);
 }
 
 static void start(void *user_data) {
@@ -136,10 +142,10 @@ static void quit(void *user_data) {
 }
 
 int main(int argc, char **argv) {
-	struct demo demo;
-	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
-	demo.application = gral_application_create("com.github.eyelash.libgral.demos.file_dialogs", &interface, &demo);
-	int result = gral_application_run(demo.application, argc, argv);
-	gral_application_delete(demo.application);
+	struct demo_application application;
+	struct gral_application_interface application_interface = {&start, &open_empty, &open_file, &quit};
+	application.application = gral_application_create("com.github.eyelash.libgral.demos.file_dialogs", &application_interface, &application);
+	int result = gral_application_run(application.application, argc, argv);
+	gral_application_delete(application.application);
 	return result;
 }

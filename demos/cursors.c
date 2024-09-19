@@ -1,14 +1,19 @@
 #include <gral.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-struct demo {
+struct demo_application {
 	struct gral_application *application;
+};
+
+struct demo_window {
 	struct gral_window *window;
 	int cursor;
 };
 
 static void destroy(void *user_data) {
-
+	struct demo_window *window = user_data;
+	free(window);
 }
 
 static int close(void *user_data) {
@@ -48,7 +53,7 @@ static int point_inside_rectangle(float px, float py, float x, float y, float wi
 }
 
 static void mouse_move(float x, float y, void *user_data) {
-	struct demo *demo = user_data;
+	struct demo_window *window = user_data;
 	int cursor = GRAL_CURSOR_DEFAULT;
 	if (point_inside_rectangle(x, y, 20, 20, 160, 160))
 		cursor = GRAL_CURSOR_TEXT;
@@ -58,9 +63,9 @@ static void mouse_move(float x, float y, void *user_data) {
 		cursor = GRAL_CURSOR_HORIZONTAL_ARROWS;
 	if (point_inside_rectangle(x, y, 220, 220, 160, 160))
 		cursor = GRAL_CURSOR_VERTICAL_ARROWS;
-	if (cursor != demo->cursor) {
-		gral_window_set_cursor(demo->window, cursor);
-		demo->cursor = cursor;
+	if (cursor != window->cursor) {
+		gral_window_set_cursor(window->window, cursor);
+		window->cursor = cursor;
 	}
 }
 
@@ -69,15 +74,15 @@ static void mouse_move_relative(float dx, float dy, void *user_data) {
 }
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
-	struct demo *demo = user_data;
-	gral_window_hide_cursor(demo->window);
-	gral_window_lock_pointer(demo->window);
+	struct demo_window *window = user_data;
+	gral_window_hide_cursor(window->window);
+	gral_window_lock_pointer(window->window);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
-	struct demo *demo = user_data;
-	gral_window_unlock_pointer(demo->window);
-	gral_window_show_cursor(demo->window);
+	struct demo_window *window = user_data;
+	gral_window_unlock_pointer(window->window);
+	gral_window_show_cursor(window->window);
 }
 
 static void double_click(float x, float y, int button, int modifiers, void *user_data) {
@@ -109,8 +114,9 @@ static void focus_leave(void *user_data) {
 }
 
 static void create_window(void *user_data) {
-	struct demo *demo = user_data;
-	struct gral_window_interface interface = {
+	struct demo_application *application = user_data;
+	struct demo_window *window = malloc(sizeof(struct demo_window));
+	struct gral_window_interface window_interface = {
 		&destroy,
 		&close,
 		&draw,
@@ -129,8 +135,8 @@ static void create_window(void *user_data) {
 		&focus_enter,
 		&focus_leave
 	};
-	demo->window = gral_window_create(demo->application, 400, 400, "gral cursors demo", &interface, demo);
-	demo->cursor = GRAL_CURSOR_DEFAULT;
+	window->window = gral_window_create(application->application, 400, 400, "gral cursors demo", &window_interface, window);
+	window->cursor = GRAL_CURSOR_DEFAULT;
 }
 
 static void start(void *user_data) {
@@ -150,10 +156,10 @@ static void quit(void *user_data) {
 }
 
 int main(int argc, char **argv) {
-	struct demo demo;
-	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
-	demo.application = gral_application_create("com.github.eyelash.libgral.demos.cursors", &interface, &demo);
-	int result = gral_application_run(demo.application, argc, argv);
-	gral_application_delete(demo.application);
+	struct demo_application application;
+	struct gral_application_interface application_interface = {&start, &open_empty, &open_file, &quit};
+	application.application = gral_application_create("com.github.eyelash.libgral.demos.cursors", &application_interface, &application);
+	int result = gral_application_run(application.application, argc, argv);
+	gral_application_delete(application.application);
 	return result;
 }

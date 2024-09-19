@@ -1,16 +1,23 @@
 #include <gral.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-struct demo {
+struct demo_application {
 	struct gral_application *application;
-	struct gral_window *window;
 	struct gral_timer *timer;
 	struct gral_midi *midi;
 };
 
+struct demo_window {
+	struct gral_window *window;
+	struct demo_application *application;
+};
+
 static void destroy(void *user_data) {
 	printf("destroy\n");
+	struct demo_window *window = user_data;
+	free(window);
 }
 
 static int close(void *user_data) {
@@ -44,10 +51,10 @@ static void mouse_move_relative(float dx, float dy, void *user_data) {
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
 	printf("mouse button press: {%f, %f} (modifiers: %X)\n", x, y, modifiers);
-	struct demo *demo = user_data;
-	if (demo->timer) {
-		gral_timer_delete(demo->timer);
-		demo->timer = 0;
+	struct demo_window *window = user_data;
+	if (window->application->timer) {
+		gral_timer_delete(window->application->timer);
+		window->application->timer = 0;
 	}
 }
 
@@ -124,8 +131,9 @@ static void control_change(unsigned char controller, unsigned char value, void *
 }
 
 static void create_window(void *user_data) {
-	struct demo *demo = user_data;
-	struct gral_window_interface interface = {
+	struct demo_application *application = user_data;
+	struct demo_window *window = malloc(sizeof(struct demo_window));
+	struct gral_window_interface window_interface = {
 		&destroy,
 		&close,
 		&draw,
@@ -144,15 +152,16 @@ static void create_window(void *user_data) {
 		&focus_enter,
 		&focus_leave
 	};
-	demo->window = gral_window_create(demo->application, 600, 400, "gral events demo", &interface, demo);
+	window->window = gral_window_create(application->application, 600, 400, "gral events demo", &window_interface, window);
+	window->application = application;
 }
 
 static void start(void *user_data) {
 	printf("start\n");
-	struct demo *demo = user_data;
-	demo->timer = gral_timer_create(1000, &timer, demo);
+	struct demo_application *application = user_data;
+	application->timer = gral_timer_create(1000, &timer, application);
 	struct gral_midi_interface midi_interface = {&note_on, &note_off, &control_change};
-	demo->midi = gral_midi_create(demo->application, "gral events demo", &midi_interface, demo);
+	application->midi = gral_midi_create(application->application, "gral events demo", &midi_interface, application);
 }
 
 static void open_empty(void *user_data) {
@@ -167,15 +176,15 @@ static void open_file(char const *path, void *user_data) {
 
 static void quit(void *user_data) {
 	printf("quit\n");
-	struct demo *demo = user_data;
-	gral_midi_delete(demo->midi);
+	struct demo_application *application = user_data;
+	gral_midi_delete(application->midi);
 }
 
 int main(int argc, char **argv) {
-	struct demo demo;
-	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
-	demo.application = gral_application_create("com.github.eyelash.libgral.demos.events", &interface, &demo);
-	int result = gral_application_run(demo.application, argc, argv);
-	gral_application_delete(demo.application);
+	struct demo_application application;
+	struct gral_application_interface application_interface = {&start, &open_empty, &open_file, &quit};
+	application.application = gral_application_create("com.github.eyelash.libgral.demos.events", &application_interface, &application);
+	int result = gral_application_run(application.application, argc, argv);
+	gral_application_delete(application.application);
 	return result;
 }

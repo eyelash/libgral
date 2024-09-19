@@ -1,7 +1,11 @@
 #include <gral.h>
+#include <stdlib.h>
 
-struct demo {
+struct demo_application {
 	struct gral_application *application;
+};
+
+struct demo_window {
 	struct gral_window *window;
 	struct gral_text *text;
 	float cursor_x;
@@ -10,7 +14,9 @@ struct demo {
 };
 
 static void destroy(void *user_data) {
-
+	struct demo_window *window = user_data;
+	gral_text_delete(window->text);
+	free(window);
 }
 
 static int close(void *user_data) {
@@ -26,15 +32,15 @@ static void add_rectangle(struct gral_draw_context *draw_context, float x, float
 }
 
 static void draw(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data) {
-	struct demo *demo = user_data;
-	float text_width = gral_text_get_width(demo->text, draw_context);
-	float text_height = demo->ascent + demo->descent;
+	struct demo_window *window = user_data;
+	float text_width = gral_text_get_width(window->text, draw_context);
+	float text_height = window->ascent + window->descent;
 	add_rectangle(draw_context, 50.0f, 50.0f, text_width, 1.0f);
 	gral_draw_context_fill(draw_context, 1.0f, 0.0f, 0.0f, 1.0f);
-	add_rectangle(draw_context, 50.0f, 50.0f - demo->ascent, text_width, text_height);
+	add_rectangle(draw_context, 50.0f, 50.0f - window->ascent, text_width, text_height);
 	gral_draw_context_fill(draw_context, 1.0f, 0.0f, 0.0f, 0.2f);
-	gral_draw_context_draw_text(draw_context, demo->text, 50.0f, 50.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-	add_rectangle(draw_context, 50.0f + demo->cursor_x, 50.0f - demo->ascent, 1.0f, text_height);
+	gral_draw_context_draw_text(draw_context, window->text, 50.0f, 50.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+	add_rectangle(draw_context, 50.0f + window->cursor_x, 50.0f - window->ascent, 1.0f, text_height);
 	gral_draw_context_fill(draw_context, 1.0f, 0.0f, 0.0f, 1.0f);
 }
 
@@ -59,10 +65,10 @@ static void mouse_move_relative(float dx, float dy, void *user_data) {
 }
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
-	struct demo *demo = user_data;
-	int index = gral_text_x_to_index(demo->text, x - 50.0f);
-	demo->cursor_x = gral_text_index_to_x(demo->text, index);
-	gral_window_request_redraw(demo->window, 0, 0, 600, 400);
+	struct demo_window *window = user_data;
+	int index = gral_text_x_to_index(window->text, x - 50.0f);
+	window->cursor_x = gral_text_index_to_x(window->text, index);
+	gral_window_request_redraw(window->window, 0, 0, 600, 400);
 }
 
 static void mouse_button_release(float x, float y, int button, void *user_data) {
@@ -98,8 +104,9 @@ static void focus_leave(void *user_data) {
 }
 
 static void create_window(void *user_data) {
-	struct demo *demo = user_data;
-	struct gral_window_interface interface = {
+	struct demo_application *application = user_data;
+	struct demo_window *window = malloc(sizeof(struct demo_window));
+	struct gral_window_interface window_interface = {
 		&destroy,
 		&close,
 		&draw,
@@ -118,14 +125,14 @@ static void create_window(void *user_data) {
 		&focus_enter,
 		&focus_leave
 	};
-	demo->window = gral_window_create(demo->application, 600, 400, "gral text demo", &interface, demo);
-	struct gral_font *font = gral_font_create_default(demo->window, 16.0f);
-	demo->text = gral_text_create(demo->window, "gral text demo: bold italic", font);
-	gral_text_set_bold(demo->text, 16, 20);
-	gral_text_set_italic(demo->text, 21, 27);
-	gral_text_set_color(demo->text, 5, 9, 0.0f, 0.5f, 1.0f, 1.0f);
-	demo->cursor_x = 0.0f;
-	gral_font_get_metrics(demo->window, font, &demo->ascent, &demo->descent);
+	window->window = gral_window_create(application->application, 600, 400, "gral text demo", &window_interface, window);
+	struct gral_font *font = gral_font_create_default(window->window, 16.0f);
+	window->text = gral_text_create(window->window, "gral text demo: bold italic", font);
+	gral_text_set_bold(window->text, 16, 20);
+	gral_text_set_italic(window->text, 21, 27);
+	gral_text_set_color(window->text, 5, 9, 0.0f, 0.5f, 1.0f, 1.0f);
+	window->cursor_x = 0.0f;
+	gral_font_get_metrics(window->window, font, &window->ascent, &window->descent);
 	gral_font_delete(font);
 }
 
@@ -146,11 +153,10 @@ static void quit(void *user_data) {
 }
 
 int main(int argc, char **argv) {
-	struct demo demo;
-	struct gral_application_interface interface = {&start, &open_empty, &open_file, &quit};
-	demo.application = gral_application_create("com.github.eyelash.libgral.demos.text", &interface, &demo);
-	int result = gral_application_run(demo.application, argc, argv);
-	gral_text_delete(demo.text);
-	gral_application_delete(demo.application);
+	struct demo_application application;
+	struct gral_application_interface application_interface = {&start, &open_empty, &open_file, &quit};
+	application.application = gral_application_create("com.github.eyelash.libgral.demos.text", &application_interface, &application);
+	int result = gral_application_run(application.application, argc, argv);
+	gral_application_delete(application.application);
 	return result;
 }
