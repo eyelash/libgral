@@ -1,5 +1,4 @@
 #include <gral.h>
-#include <stdlib.h>
 #include <stdio.h>
 
 struct demo {
@@ -42,14 +41,17 @@ static void mouse_move_relative(float dx, float dy, void *user_data) {
 static void file_callback(char const *path, void *user_data) {
 	printf("path: %s\n", path);
 	struct gral_file *file = gral_file_open_read(path);
+	if (!file) {
+		printf("file not found\n");
+		return;
+	}
 	size_t size = gral_file_get_size(file);
 	printf("size: %zu\n", size);
-	char *buffer = malloc(size + 1);
-	gral_file_read(file, buffer, size);
-	buffer[size] = '\0';
-	puts(buffer);
-	free(buffer);
+	void *data = gral_file_map(file, size);
 	gral_file_close(file);
+	fwrite(data, 1, size, stdout);
+	putchar('\n');
+	gral_file_unmap(data, size);
 }
 
 static void mouse_button_press(float x, float y, int button, int modifiers, void *user_data) {
