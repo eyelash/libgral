@@ -16,6 +16,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <Windows.h>
 #include <windowsx.h>
 #include <strsafe.h>
+#include <pathcch.h>
 #include <d2d1.h>
 #include <wincodec.h>
 #include <dwrite.h>
@@ -541,8 +542,14 @@ int gral_application_run(gral_application *application, int argc_, char **argv_)
 	int argc;
 	LPWSTR *argv = CommandLineToArgvW(GetCommandLine(), &argc);
 	if (argc > 1) {
+		DWORD current_directory_length = GetCurrentDirectory(0, NULL);
+		Buffer<wchar_t> current_directory(current_directory_length);
+		GetCurrentDirectory(current_directory_length, current_directory);
 		for (int i = 1; i < argc; i++) {
-			application->iface.open_file(utf16_to_utf8(argv[i]), application->user_data);
+			PWSTR path;
+			PathAllocCombine(current_directory, argv[i], PATHCCH_NONE, &path);
+			application->iface.open_file(utf16_to_utf8(path), application->user_data);
+			LocalFree(path);
 		}
 	}
 	else {
