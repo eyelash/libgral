@@ -90,7 +90,7 @@ static void focus_leave(void *user_data) {
 static void create_window(void *user_data) {
 	struct demo_application *application = user_data;
 	struct demo_window *window = malloc(sizeof(struct demo_window));
-	struct gral_window_interface window_interface = {
+	static struct gral_window_interface const window_interface = {
 		&destroy,
 		&close,
 		&draw,
@@ -130,7 +130,7 @@ static void quit(void *user_data) {
 
 int main(int argc, char **argv) {
 	struct demo_application application;
-	struct gral_application_interface application_interface = {&start, &open_empty, &open_file, &quit};
+	static struct gral_application_interface const application_interface = {&start, &open_empty, &open_file, &quit};
 	application.application = gral_application_create("com.github.eyelash.libgral.demos.clipboard", &application_interface, &application);
 	int result = gral_application_run(application.application, argc, argv);
 	gral_application_delete(application.application);

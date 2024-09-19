@@ -73,7 +73,7 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 
 @interface GralApplication: NSApplication<NSApplicationDelegate> {
 @public
-	struct gral_application_interface interface;
+	struct gral_application_interface const *interface;
 	void *user_data;
 }
 @end
@@ -82,26 +82,26 @@ static int utf16_index_to_utf8(CFStringRef string, NSUInteger index) {
 	return YES;
 }
 - (void)applicationWillFinishLaunching:(NSNotification *)notification {
-	interface.start(user_data);
+	interface->start(user_data);
 }
 - (BOOL)applicationOpenUntitledFile:(NSApplication *)sender {
-	interface.open_empty(user_data);
+	interface->open_empty(user_data);
 	return YES;
 }
 - (void)application:(NSApplication *)sender openFiles:(NSArray<NSString *> *)filenames {
 	for (NSUInteger i = 0; i < [filenames count]; i++) {
 		const char *path = [[filenames objectAtIndex:i] UTF8String];
-		interface.open_file(path, user_data);
+		interface->open_file(path, user_data);
 	}
 }
 - (void)applicationWillTerminate:(NSNotification *)notification {
-	interface.quit(user_data);
+	interface->quit(user_data);
 }
 @end
 
 struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data) {
 	GralApplication *application = [GralApplication sharedApplication];
-	application->interface = *interface;
+	application->interface = interface;
 	application->user_data = user_data;
 	[application setDelegate:application];
 	return (struct gral_application *)application;
@@ -397,29 +397,29 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 
 @interface GralWindow: NSWindow<NSWindowDelegate> {
 @public
-	struct gral_window_interface interface;
+	struct gral_window_interface const *interface;
 	void *user_data;
 }
 @end
 @implementation GralWindow
 - (BOOL)windowShouldClose:(id)sender {
-	return interface.close(user_data);
+	return interface->close(user_data);
 }
 - (void)windowDidBecomeKey:(NSNotification *)notification {
-	interface.focus_enter(user_data);
+	interface->focus_enter(user_data);
 }
 - (void)windowDidResignKey:(NSNotification *)notification {
-	interface.focus_leave(user_data);
+	interface->focus_leave(user_data);
 }
 - (void)dealloc {
-	interface.destroy(user_data);
+	interface->destroy(user_data);
 	[super dealloc];
 }
 @end
 
 @interface GralView: NSView<NSTextInputClient> {
 @public
-	struct gral_window_interface interface;
+	struct gral_window_interface const *interface;
 	void *user_data;
 	BOOL is_pointer_locked;
 }
@@ -433,28 +433,28 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)drawRect:(NSRect)rect {
 	CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
-	interface.draw((struct gral_draw_context *)context, rect.origin.x, rect.origin.y, rect.size.width, rect.size.height, user_data);
+	interface->draw((struct gral_draw_context *)context, rect.origin.x, rect.origin.y, rect.size.width, rect.size.height, user_data);
 }
 - (void)setFrameSize:(NSSize)size {
 	[super setFrameSize:size];
-	interface.resize(size.width, size.height, user_data);
+	interface->resize(size.width, size.height, user_data);
 }
 - (BOOL)acceptsFirstMouse:(NSEvent *)event {
 	return YES;
 }
 - (void)mouseEntered:(NSEvent *)event {
-	interface.mouse_enter(user_data);
+	interface->mouse_enter(user_data);
 }
 - (void)mouseExited:(NSEvent *)event {
-	interface.mouse_leave(user_data);
+	interface->mouse_leave(user_data);
 }
 - (void)mouseMoved:(NSEvent *)event {
 	if (is_pointer_locked) {
-		interface.mouse_move_relative([event deltaX], [event deltaY], user_data);
+		interface->mouse_move_relative([event deltaX], [event deltaY], user_data);
 	}
 	else {
 		NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-		interface.mouse_move(location.x, location.y, user_data);
+		interface->mouse_move(location.x, location.y, user_data);
 	}
 }
 - (void)mouseDragged:(NSEvent *)event {
@@ -469,55 +469,55 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 - (void)mouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	int modifiers = get_modifiers([event modifierFlags]);
-	interface.mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
+	interface->mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
-		interface.double_click(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
+		interface->double_click(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
 	}
 }
 - (void)rightMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	int modifiers = get_modifiers([event modifierFlags]);
-	interface.mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
+	interface->mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
-		interface.double_click(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
+		interface->double_click(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
 	}
 }
 - (void)otherMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
 	int modifiers = get_modifiers([event modifierFlags]);
-	interface.mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
+	interface->mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
-		interface.double_click(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
+		interface->double_click(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
 	}
 }
 - (void)mouseUp:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	interface.mouse_button_release(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
+	interface->mouse_button_release(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, user_data);
 }
 - (void)rightMouseUp:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	interface.mouse_button_release(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
+	interface->mouse_button_release(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, user_data);
 }
 - (void)otherMouseUp:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	interface.mouse_button_release(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
+	interface->mouse_button_release(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, user_data);
 }
 - (void)scrollWheel:(NSEvent *)event {
-	interface.scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
+	interface->scroll([event scrollingDeltaX], [event scrollingDeltaY], user_data);
 }
 - (void)keyDown:(NSEvent *)event {
 	[self interpretKeyEvents:[NSArray arrayWithObject:event]];
 	unsigned short key_code = [event keyCode];
 	int key = get_key(key_code);
 	if (key) {
-		interface.key_press(key, key_code, get_modifiers([event modifierFlags]), user_data);
+		interface->key_press(key, key_code, get_modifiers([event modifierFlags]), user_data);
 	}
 }
 - (void)keyUp:(NSEvent *)event {
 	unsigned short key_code = [event keyCode];
 	int key = get_key(key_code);
 	if (key) {
-		interface.key_release(key, key_code, user_data);
+		interface->key_release(key, key_code, user_data);
 	}
 }
 // NSTextInputClient implementation
@@ -544,7 +544,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)insertText:(id)string replacementRange:(NSRange)replacementRange {
 	if ([string isKindOfClass:[NSString class]]) {
-		interface.text([(NSString *)string UTF8String], user_data);
+		interface->text([(NSString *)string UTF8String], user_data);
 	}
 }
 - (NSUInteger)characterIndexForPoint:(NSPoint)point {
@@ -565,12 +565,12 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 		backing:NSBackingStoreBuffered
 		defer:NO
 	];
-	window->interface = *interface;
+	window->interface = interface;
 	window->user_data = user_data;
 	[window setDelegate:window];
 	[window setTitle:[NSString stringWithUTF8String:title]];
 	GralView *view = [[GralView alloc] init];
-	view->interface = *interface;
+	view->interface = interface;
 	view->user_data = user_data;
 	view->is_pointer_locked = NO;
 	NSTrackingArea *trackingArea = [[NSTrackingArea alloc]
@@ -935,7 +935,7 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
  =========*/
 
 struct gral_midi {
-	struct gral_midi_interface interface;
+	struct gral_midi_interface const *interface;
 	void *user_data;
 	MIDIClientRef client;
 	MIDIPortRef port;
@@ -959,19 +959,19 @@ static void midi_read_callback(MIDIPacketList const *packet_list, void *user_dat
 			if ((packet->data[j] & 0xF0) == 0x80 && j + 2 < packet->length) {
 				Byte note = packet->data[j+1];
 				Byte velocity = packet->data[j+2];
-				midi->interface.note_off(note, velocity, midi->user_data);
+				midi->interface->note_off(note, velocity, midi->user_data);
 				j += 2;
 			}
 			else if ((packet->data[j] & 0xF0) == 0x90 && j + 2 < packet->length) {
 				Byte note = packet->data[j+1];
 				Byte velocity = packet->data[j+2];
-				midi->interface.note_on(note, velocity, midi->user_data);
+				midi->interface->note_on(note, velocity, midi->user_data);
 				j += 2;
 			}
 			else if ((packet->data[j] & 0xF0) == 0xB0 && j + 2 < packet->length) {
 				Byte controller = packet->data[j+1];
 				Byte value = packet->data[j+2];
-				midi->interface.control_change(controller, value, midi->user_data);
+				midi->interface->control_change(controller, value, midi->user_data);
 				j += 2;
 			}
 		}
@@ -981,7 +981,7 @@ static void midi_read_callback(MIDIPacketList const *packet_list, void *user_dat
 
 struct gral_midi *gral_midi_create(struct gral_application *application, char const *name, struct gral_midi_interface const *interface, void *user_data) {
 	struct gral_midi *midi = malloc(sizeof(struct gral_midi));
-	midi->interface = *interface;
+	midi->interface = interface;
 	midi->user_data = user_data;
 	CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, name, kCFStringEncodingUTF8);
 	MIDIClientCreate(string, &midi_callback, midi, &midi->client);

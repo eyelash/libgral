@@ -188,7 +188,7 @@ static void adjust_window_size(int &width, int &height) {
 }
 
 struct WindowData {
-	gral_window_interface iface;
+	gral_window_interface const *iface;
 	void *user_data;
 	ID2D1HwndRenderTarget *target;
 	bool mouse_inside;
@@ -211,7 +211,7 @@ struct gral_timer {
  ================*/
 
 struct gral_application {
-	gral_application_interface iface;
+	gral_application_interface const *iface;
 	void *user_data;
 };
 
@@ -295,7 +295,7 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 			draw_context.target->BeginDraw();
 			draw_context.target->PushAxisAlignedClip(D2D1::RectF((FLOAT)update_rect.left, (FLOAT)update_rect.top, (FLOAT)update_rect.right, (FLOAT)update_rect.bottom), D2D1_ANTIALIAS_MODE_ALIASED);
 			draw_context.target->Clear(D2D1::ColorF(D2D1::ColorF::White));
-			window_data->iface.draw(&draw_context, update_rect.left, update_rect.top, update_rect.right - update_rect.left, update_rect.bottom - update_rect.top, window_data->user_data);
+			window_data->iface->draw(&draw_context, update_rect.left, update_rect.top, update_rect.right - update_rect.left, update_rect.bottom - update_rect.top, window_data->user_data);
 			draw_context.target->PopAxisAlignedClip();
 			if (draw_context.target->EndDraw() == D2DERR_RECREATE_TARGET) {
 				draw_context.target->Release();
@@ -312,7 +312,7 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 				POINT point;
 				GetCursorPos(&point);
 				if (point.x != window_data->locked_pointer.x || point.y != window_data->locked_pointer.y) {
-					window_data->iface.mouse_move_relative((float)(point.x - window_data->locked_pointer.x), (float)(point.y - window_data->locked_pointer.y), window_data->user_data);
+					window_data->iface->mouse_move_relative((float)(point.x - window_data->locked_pointer.x), (float)(point.y - window_data->locked_pointer.y), window_data->user_data);
 					SetCursorPos(window_data->locked_pointer.x, window_data->locked_pointer.y);
 				}
 			}
@@ -320,39 +320,39 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 				if (!window_data->mouse_inside) {
 					SetCursor(window_data->cursor);
 					window_data->mouse_inside = true;
-					window_data->iface.mouse_enter(window_data->user_data);
+					window_data->iface->mouse_enter(window_data->user_data);
 					TRACKMOUSEEVENT track_mouse_event;
 					track_mouse_event.cbSize = sizeof(TRACKMOUSEEVENT);
 					track_mouse_event.dwFlags = TME_LEAVE;
 					track_mouse_event.hwndTrack = hwnd;
 					TrackMouseEvent(&track_mouse_event);
 				}
-				window_data->iface.mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
+				window_data->iface->mouse_move((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), window_data->user_data);
 			}
 			return 0;
 		}
 	case WM_MOUSELEAVE:
 		{
-			window_data->iface.mouse_leave(window_data->user_data);
+			window_data->iface->mouse_leave(window_data->user_data);
 			window_data->mouse_inside = false;
 			return 0;
 		}
 	case WM_LBUTTONDOWN:
 		{
 			SetCapture(hwnd);
-			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
+			window_data->iface->mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
 			return 0;
 		}
 	case WM_MBUTTONDOWN:
 		{
 			SetCapture(hwnd);
-			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
+			window_data->iface->mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
 			return 0;
 		}
 	case WM_RBUTTONDOWN:
 		{
 			SetCapture(hwnd);
-			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
+			window_data->iface->mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, get_modifiers(), window_data->user_data);
 			return 0;
 		}
 	case WM_LBUTTONUP:
@@ -360,7 +360,7 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 			if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
 				ReleaseCapture();
 			}
-			window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
+			window_data->iface->mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, window_data->user_data);
 			return 0;
 		}
 	case WM_MBUTTONUP:
@@ -368,7 +368,7 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 			if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
 				ReleaseCapture();
 			}
-			window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
+			window_data->iface->mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, window_data->user_data);
 			return 0;
 		}
 	case WM_RBUTTONUP:
@@ -376,45 +376,45 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 			if ((wParam & (MK_LBUTTON | MK_MBUTTON | MK_RBUTTON)) == 0) {
 				ReleaseCapture();
 			}
-			window_data->iface.mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
+			window_data->iface->mouse_button_release((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, window_data->user_data);
 			return 0;
 		}
 	case WM_LBUTTONDBLCLK:
 		{
 			SetCapture(hwnd);
 			int modifiers = get_modifiers();
-			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
-			window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface->mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface->double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_PRIMARY_MOUSE_BUTTON, modifiers, window_data->user_data);
 			return 0;
 		}
 	case WM_MBUTTONDBLCLK:
 		{
 			SetCapture(hwnd);
 			int modifiers = get_modifiers();
-			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
-			window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface->mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface->double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_MIDDLE_MOUSE_BUTTON, modifiers, window_data->user_data);
 			return 0;
 		}
 	case WM_RBUTTONDBLCLK:
 		{
 			SetCapture(hwnd);
 			int modifiers = get_modifiers();
-			window_data->iface.mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
-			window_data->iface.double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface->mouse_button_press((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
+			window_data->iface->double_click((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam), GRAL_SECONDARY_MOUSE_BUTTON, modifiers, window_data->user_data);
 			return 0;
 		}
 	case WM_MOUSEWHEEL:
-		window_data->iface.scroll(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
+		window_data->iface->scroll(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, window_data->user_data);
 		return 0;
 	case WM_MOUSEHWHEEL:
-		window_data->iface.scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.0f, window_data->user_data);
+		window_data->iface->scroll(-(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA, 0.0f, window_data->user_data);
 		return 0;
 	case WM_KEYDOWN:
 		{
 			UINT scan_code = (lParam >> 16) & 0xFF;
 			int key = get_key((UINT)wParam, scan_code);
 			if (key) {
-				window_data->iface.key_press(key, scan_code, get_modifiers(), window_data->user_data);
+				window_data->iface->key_press(key, scan_code, get_modifiers(), window_data->user_data);
 			}
 			return 0;
 		}
@@ -423,7 +423,7 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 			UINT scan_code = (lParam >> 16) & 0xFF;
 			int key = get_key((UINT)wParam, scan_code);
 			if (key) {
-				window_data->iface.key_release(key, scan_code, window_data->user_data);
+				window_data->iface->key_release(key, scan_code, window_data->user_data);
 			}
 			return 0;
 		}
@@ -447,22 +447,22 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 				CHAR utf8[5];
 				WideCharToMultiByte(CP_UTF8, 0, utf16, -1, utf8, 5, NULL, NULL);
 				if ((UCHAR)utf8[0] > 0x1F) {
-					window_data->iface.text(utf8, window_data->user_data);
+					window_data->iface->text(utf8, window_data->user_data);
 				}
 			}
 			return 0;
 		}
 	case WM_SETFOCUS:
-		window_data->iface.focus_enter(window_data->user_data);
+		window_data->iface->focus_enter(window_data->user_data);
 		return 0;
 	case WM_KILLFOCUS:
-		window_data->iface.focus_leave(window_data->user_data);
+		window_data->iface->focus_leave(window_data->user_data);
 		return 0;
 	case WM_SIZE:
 		{
 			WORD width = LOWORD(lParam);
 			WORD height = HIWORD(lParam);
-			window_data->iface.resize(width, height, window_data->user_data);
+			window_data->iface->resize(width, height, window_data->user_data);
 			if (window_data->target) {
 				window_data->target->Resize(D2D1::SizeU(width, height));
 			}
@@ -480,14 +480,14 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 		}
 	case WM_CLOSE:
 		{
-			if (window_data->iface.close(window_data->user_data)) {
+			if (window_data->iface->close(window_data->user_data)) {
 				DestroyWindow(hwnd);
 			}
 			return 0;
 		}
 	case WM_DESTROY:
 		{
-			window_data->iface.destroy(window_data->user_data);
+			window_data->iface->destroy(window_data->user_data);
 			if (window_data->target) {
 				window_data->target->Release();
 			}
@@ -523,7 +523,7 @@ gral_application *gral_application_create(char const *id, gral_application_inter
 	window_class.lpszClassName = L"gral_window";
 	RegisterClass(&window_class);
 	static gral_application application;
-	application.iface = *iface;
+	application.iface = iface;
 	application.user_data = user_data;
 	return &application;
 }
@@ -538,23 +538,23 @@ void gral_application_delete(gral_application *application) {
 
 int gral_application_run(gral_application *application, int argc_, char **argv_) {
 	main_thread_id = GetCurrentThreadId();
-	application->iface.start(application->user_data);
+	application->iface->start(application->user_data);
 	int argc;
 	LPWSTR *argv = CommandLineToArgvW(GetCommandLine(), &argc);
 	if (argc > 1) {
 		for (int i = 1; i < argc; i++) {
-			application->iface.open_file(utf16_to_utf8(argv[i]), application->user_data);
+			application->iface->open_file(utf16_to_utf8(argv[i]), application->user_data);
 		}
 	}
 	else {
-		application->iface.open_empty(application->user_data);
+		application->iface->open_empty(application->user_data);
 	}
 	LocalFree(argv);
 	MSG message;
 	while (TRUE) {
 		while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
 			if (message.message == WM_QUIT) {
-				application->iface.quit(application->user_data);
+				application->iface->quit(application->user_data);
 				return 0;
 			}
 			TranslateMessage(&message);
@@ -921,7 +921,7 @@ gral_window *gral_window_create(gral_application *application, int width, int he
 	adjust_window_size(width, height);
 	HWND hwnd = CreateWindow(L"gral_window", utf8_to_utf16(title), WS_OVERLAPPEDWINDOW, 0, 0, width, height, NULL, NULL, hInstance, NULL);
 	WindowData *window_data = new WindowData();
-	window_data->iface = *iface;
+	window_data->iface = iface;
 	window_data->user_data = user_data;
 	window_data->target = NULL;
 	window_data->cursor = LoadCursor(NULL, IDC_ARROW);
@@ -1410,7 +1410,7 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
  =========*/
 
 struct gral_midi {
-	gral_midi_interface iface;
+	gral_midi_interface const *iface;
 	void *user_data;
 	HMIDIIN midi;
 };
@@ -1422,13 +1422,13 @@ static void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInsta
 	case MIM_DATA:
 		{
 			if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0x80) {
-				midi->iface.note_off(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
+				midi->iface->note_off(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
 			}
 			else if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0x90) {
-				midi->iface.note_on(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
+				midi->iface->note_on(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
 			}
 			else if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0xB0) {
-				midi->iface.control_change(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
+				midi->iface->control_change(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
 			}
 			return;
 		}
@@ -1439,7 +1439,7 @@ static void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInsta
 
 gral_midi *gral_midi_create(gral_application *application, char const *name, gral_midi_interface const *iface, void *user_data) {
 	gral_midi *midi = new gral_midi();
-	midi->iface = *iface;
+	midi->iface = iface;
 	midi->user_data = user_data;
 	midi->midi = NULL;
 	if (midiInGetNumDevs() > 0) {

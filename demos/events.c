@@ -133,7 +133,7 @@ static void control_change(unsigned char controller, unsigned char value, void *
 static void create_window(void *user_data) {
 	struct demo_application *application = user_data;
 	struct demo_window *window = malloc(sizeof(struct demo_window));
-	struct gral_window_interface window_interface = {
+	static struct gral_window_interface const window_interface = {
 		&destroy,
 		&close,
 		&draw,
@@ -160,7 +160,7 @@ static void start(void *user_data) {
 	printf("start\n");
 	struct demo_application *application = user_data;
 	application->timer = gral_timer_create(1000, &timer, application);
-	struct gral_midi_interface midi_interface = {&note_on, &note_off, &control_change};
+	static struct gral_midi_interface const midi_interface = {&note_on, &note_off, &control_change};
 	application->midi = gral_midi_create(application->application, "gral events demo", &midi_interface, application);
 }
 
@@ -182,7 +182,7 @@ static void quit(void *user_data) {
 
 int main(int argc, char **argv) {
 	struct demo_application application;
-	struct gral_application_interface application_interface = {&start, &open_empty, &open_file, &quit};
+	static struct gral_application_interface const application_interface = {&start, &open_empty, &open_file, &quit};
 	application.application = gral_application_create("com.github.eyelash.libgral.demos.events", &application_interface, &application);
 	int result = gral_application_run(application.application, argc, argv);
 	gral_application_delete(application.application);

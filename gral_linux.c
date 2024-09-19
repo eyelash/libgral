@@ -25,7 +25,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 G_DECLARE_FINAL_TYPE(GralApplication, gral_application, GRAL, APPLICATION, GtkApplication)
 struct _GralApplication {
 	GtkApplication parent_instance;
-	struct gral_application_interface interface;
+	struct gral_application_interface const *interface;
 	void *user_data;
 };
 G_DEFINE_TYPE(GralApplication, gral_application, GTK_TYPE_APPLICATION)
@@ -33,24 +33,24 @@ G_DEFINE_TYPE(GralApplication, gral_application, GTK_TYPE_APPLICATION)
 static void gral_application_startup(GApplication *gapplication) {
 	G_APPLICATION_CLASS(gral_application_parent_class)->startup(gapplication);
 	GralApplication *application = GRAL_APPLICATION(gapplication);
-	application->interface.start(application->user_data);
+	application->interface->start(application->user_data);
 }
 static void gral_application_activate(GApplication *gapplication) {
 	GralApplication *application = GRAL_APPLICATION(gapplication);
-	application->interface.open_empty(application->user_data);
+	application->interface->open_empty(application->user_data);
 }
 static void gral_application_open(GApplication *gapplication, GFile **files, gint n_files, const gchar *hint) {
 	GralApplication *application = GRAL_APPLICATION(gapplication);
 	for (gint i = 0; i < n_files; i++) {
 		char *path = g_file_get_path(files[i]);
-		application->interface.open_file(path, application->user_data);
+		application->interface->open_file(path, application->user_data);
 		g_free(path);
 	}
 }
 static void gral_application_shutdown(GApplication *gapplication) {
 	G_APPLICATION_CLASS(gral_application_parent_class)->shutdown(gapplication);
 	GralApplication *application = GRAL_APPLICATION(gapplication);
-	application->interface.quit(application->user_data);
+	application->interface->quit(application->user_data);
 }
 static void gral_application_init(GralApplication *application) {
 
@@ -65,7 +65,7 @@ static void gral_application_class_init(GralApplicationClass *class) {
 
 struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data) {
 	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, "flags", G_APPLICATION_NON_UNIQUE|G_APPLICATION_HANDLES_OPEN, NULL);
-	application->interface = *interface;
+	application->interface = interface;
 	application->user_data = user_data;
 	return (struct gral_application *)application;
 }
@@ -294,7 +294,7 @@ static int get_modifiers(guint state) {
 G_DECLARE_FINAL_TYPE(GralWindow, gral_window, GRAL, WINDOW, GtkApplicationWindow)
 struct _GralWindow {
 	GtkApplicationWindow parent_instance;
-	struct gral_window_interface interface;
+	struct gral_window_interface const *interface;
 	void *user_data;
 	gboolean is_cursor_hidden;
 	int cursor;
@@ -305,11 +305,11 @@ G_DEFINE_TYPE(GralWindow, gral_window, GTK_TYPE_APPLICATION_WINDOW)
 
 static gboolean gral_window_delete_event(GtkWidget *widget, GdkEventAny *event) {
 	GralWindow *window = GRAL_WINDOW(widget);
-	return !window->interface.close(window->user_data);
+	return !window->interface->close(window->user_data);
 }
 static void gral_window_finalize(GObject *object) {
 	GralWindow *window = GRAL_WINDOW(object);
-	window->interface.destroy(window->user_data);
+	window->interface->destroy(window->user_data);
 	G_OBJECT_CLASS(gral_window_parent_class)->finalize(object);
 }
 static void gral_window_init(GralWindow *window) {
@@ -334,22 +334,22 @@ static gboolean gral_area_draw(GtkWidget *widget, cairo_t *cr) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	GdkRectangle clip_rectangle;
 	gdk_cairo_get_clip_rectangle(cr, &clip_rectangle);
-	window->interface.draw((struct gral_draw_context *)cr, clip_rectangle.x, clip_rectangle.y, clip_rectangle.width, clip_rectangle.height, window->user_data);
+	window->interface->draw((struct gral_draw_context *)cr, clip_rectangle.x, clip_rectangle.y, clip_rectangle.width, clip_rectangle.height, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static void gral_area_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
 	GTK_WIDGET_CLASS(gral_area_parent_class)->size_allocate(widget, allocation);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	window->interface.resize(allocation->width, allocation->height, window->user_data);
+	window->interface->resize(allocation->width, allocation->height, window->user_data);
 }
 static gboolean gral_area_enter_notify_event(GtkWidget *widget, GdkEventCrossing *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	window->interface.mouse_enter(window->user_data);
+	window->interface->mouse_enter(window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_leave_notify_event(GtkWidget *widget, GdkEventCrossing *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	window->interface.mouse_leave(window->user_data);
+	window->interface->mouse_leave(window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion *event) {
@@ -361,7 +361,7 @@ static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion 
 		gint x, y;
 		gdk_device_get_position(pointer, NULL, &x, &y);
 		if (x != window->locked_pointer_x || y != window->locked_pointer_y) {
-			window->interface.mouse_move_relative(x - window->locked_pointer_x, y - window->locked_pointer_y, window->user_data);
+			window->interface->mouse_move_relative(x - window->locked_pointer_x, y - window->locked_pointer_y, window->user_data);
 			if (GDK_IS_WAYLAND_DISPLAY(display)) {
 				// gdk_device_warp does not work on Wayland
 				window->locked_pointer_x = x;
@@ -373,30 +373,30 @@ static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion 
 		}
 	}
 	else {
-		window->interface.mouse_move(event->x, event->y, window->user_data);
+		window->interface->mouse_move(event->x, event->y, window->user_data);
 	}
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	if (event->type == GDK_BUTTON_PRESS) {
-		window->interface.mouse_button_press(event->x, event->y, event->button, get_modifiers(event->state), window->user_data);
+		window->interface->mouse_button_press(event->x, event->y, event->button, get_modifiers(event->state), window->user_data);
 	}
 	else if (event->type == GDK_2BUTTON_PRESS) {
-		window->interface.double_click(event->x, event->y, event->button, get_modifiers(event->state), window->user_data);
+		window->interface->double_click(event->x, event->y, event->button, get_modifiers(event->state), window->user_data);
 	}
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_button_release_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	window->interface.mouse_button_release(event->x, event->y, event->button, window->user_data);
+	window->interface->mouse_button_release(event->x, event->y, event->button, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gdouble delta_x, delta_y;
 	gdk_event_get_scroll_deltas((GdkEvent *)event, &delta_x, &delta_y);
-	window->interface.scroll(-delta_x, -delta_y, window->user_data);
+	window->interface->scroll(-delta_x, -delta_y, window->user_data);
 	return GDK_EVENT_STOP;
 }
 static int get_key(GdkEventKey *event) {
@@ -444,7 +444,7 @@ static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event)
 	gtk_im_context_filter_keypress(area->im_context, event);
 	int key = get_key(event);
 	if (key) {
-		window->interface.key_press(key, event->hardware_keycode - 8, get_modifiers(event->state), window->user_data);
+		window->interface->key_press(key, event->hardware_keycode - 8, get_modifiers(event->state), window->user_data);
 	}
 	return GDK_EVENT_STOP;
 }
@@ -454,22 +454,22 @@ static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *even
 	gtk_im_context_filter_keypress(area->im_context, event);
 	int key = get_key(event);
 	if (key) {
-		window->interface.key_release(key, event->hardware_keycode - 8, window->user_data);
+		window->interface->key_release(key, event->hardware_keycode - 8, window->user_data);
 	}
 	return GDK_EVENT_STOP;
 }
 static void gral_area_commit(GtkIMContext *context, gchar *str, gpointer user_data) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(user_data)));
-	window->interface.text(str, window->user_data);
+	window->interface->text(str, window->user_data);
 }
 static gboolean gral_area_focus_in_event(GtkWidget *widget, GdkEventFocus *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	window->interface.focus_enter(window->user_data);
+	window->interface->focus_enter(window->user_data);
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_focus_out_event(GtkWidget *widget, GdkEventFocus *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	window->interface.focus_leave(window->user_data);
+	window->interface->focus_leave(window->user_data);
 	return GDK_EVENT_STOP;
 }
 static void gral_area_dispose(GObject *object) {
@@ -503,7 +503,7 @@ static void gral_area_class_init(GralAreaClass *class) {
 
 struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data) {
 	GralWindow *window = g_object_new(GRAL_TYPE_WINDOW, "application", application, NULL);
-	window->interface = *interface;
+	window->interface = interface;
 	window->user_data = user_data;
 	window->is_cursor_hidden = FALSE;
 	window->cursor = GRAL_CURSOR_DEFAULT;
@@ -879,7 +879,7 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
  =========*/
 
 struct gral_midi {
-	struct gral_midi_interface interface;
+	struct gral_midi_interface const *interface;
 	void *user_data;
 	snd_seq_t *seq;
 	int port;
@@ -905,13 +905,13 @@ static gboolean midi_callback(gint fd, GIOCondition condition, gpointer user_dat
 	while (snd_seq_event_input(midi->seq, &event) > 0) {
 		switch (event->type) {
 		case SND_SEQ_EVENT_NOTEON:
-			midi->interface.note_on(event->data.note.note, event->data.note.velocity, midi->user_data);
+			midi->interface->note_on(event->data.note.note, event->data.note.velocity, midi->user_data);
 			break;
 		case SND_SEQ_EVENT_NOTEOFF:
-			midi->interface.note_off(event->data.note.note, event->data.note.velocity, midi->user_data);
+			midi->interface->note_off(event->data.note.note, event->data.note.velocity, midi->user_data);
 			break;
 		case SND_SEQ_EVENT_CONTROLLER:
-			midi->interface.control_change(event->data.control.param, event->data.control.value, midi->user_data);
+			midi->interface->control_change(event->data.control.param, event->data.control.value, midi->user_data);
 			break;
 		case SND_SEQ_EVENT_PORT_START:
 			{
@@ -930,7 +930,7 @@ static gboolean midi_callback(gint fd, GIOCondition condition, gpointer user_dat
 
 struct gral_midi *gral_midi_create(struct gral_application *application, char const *name, struct gral_midi_interface const *interface, void *user_data) {
 	struct gral_midi *midi = malloc(sizeof(struct gral_midi));
-	midi->interface = *interface;
+	midi->interface = interface;
 	midi->user_data = user_data;
 	snd_seq_open(&midi->seq, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK);
 	snd_seq_set_client_name(midi->seq, name);
