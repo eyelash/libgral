@@ -122,6 +122,7 @@ static void create_window(void *user_data) {
 		&focus_leave
 	};
 	window->window = gral_window_create(application->application, 600, 400, "gral file dialog demo", &window_interface, window);
+	gral_window_show(window->window);
 }
 
 static void start(void *user_data) {

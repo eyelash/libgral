@@ -134,6 +134,7 @@ static void create_window(void *user_data) {
 	window->cursor_x = 0.0f;
 	gral_font_get_metrics(window->window, font, &window->ascent, &window->descent);
 	gral_font_delete(font);
+	gral_window_show(window->window);
 }
 
 static void start(void *user_data) {

@@ -179,6 +179,7 @@ static void create_window(void *user_data) {
 	};
 	window->window = gral_window_create(application->application, 600, 400, "gral draw demo", &window_interface, window);
 	gral_window_set_minimum_size(window->window, 600, 400);
+	gral_window_show(window->window);
 }
 
 static void start(void *user_data) {

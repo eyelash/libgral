@@ -155,6 +155,7 @@ void gral_draw_context_draw_transformed(struct gral_draw_context *draw_context, 
  ===========*/
 
 struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data);
+void gral_window_show(struct gral_window *window);
 void gral_window_set_title(struct gral_window *window, char const *title);
 void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height);
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height);

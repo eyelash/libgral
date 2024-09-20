@@ -110,6 +110,7 @@ static void create_window(void *user_data) {
 		&focus_leave
 	};
 	window->window = gral_window_create(application->application, 800, 600, "gral clipboard demo", &window_interface, window);
+	gral_window_show(window->window);
 }
 
 static void start(void *user_data) {

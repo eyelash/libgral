@@ -137,6 +137,7 @@ static void create_window(void *user_data) {
 	};
 	window->window = gral_window_create(application->application, 400, 400, "gral cursors demo", &window_interface, window);
 	window->cursor = GRAL_CURSOR_DEFAULT;
+	gral_window_show(window->window);
 }
 
 static void start(void *user_data) {

@@ -154,6 +154,7 @@ static void create_window(void *user_data) {
 	};
 	window->window = gral_window_create(application->application, 600, 400, "gral events demo", &window_interface, window);
 	window->application = application;
+	gral_window_show(window->window);
 }
 
 static void start(void *user_data) {

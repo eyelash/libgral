@@ -569,12 +569,17 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	window->user_data = user_data;
 	[window setDelegate:window];
 	[window setTitle:[NSString stringWithUTF8String:title]];
+	return (struct gral_window *)window;
+}
+
+void gral_window_show(struct gral_window *window_) {
+	GralWindow *window = (GralWindow *)window_;
 	GralView *view = [[GralView alloc] init];
-	view->interface = interface;
-	view->user_data = user_data;
+	view->interface = window->interface;
+	view->user_data = window->user_data;
 	view->is_pointer_locked = NO;
 	NSTrackingArea *trackingArea = [[NSTrackingArea alloc]
-		initWithRect:CGRectMake(0, 0, width, height)
+		initWithRect:NSZeroRect
 		options:NSTrackingMouseEnteredAndExited|NSTrackingMouseMoved|NSTrackingActiveAlways|NSTrackingInVisibleRect
 		owner:view
 		userInfo:nil
@@ -584,7 +589,6 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	[window setContentView:view];
 	[view release];
 	[window makeKeyAndOrderFront:nil];
-	return (struct gral_window *)window;
 }
 
 void gral_window_set_title(struct gral_window *window, char const *title) {
