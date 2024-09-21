@@ -529,10 +529,8 @@ void gral_window_request_redraw(struct gral_window *window, int x, int y, int wi
 }
 
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height) {
-	GdkGeometry geometry;
-	geometry.min_width = minimum_width;
-	geometry.min_height = minimum_height;
-	gtk_window_set_geometry_hints(GTK_WINDOW(window), NULL, &geometry, GDK_HINT_MIN_SIZE);
+	GtkWidget *area = gtk_bin_get_child(GTK_BIN(window));
+	gtk_widget_set_size_request(area, minimum_width, minimum_height);
 }
 
 static char const *get_cursor_name(int cursor) {
