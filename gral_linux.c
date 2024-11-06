@@ -261,6 +261,20 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	cairo_stroke((cairo_t *)draw_context);
 }
 
+void gral_draw_context_stroke_linear_gradient(struct gral_draw_context *draw_context, float line_width, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop const *stops, int count) {
+	cairo_set_line_width((cairo_t *)draw_context, line_width);
+	cairo_set_line_cap((cairo_t *)draw_context, CAIRO_LINE_CAP_ROUND);
+	cairo_set_line_join((cairo_t *)draw_context, CAIRO_LINE_JOIN_ROUND);
+	cairo_pattern_t *gradient = cairo_pattern_create_linear(start_x, start_y, end_x, end_y);
+	int i;
+	for (i = 0; i < count; i++) {
+		cairo_pattern_add_color_stop_rgba(gradient, stops[i].position, stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
+	}
+	cairo_set_source((cairo_t *)draw_context, gradient);
+	cairo_stroke((cairo_t *)draw_context);
+	cairo_pattern_destroy(gradient);
+}
+
 void gral_draw_context_draw_clipped(struct gral_draw_context *draw_context, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data) {
 	cairo_save((cairo_t *)draw_context);
 	cairo_clip((cairo_t *)draw_context);

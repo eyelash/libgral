@@ -319,6 +319,14 @@ void gral_draw_context_stroke(struct gral_draw_context *draw_context, float line
 	CGContextStrokePath((CGContextRef)draw_context);
 }
 
+void gral_draw_context_stroke_linear_gradient(struct gral_draw_context *draw_context, float line_width, float start_x, float start_y, float end_x, float end_y, struct gral_gradient_stop const *stops, int count) {
+	CGContextSetLineWidth((CGContextRef)draw_context, line_width);
+	CGContextSetLineCap((CGContextRef)draw_context, kCGLineCapRound);
+	CGContextSetLineJoin((CGContextRef)draw_context, kCGLineJoinRound);
+	CGContextReplacePathWithStrokedPath((CGContextRef)draw_context);
+	gral_draw_context_fill_linear_gradient(draw_context, start_x, start_y, end_x, end_y, stops, count);
+}
+
 void gral_draw_context_draw_clipped(struct gral_draw_context *draw_context, void (*callback)(struct gral_draw_context *draw_context, void *user_data), void *user_data) {
 	CGContextSaveGState((CGContextRef)draw_context);
 	CGContextClip((CGContextRef)draw_context);

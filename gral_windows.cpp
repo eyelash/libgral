@@ -821,6 +821,19 @@ void gral_draw_context_curve_to(gral_draw_context *draw_context, float x1, float
 	draw_context->sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), point));
 }
 
+static ComPointer<ID2D1LinearGradientBrush> create_linear_gradient_brush(gral_draw_context *draw_context, float start_x, float start_y, float end_x, float end_y, gral_gradient_stop const *stops, int count) {
+	Buffer<D2D1_GRADIENT_STOP> gradient_stops(count);
+	for (int i = 0; i < count; i++) {
+		gradient_stops[i].position = stops[i].position;
+		gradient_stops[i].color = D2D1::ColorF(stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
+	}
+	ComPointer<ID2D1GradientStopCollection> gradient_stop_collection;
+	draw_context->target->CreateGradientStopCollection(gradient_stops, count, &gradient_stop_collection);
+	ComPointer<ID2D1LinearGradientBrush> brush;
+	draw_context->target->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(start_x, start_y), D2D1::Point2F(end_x, end_y)), gradient_stop_collection, &brush);
+	return brush;
+}
+
 void gral_draw_context_fill(gral_draw_context *draw_context, float red, float green, float blue, float alpha) {
 	if (draw_context->open) {
 		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
@@ -846,15 +859,7 @@ void gral_draw_context_fill_linear_gradient(gral_draw_context *draw_context, flo
 	}
 	draw_context->sink->Close();
 
-	Buffer<D2D1_GRADIENT_STOP> gradient_stops(count);
-	for (int i = 0; i < count; i++) {
-		gradient_stops[i].position = stops[i].position;
-		gradient_stops[i].color = D2D1::ColorF(stops[i].red, stops[i].green, stops[i].blue, stops[i].alpha);
-	}
-	ComPointer<ID2D1GradientStopCollection> gradient_stop_collection;
-	draw_context->target->CreateGradientStopCollection(gradient_stops, count, &gradient_stop_collection);
-	ComPointer<ID2D1LinearGradientBrush> brush;
-	draw_context->target->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(start_x, start_y), D2D1::Point2F(end_x, end_y)), gradient_stop_collection, &brush);
+	ComPointer<ID2D1LinearGradientBrush> brush = create_linear_gradient_brush(draw_context, start_x, start_y, end_x, end_y, stops, count);
 	draw_context->target->FillGeometry(draw_context->path, brush);
 
 	draw_context->sink->Release();
@@ -873,6 +878,23 @@ void gral_draw_context_stroke(gral_draw_context *draw_context, float line_width,
 
 	ComPointer<ID2D1SolidColorBrush> brush;
 	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
+	draw_context->target->DrawGeometry(draw_context->path, brush, line_width, stroke_style);
+
+	draw_context->sink->Release();
+	draw_context->path->Release();
+	factory->CreatePathGeometry(&draw_context->path);
+	draw_context->path->Open(&draw_context->sink);
+	draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
+}
+
+void gral_draw_context_stroke_linear_gradient(gral_draw_context *draw_context, float line_width, float start_x, float start_y, float end_x, float end_y, gral_gradient_stop const *stops, int count) {
+	if (draw_context->open) {
+		draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
+		draw_context->open = false;
+	}
+	draw_context->sink->Close();
+
+	ComPointer<ID2D1LinearGradientBrush> brush = create_linear_gradient_brush(draw_context, start_x, start_y, end_x, end_y, stops, count);
 	draw_context->target->DrawGeometry(draw_context->path, brush, line_width, stroke_style);
 
 	draw_context->sink->Release();
