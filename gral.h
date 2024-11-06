@@ -139,6 +139,7 @@ int gral_text_x_to_index(struct gral_text *text, float x);
 
 void gral_draw_context_draw_image(struct gral_draw_context *draw_context, struct gral_image *image, float x, float y);
 void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y, float red, float green, float blue, float alpha);
+void gral_draw_context_add_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y);
 void gral_draw_context_close_path(struct gral_draw_context *draw_context);
 void gral_draw_context_move_to(struct gral_draw_context *draw_context, float x, float y);
 void gral_draw_context_line_to(struct gral_draw_context *draw_context, float x, float y);

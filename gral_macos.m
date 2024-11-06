@@ -270,6 +270,30 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 	CFRelease(line);
 }
 
+void gral_draw_context_add_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y) {
+	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
+	CGContextTranslateCTM((CGContextRef)draw_context, x, y);
+	CGContextSetTextMatrix((CGContextRef)draw_context, CGAffineTransformMakeScale(1.0f, -1.0f));
+	CFArrayRef glyphRuns = CTLineGetGlyphRuns(line);
+	for (int i = 0; i < CFArrayGetCount(glyphRuns); i++) {
+		CTRunRef run = CFArrayGetValueAtIndex(glyphRuns, i);
+		CGPoint const *positions = CTRunGetPositionsPtr(run);
+		CGGlyph const *glyphs = CTRunGetGlyphsPtr(run);
+		int count = CTRunGetGlyphCount(run);
+		CFDictionaryRef attributes = CTRunGetAttributes(run);
+		CTFontRef font = CFDictionaryGetValue(attributes, kCTFontAttributeName);
+		for (int j = 0; j < count; j++) {
+			CGContextSetTextPosition((CGContextRef)draw_context, positions[j].x, positions[j].y);
+			CGAffineTransform matrix = CGContextGetTextMatrix((CGContextRef)draw_context);
+			CGPathRef path = CTFontCreatePathForGlyph(font, glyphs[j], &matrix);
+			CGContextAddPath((CGContextRef)draw_context, path);
+			CGPathRelease(path);
+		}
+	}
+	CGContextTranslateCTM((CGContextRef)draw_context, -x, -y);
+	CFRelease(line);
+}
+
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
 	CGContextClosePath((CGContextRef)draw_context);
 }

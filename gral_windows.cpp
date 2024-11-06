@@ -797,6 +797,10 @@ void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *tex
 	text->layout->Draw(draw_context, renderer, x, y-line_metrics.baseline);
 }
 
+void gral_draw_context_add_text(gral_draw_context *draw_context, gral_text *text, float x, float y) {
+	// TODO: implement
+}
+
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
 	draw_context->sink->EndFigure(D2D1_FIGURE_END_CLOSED);
 	draw_context->open = false;

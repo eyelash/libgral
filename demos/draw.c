@@ -5,12 +5,17 @@
 
 #define RAD(deg) ((deg) * ((float)M_PI / 180.0f))
 
+#define FONT_SIZE 80.0f
+
 struct demo_application {
 	struct gral_application *application;
 };
 
 struct demo_window {
 	struct gral_window *window;
+	struct gral_text *text;
+	float ascent;
+	float descent;
 };
 
 static void destroy(void *user_data) {
@@ -81,22 +86,57 @@ static void add_star(struct gral_draw_context *draw_context, float x, float y, f
 	gral_draw_context_close_path(draw_context);
 }
 
-static void draw(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data) {
-	add_rectangle(draw_context, 20.0f, 20.0f, 160.0f, 160.0f);
-	gral_draw_context_fill(draw_context, 0.9f, 0.1f, 0.1f, 1.0f);
-	add_rectangle(draw_context, 220.0f, 20.0f, 160.0f, 160.0f);
-	gral_draw_context_stroke(draw_context, 4.0f, 0.1f, 0.1f, 0.9f, 1.0f);
-	add_rectangle(draw_context, 420.0f, 20.0f, 160.0f, 160.0f);
-	struct gral_gradient_stop stops[] = {
-		{0.0f, 0.9f, 0.1f, 0.1f, 1.0f},
-		{0.3f, 0.9f, 0.9f, 0.1f, 1.0f},
-		{1.0f, 0.1f, 0.9f, 0.1f, 1.0f}
-	};
-	gral_draw_context_fill_linear_gradient(draw_context, 420.0f, 20.0f, 580.0f, 100.0f, stops, 3);
+static void add_shapes(struct gral_draw_context *draw_context) {
 	add_circle(draw_context, 20.0f, 220.0f, 160.0f);
 	add_rounded_rectangle(draw_context, 220.0f, 220.0f, 160.0f, 160.0f, 20.0f);
 	add_star(draw_context, 420.0f, 220.0f, 160.0f);
-	gral_draw_context_fill(draw_context, 0.1f, 0.1f, 0.9f, 1.0f);
+}
+
+static void draw(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data) {
+	struct demo_window *window = user_data;
+	float text_width = gral_text_get_width(window->text, draw_context);
+	float text_height = window->ascent + window->descent;
+	float text_x = (600.0f - text_width) / 2.0f;
+	float text_y = (200.0f - text_height) / 2.0f + window->ascent;
+
+	// background
+	add_rectangle(draw_context, 0.0f, 0.0f, width, height);
+	gral_draw_context_fill(draw_context, 0.2f, 0.2f, 0.2f, 1.0f);
+
+	// grid
+	add_rectangle(draw_context, 0.0f, roundf(text_y), 600.0f, 1.0f);
+	add_rectangle(draw_context, 0.0f, roundf(text_y - window->ascent), 600.0f, 1.0f);
+	add_rectangle(draw_context, 0.0f, roundf(text_y + window->descent), 600.0f, 1.0f);
+	int i;
+	for (i = 0; i <= 7; i++) {
+		float x = gral_text_index_to_x(window->text, i);
+		add_rectangle(draw_context, roundf(text_x + x), 0.f, 1.0f, 200.0f);
+	}
+	static struct gral_gradient_stop const grid_stops[] = {
+		{0.0f, 0.4f, 0.4f, 0.4f, 1.0f},
+		{1.0f, 0.2f, 0.2f, 0.2f, 1.0f}
+	};
+	gral_draw_context_fill_linear_gradient(draw_context, 0.0f, 0.0f, 0.0f, 200.0f, grid_stops, 2);
+
+	// text and shapes
+	gral_draw_context_add_text(draw_context, window->text, roundf(text_x), roundf(text_y));
+	add_shapes(draw_context);
+	static struct gral_gradient_stop const fill_stops[] = {
+		{0.00f, 0.7f, 0.7f, 0.0f, 1.0f}, // yellow
+		{0.35f, 0.7f, 0.4f, 0.0f, 1.0f}, // orange
+		{0.65f, 0.7f, 0.0f, 0.0f, 1.0f}, // red
+		{1.00f, 0.7f, 0.0f, 0.4f, 1.0f}  // purple
+	};
+	gral_draw_context_fill_linear_gradient(draw_context, 20.0f, 0.0f, 580.0f, 0.0f, fill_stops, 4);
+	gral_draw_context_add_text(draw_context, window->text, roundf(text_x), roundf(text_y));
+	add_shapes(draw_context);
+	static struct gral_gradient_stop const stroke_stops[] = {
+		{0.00f, 1.0f, 1.0f, 0.0f, 1.0f}, // yellow
+		{0.35f, 1.0f, 0.5f, 0.0f, 1.0f}, // orange
+		{0.65f, 1.0f, 0.0f, 0.0f, 1.0f}, // red
+		{1.00f, 1.0f, 0.0f, 0.5f, 1.0f}  // purple
+	};
+	gral_draw_context_stroke_linear_gradient(draw_context, 2.0f, 20.0f, 0.0f, 580.0f, 0.0f, stroke_stops, 4);
 }
 
 static void resize(int width, int height, void *user_data) {
@@ -178,6 +218,10 @@ static void create_window(void *user_data) {
 		&focus_leave
 	};
 	window->window = gral_window_create(application->application, 600, 400, "gral draw demo", &window_interface, window);
+	struct gral_font *font = gral_font_create_default(window->window, FONT_SIZE);
+	window->text = gral_text_create(window->window, "libgral", font);
+	gral_font_get_metrics(window->window, font, &window->ascent, &window->descent);
+	gral_font_delete(font);
 	gral_window_set_minimum_size(window->window, 600, 400);
 	gral_window_show(window->window);
 }

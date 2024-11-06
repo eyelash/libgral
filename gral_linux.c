@@ -221,6 +221,12 @@ void gral_draw_context_draw_text(struct gral_draw_context *draw_context, struct 
 	pango_cairo_show_layout_line((cairo_t *)draw_context, line);
 }
 
+void gral_draw_context_add_text(struct gral_draw_context *draw_context, struct gral_text *text, float x, float y) {
+	cairo_move_to((cairo_t *)draw_context, x, y);
+	PangoLayoutLine *line = pango_layout_get_line_readonly(PANGO_LAYOUT(text), 0);
+	pango_cairo_layout_line_path((cairo_t *)draw_context, line);
+}
+
 void gral_draw_context_close_path(struct gral_draw_context *draw_context) {
 	cairo_close_path((cairo_t *)draw_context);
 }
