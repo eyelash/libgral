@@ -39,7 +39,7 @@ static void gral_application_activate(GApplication *gapplication) {
 	GralApplication *application = GRAL_APPLICATION(gapplication);
 	application->interface->open_empty(application->user_data);
 }
-static void gral_application_open(GApplication *gapplication, GFile **files, gint n_files, const gchar *hint) {
+static void gral_application_open(GApplication *gapplication, GFile **files, gint n_files, gchar const *hint) {
 	GralApplication *application = GRAL_APPLICATION(gapplication);
 	for (gint i = 0; i < n_files; i++) {
 		char *path = g_file_get_path(files[i]);

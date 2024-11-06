@@ -21,7 +21,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	target_link_libraries(gral PkgConfig::GTK PkgConfig::ALSA m)
 	target_compile_definitions(gral PUBLIC GRAL_LINUX)
 endif()
-target_include_directories(gral PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(gral PUBLIC ${PROJECT_SOURCE_DIR})
 
 option(BUILD_DEMOS "build the demo applications")
 if(BUILD_DEMOS)

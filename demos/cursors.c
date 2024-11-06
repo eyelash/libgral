@@ -33,7 +33,7 @@ static void draw(struct gral_draw_context *draw_context, int x, int y, int width
 	add_rectangle(draw_context, 220.0f, 20.0f, 160.0f, 160.0f);
 	add_rectangle(draw_context, 20.0f, 220.0f, 160.0f, 160.0f);
 	add_rectangle(draw_context, 220.0f, 220.0f, 160.0f, 160.0f);
-	gral_draw_context_fill(draw_context, 0.7f, 0.7f, 0.7f, 1.0f);
+	gral_draw_context_fill(draw_context, 0.8f, 0.8f, 0.8f, 1.0f);
 }
 
 static void resize(int width, int height, void *user_data) {
