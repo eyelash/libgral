@@ -5,3 +5,5 @@ libgral is a low-level abstraction layer exposing a unified C API to open window
 ![Linux screenshot](https://github.com/user-attachments/assets/5854a18c-8a36-41e5-bb98-bf025266fe46)
 
 ![macOS screenshot](https://github.com/user-attachments/assets/6a34fc32-52c2-4c3f-96ee-5f1bf3e2fc95)
+
+![Windows screenshot](https://github.com/user-attachments/assets/c55333e1-5f19-4647-80d6-b5cad8ee2c5c)

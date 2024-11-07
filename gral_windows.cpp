@@ -602,20 +602,36 @@ public:
 
 class GralTextRenderer: public IDWriteTextRenderer {
 	ULONG reference_count;
-	D2D1_COLOR_F color;
+	ComPointer<ID2D1SolidColorBrush> brush;
 public:
-	GralTextRenderer(D2D1_COLOR_F const &color): reference_count(1), color(color) {}
+	GralTextRenderer(ComPointer<ID2D1SolidColorBrush> const &brush): reference_count(1), brush(brush) {}
 	IFACEMETHOD(DrawGlyphRun)(void *clientDrawingContext, FLOAT baselineOriginX, FLOAT baselineOriginY, DWRITE_MEASURING_MODE measuringMode, DWRITE_GLYPH_RUN const *glyphRun, DWRITE_GLYPH_RUN_DESCRIPTION const *glyphRunDescription, IUnknown *clientDrawingEffect) {
 		gral_draw_context *draw_context = (gral_draw_context *)clientDrawingContext;
-		ComPointer<ID2D1SolidColorBrush> brush;
-		if (clientDrawingEffect) {
-			ColorDrawingEffect *color_drawing_effect = (ColorDrawingEffect *)clientDrawingEffect;
-			draw_context->target->CreateSolidColorBrush(color_drawing_effect->get_color(), &brush);
+		if (brush) {
+			if (clientDrawingEffect) {
+				ColorDrawingEffect *color_drawing_effect = (ColorDrawingEffect *)clientDrawingEffect;
+				ComPointer<ID2D1SolidColorBrush> effect_brush;
+				draw_context->target->CreateSolidColorBrush(color_drawing_effect->get_color(), &effect_brush);
+				draw_context->target->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, effect_brush, measuringMode);
+			}
+			else {
+				draw_context->target->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, brush, measuringMode);
+			}
 		}
 		else {
-			draw_context->target->CreateSolidColorBrush(color, &brush);
+			ComPointer<ID2D1PathGeometry> path;
+			factory->CreatePathGeometry(&path);
+			ComPointer<ID2D1GeometrySink> sink;
+			path->Open(&sink);
+			glyphRun->fontFace->GetGlyphRunOutline(glyphRun->fontEmSize, glyphRun->glyphIndices, glyphRun->glyphAdvances, glyphRun->glyphOffsets, glyphRun->glyphCount, glyphRun->isSideways, glyphRun->bidiLevel % 2, sink);
+			sink->Close();
+			if (draw_context->open) {
+				draw_context->sink->EndFigure(D2D1_FIGURE_END_OPEN);
+				draw_context->open = false;
+			}
+			path->Outline(D2D1::Matrix3x2F(1.0f, 0.0f, 0.0f, 1.0f, baselineOriginX, baselineOriginY), draw_context->sink);
+			draw_context->sink->SetFillMode(D2D1_FILL_MODE_WINDING);
 		}
-		draw_context->target->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, brush, measuringMode);
 		return S_OK;
 	}
 	IFACEMETHOD(DrawInlineObject)(void *clientDrawingContext, FLOAT originX, FLOAT originY, IDWriteInlineObject *inlineObject, BOOL isSideways, BOOL isRightToLeft, IUnknown *clientDrawingEffect) {
@@ -792,13 +808,21 @@ void gral_draw_context_draw_text(gral_draw_context *draw_context, gral_text *tex
 	DWRITE_LINE_METRICS line_metrics;
 	UINT32 count = 1;
 	text->layout->GetLineMetrics(&line_metrics, count, &count);
+	ComPointer<ID2D1SolidColorBrush> brush;
+	draw_context->target->CreateSolidColorBrush(D2D1::ColorF(red, green, blue, alpha), &brush);
 	ComPointer<GralTextRenderer> renderer;
-	*&renderer = new GralTextRenderer(D2D1::ColorF(red, green, blue, alpha));
+	*&renderer = new GralTextRenderer(brush);
 	text->layout->Draw(draw_context, renderer, x, y-line_metrics.baseline);
 }
 
 void gral_draw_context_add_text(gral_draw_context *draw_context, gral_text *text, float x, float y) {
-	// TODO: implement
+	DWRITE_LINE_METRICS line_metrics;
+	UINT32 count = 1;
+	text->layout->GetLineMetrics(&line_metrics, count, &count);
+	ComPointer<ID2D1SolidColorBrush> brush;
+	ComPointer<GralTextRenderer> renderer;
+	*&renderer = new GralTextRenderer(brush);
+	text->layout->Draw(draw_context, renderer, x, y-line_metrics.baseline);
 }
 
 void gral_draw_context_close_path(gral_draw_context *draw_context) {
