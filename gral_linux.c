@@ -149,7 +149,9 @@ struct gral_text *gral_text_create(struct gral_window *window, char const *text,
 	PangoLayout *layout = pango_layout_new(context);
 	pango_layout_set_text(layout, text, -1);
 	pango_layout_set_font_description(layout, (PangoFontDescription *)font);
-	pango_layout_set_attributes(layout, pango_attr_list_new());
+	PangoAttrList *attr_list = pango_attr_list_new();
+	pango_layout_set_attributes(layout, attr_list);
+	pango_attr_list_unref(attr_list);
 	return (struct gral_text *)layout;
 }
 
