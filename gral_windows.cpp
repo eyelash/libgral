@@ -1495,6 +1495,7 @@ gral_midi *gral_midi_create(gral_application *application, char const *name, gra
 	midi->iface = iface;
 	midi->user_data = user_data;
 	midi->midi = NULL;
+	return midi;
 	if (midiInGetNumDevs() > 0) {
 		midiInOpen(&midi->midi, 0, (DWORD_PTR)&midi_callback, (DWORD_PTR)midi, CALLBACK_FUNCTION);
 		midiInStart(midi->midi);
