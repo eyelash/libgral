@@ -175,11 +175,11 @@ static void scroll(float dx, float dy, void *user_data) {
 
 }
 
-static void key_press(int key, int scan_code, int modifiers, void *user_data) {
+static void key_press(int key, int key_code, int modifiers, void *user_data) {
 
 }
 
-static void key_release(int key, int scan_code, void *user_data) {
+static void key_release(int key, int key_code, void *user_data) {
 
 }
 

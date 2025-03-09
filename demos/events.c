@@ -92,12 +92,12 @@ static uint32_t utf8_get_next(char const **utf8) {
 	return 0;
 }
 
-static void key_press(int key, int scan_code, int modifiers, void *user_data) {
-	printf("key press: %X (%X) (modifiers: %X)\n", key, scan_code, modifiers);
+static void key_press(int key, int key_code, int modifiers, void *user_data) {
+	printf("key press: %X (%X) (modifiers: %X)\n", key, key_code, modifiers);
 }
 
-static void key_release(int key, int scan_code, void *user_data) {
-	printf("key release: %X (%X)\n", key, scan_code);
+static void key_release(int key, int key_code, void *user_data) {
+	printf("key release: %X (%X)\n", key, key_code);
 }
 
 static void text(char const *s, void *user_data) {

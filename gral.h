@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2024 Elias Aebi
+Copyright (c) 2016-2025 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -90,8 +90,8 @@ struct gral_window_interface {
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
 	void (*double_click)(float x, float y, int button, int modifiers, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
-	void (*key_press)(int key, int scan_code, int modifiers, void *user_data);
-	void (*key_release)(int key, int scan_code, void *user_data);
+	void (*key_press)(int key, int key_code, int modifiers, void *user_data);
+	void (*key_release)(int key, int key_code, void *user_data);
 	void (*text)(char const *s, void *user_data);
 	void (*focus_enter)(void *user_data);
 	void (*focus_leave)(void *user_data);
