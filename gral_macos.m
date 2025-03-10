@@ -650,6 +650,48 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 	unsigned short key_code = [event keyCode];
 	interface->key_release(get_key(key_code), get_key_code(key_code), user_data);
 }
+- (void)flagsChanged:(NSEvent *)event {
+	unsigned short key_code = [event keyCode];
+	NSEventModifierFlags modifier_mask;
+	switch (key_code) {
+	case kVK_CapsLock:
+		modifier_mask = NSEventModifierFlagCapsLock;
+		break;
+	case kVK_Shift:
+		modifier_mask = NX_DEVICELSHIFTKEYMASK;
+		break;
+	case kVK_RightShift:
+		modifier_mask = NX_DEVICERSHIFTKEYMASK;
+		break;
+	case kVK_Option:
+		modifier_mask = NX_DEVICELALTKEYMASK;
+		break;
+	case kVK_RightOption:
+		modifier_mask = NX_DEVICERALTKEYMASK;
+		break;
+	case kVK_Control:
+		modifier_mask = NX_DEVICELCTLKEYMASK;
+		break;
+	case kVK_RightControl:
+		modifier_mask = NX_DEVICERCTLKEYMASK;
+		break;
+	case kVK_Command:
+		modifier_mask = NX_DEVICELCMDKEYMASK;
+		break;
+	case kVK_RightCommand:
+		modifier_mask = NX_DEVICERCMDKEYMASK;
+		break;
+	default:
+		return;
+	}
+	NSEventModifierFlags modifier_flags = [event modifierFlags];
+	if (modifier_flags & modifier_mask) {
+		interface->key_press(0, get_key_code(key_code), get_modifiers(modifier_flags), 0, user_data);
+	}
+	else {
+		interface->key_release(0, get_key_code(key_code), user_data);
+	}
+}
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
 	return NO;
