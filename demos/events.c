@@ -70,6 +70,114 @@ static void scroll(float dx, float dy, void *user_data) {
 	printf("scroll {%f, %f}\n", dx, dy);
 }
 
+static char const *key_code_to_string(int key_code) {
+	switch (key_code) {
+	case 0x01: return "Escape";
+	case 0x02: return "Digit1";
+	case 0x03: return "Digit2";
+	case 0x04: return "Digit3";
+	case 0x05: return "Digit4";
+	case 0x06: return "Digit5";
+	case 0x07: return "Digit6";
+	case 0x08: return "Digit7";
+	case 0x09: return "Digit8";
+	case 0x0A: return "Digit9";
+	case 0x0B: return "Digit0";
+	case 0x0C: return "Minus";
+	case 0x0D: return "Equal";
+	case 0x0E: return "Backspace";
+	case 0x0F: return "Tab";
+	case 0x10: return "KeyQ";
+	case 0x11: return "KeyW";
+	case 0x12: return "KeyE";
+	case 0x13: return "KeyR";
+	case 0x14: return "KeyT";
+	case 0x15: return "KeyY";
+	case 0x16: return "KeyU";
+	case 0x17: return "KeyI";
+	case 0x18: return "KeyO";
+	case 0x19: return "KeyP";
+	case 0x1A: return "BracketLeft";
+	case 0x1B: return "BracketRight";
+	case 0x1C: return "Enter";
+	case 0x1D: return "ControlLeft";
+	case 0x1E: return "KeyA";
+	case 0x1F: return "KeyS";
+	case 0x20: return "KeyD";
+	case 0x21: return "KeyF";
+	case 0x22: return "KeyG";
+	case 0x23: return "KeyH";
+	case 0x24: return "KeyJ";
+	case 0x25: return "KeyK";
+	case 0x26: return "KeyL";
+	case 0x27: return "Semicolon";
+	case 0x28: return "Quote";
+	case 0x29: return "Backquote";
+	case 0x2A: return "ShiftLeft";
+	case 0x2B: return "Backslash";
+	case 0x2C: return "KeyZ";
+	case 0x2D: return "KeyX";
+	case 0x2E: return "KeyC";
+	case 0x2F: return "KeyV";
+	case 0x30: return "KeyB";
+	case 0x31: return "KeyN";
+	case 0x32: return "KeyM";
+	case 0x33: return "Comma";
+	case 0x34: return "Period";
+	case 0x35: return "Slash";
+	case 0x36: return "ShiftRight";
+	case 0x37: return "NumpadMultiply";
+	case 0x38: return "AltLeft";
+	case 0x39: return "Space";
+	case 0x3A: return "CapsLock";
+	case 0x3B: return "F1";
+	case 0x3C: return "F2";
+	case 0x3D: return "F3";
+	case 0x3E: return "F4";
+	case 0x3F: return "F5";
+	case 0x40: return "F6";
+	case 0x41: return "F7";
+	case 0x42: return "F8";
+	case 0x43: return "F9";
+	case 0x44: return "F10";
+	case 0x45: return "NumLock";
+	case 0x47: return "Numpad7";
+	case 0x48: return "Numpad8";
+	case 0x49: return "Numpad9";
+	case 0x4A: return "NumpadSubtract";
+	case 0x4B: return "Numpad4";
+	case 0x4C: return "Numpad5";
+	case 0x4D: return "Numpad6";
+	case 0x4E: return "NumpadAdd";
+	case 0x4F: return "Numpad1";
+	case 0x50: return "Numpad2";
+	case 0x51: return "Numpad3";
+	case 0x52: return "Numpad0";
+	case 0x53: return "NumpadDecimal";
+	case 0x57: return "F11";
+	case 0x58: return "F12";
+	case 0x60: return "NumpadEnter";
+	case 0x61: return "ControlRight";
+	case 0x62: return "NumpadDevide";
+	case 0x64: return "AltRight";
+	case 0x66: return "Home";
+	case 0x67: return "ArrowUp";
+	case 0x68: return "PageUp";
+	case 0x69: return "ArrowLeft";
+	case 0x6A: return "ArrowRight";
+	case 0x6B: return "End";
+	case 0x6C: return "ArrowDown";
+	case 0x6D: return "PageDown";
+	case 0x6E: return "Insert";
+	case 0x6F: return "Delete";
+	case 0x75: return "NumpadEqual";
+	case 0x7D: return "MetaLeft";
+	case 0x7E: return "MetaRight";
+	case 0x7F: return "ContextMenu";
+	default: return "";
+	}
+}
+
 static uint32_t utf8_get_next(char const **utf8) {
 	char const *c = *utf8;
 	if ((c[0] & 0x80) == 0x00) {
@@ -93,11 +201,11 @@ static uint32_t utf8_get_next(char const **utf8) {
 }
 
 static void key_press(int key, int key_code, int modifiers, int is_repeat, void *user_data) {
-	printf("key press: %X (%X) (modifiers: %X) %s\n", key, key_code, modifiers, is_repeat ? "(repeat)" : "");
+	printf("key press:   %X %X %s (modifiers: %X) %s\n", key, key_code, key_code_to_string(key_code), modifiers, is_repeat ? "(repeat)" : "");
 }
 
 static void key_release(int key, int key_code, void *user_data) {
-	printf("key release: %X (%X)\n", key, key_code);
+	printf("key release: %X %X %s\n", key, key_code, key_code_to_string(key_code));
 }
 
 static void text(char const *s, void *user_data) {
