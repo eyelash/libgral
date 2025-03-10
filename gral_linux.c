@@ -465,11 +465,7 @@ static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event)
 	GralArea *area = GRAL_AREA(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
-	int key = get_key(event);
-	int is_repeat = event->keyval == window->last_key;
-	if (key) {
-		window->interface->key_press(key, event->hardware_keycode - 8, get_modifiers(event->state), is_repeat, window->user_data);
-	}
+	window->interface->key_press(get_key(event), event->hardware_keycode - 8, get_modifiers(event->state), event->keyval == window->last_key, window->user_data);
 	window->last_key = event->keyval;
 	return GDK_EVENT_STOP;
 }
@@ -477,10 +473,7 @@ static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *even
 	GralArea *area = GRAL_AREA(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
-	int key = get_key(event);
-	if (key) {
-		window->interface->key_release(key, event->hardware_keycode - 8, window->user_data);
-	}
+	window->interface->key_release(get_key(event), event->hardware_keycode - 8, window->user_data);
 	if (event->keyval == window->last_key) {
 		window->last_key = GDK_KEY_VoidSymbol;
 	}

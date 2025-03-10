@@ -414,18 +414,14 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 			UINT scan_code = (lParam >> 16) & 0xFF;
 			UINT previous_state = (lParam >> 30) & 0x1;
 			int key = get_key((UINT)wParam, scan_code);
-			if (key) {
-				window_data->iface->key_press(key, scan_code, get_modifiers(), previous_state, window_data->user_data);
-			}
+			window_data->iface->key_press(key, scan_code, get_modifiers(), previous_state, window_data->user_data);
 			return 0;
 		}
 	case WM_KEYUP:
 		{
 			UINT scan_code = (lParam >> 16) & 0xFF;
 			int key = get_key((UINT)wParam, scan_code);
-			if (key) {
-				window_data->iface->key_release(key, scan_code, window_data->user_data);
-			}
+			window_data->iface->key_release(key, scan_code, window_data->user_data);
 			return 0;
 		}
 	case WM_CHAR:

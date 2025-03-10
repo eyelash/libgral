@@ -598,17 +598,11 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 - (void)keyDown:(NSEvent *)event {
 	[self interpretKeyEvents:[NSArray arrayWithObject:event]];
 	unsigned short key_code = [event keyCode];
-	int key = get_key(key_code);
-	if (key) {
-		interface->key_press(key, get_key_code(key_code), get_modifiers([event modifierFlags]), [event isARepeat], user_data);
-	}
+	interface->key_press(get_key(key_code), get_key_code(key_code), get_modifiers([event modifierFlags]), [event isARepeat], user_data);
 }
 - (void)keyUp:(NSEvent *)event {
 	unsigned short key_code = [event keyCode];
-	int key = get_key(key_code);
-	if (key) {
-		interface->key_release(key, get_key_code(key_code), user_data);
-	}
+	interface->key_release(get_key(key_code), get_key_code(key_code), user_data);
 }
 // NSTextInputClient implementation
 - (BOOL)hasMarkedText {
