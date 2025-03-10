@@ -476,7 +476,8 @@ static int get_key_code(unsigned short key_code) {
 	default: return 0;
 	}
 }
-static int get_modifiers(NSEventModifierFlags modifier_flags) {
+static int get_modifiers(NSEvent *event) {
+	NSEventModifierFlags modifier_flags = [event modifierFlags];
 	int modifiers = 0;
 	if (modifier_flags & NSEventModifierFlagControl) modifiers |= GRAL_MODIFIER_CONTROL;
 	if (modifier_flags & NSEventModifierFlagOption) modifiers |= GRAL_MODIFIER_ALT;
@@ -558,7 +559,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)mouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	int modifiers = get_modifiers([event modifierFlags]);
+	int modifiers = get_modifiers(event);
 	interface->mouse_button_press(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
 		interface->double_click(location.x, location.y, GRAL_PRIMARY_MOUSE_BUTTON, modifiers, user_data);
@@ -566,7 +567,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)rightMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	int modifiers = get_modifiers([event modifierFlags]);
+	int modifiers = get_modifiers(event);
 	interface->mouse_button_press(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
 		interface->double_click(location.x, location.y, GRAL_SECONDARY_MOUSE_BUTTON, modifiers, user_data);
@@ -574,7 +575,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 }
 - (void)otherMouseDown:(NSEvent *)event {
 	NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
-	int modifiers = get_modifiers([event modifierFlags]);
+	int modifiers = get_modifiers(event);
 	interface->mouse_button_press(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
 	if ([event clickCount] == 2) {
 		interface->double_click(location.x, location.y, GRAL_MIDDLE_MOUSE_BUTTON, modifiers, user_data);
@@ -598,7 +599,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 - (void)keyDown:(NSEvent *)event {
 	[self interpretKeyEvents:[NSArray arrayWithObject:event]];
 	unsigned short key_code = [event keyCode];
-	interface->key_press(get_key(key_code), get_key_code(key_code), get_modifiers([event modifierFlags]), [event isARepeat], user_data);
+	interface->key_press(get_key(key_code), get_key_code(key_code), get_modifiers(event), [event isARepeat], user_data);
 }
 - (void)keyUp:(NSEvent *)event {
 	unsigned short key_code = [event keyCode];
