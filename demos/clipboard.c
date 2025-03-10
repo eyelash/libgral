@@ -67,7 +67,7 @@ static void scroll(float dx, float dy, void *user_data) {
 
 }
 
-static void key_press(int key, int key_code, int modifiers, void *user_data) {
+static void key_press(int key, int key_code, int modifiers, int is_repeat, void *user_data) {
 
 }
 

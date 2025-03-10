@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2024 Elias Aebi
+Copyright (c) 2016-2025 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -322,6 +322,7 @@ struct _GralWindow {
 	int cursor;
 	gboolean is_pointer_locked;
 	gint locked_pointer_x, locked_pointer_y;
+	guint last_key;
 };
 G_DEFINE_TYPE(GralWindow, gral_window, GTK_TYPE_APPLICATION_WINDOW)
 
@@ -465,9 +466,11 @@ static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event)
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
 	int key = get_key(event);
+	int is_repeat = event->keyval == window->last_key;
 	if (key) {
-		window->interface->key_press(key, event->hardware_keycode - 8, get_modifiers(event->state), window->user_data);
+		window->interface->key_press(key, event->hardware_keycode - 8, get_modifiers(event->state), is_repeat, window->user_data);
 	}
+	window->last_key = event->keyval;
 	return GDK_EVENT_STOP;
 }
 static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *event) {
@@ -477,6 +480,9 @@ static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *even
 	int key = get_key(event);
 	if (key) {
 		window->interface->key_release(key, event->hardware_keycode - 8, window->user_data);
+	}
+	if (event->keyval == window->last_key) {
+		window->last_key = GDK_KEY_VoidSymbol;
 	}
 	return GDK_EVENT_STOP;
 }
@@ -530,6 +536,7 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	window->is_cursor_hidden = FALSE;
 	window->cursor = GRAL_CURSOR_DEFAULT;
 	window->is_pointer_locked = FALSE;
+	window->last_key = GDK_KEY_VoidSymbol;
 	gtk_window_set_default_size(GTK_WINDOW(window), width, height);
 	gtk_window_set_title(GTK_WINDOW(window), title);
 	GtkWidget *area = g_object_new(GRAL_TYPE_AREA, NULL);

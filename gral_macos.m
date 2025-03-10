@@ -600,7 +600,7 @@ static int get_modifiers(NSEventModifierFlags modifier_flags) {
 	unsigned short key_code = [event keyCode];
 	int key = get_key(key_code);
 	if (key) {
-		interface->key_press(key, get_key_code(key_code), get_modifiers([event modifierFlags]), user_data);
+		interface->key_press(key, get_key_code(key_code), get_modifiers([event modifierFlags]), [event isARepeat], user_data);
 	}
 }
 - (void)keyUp:(NSEvent *)event {

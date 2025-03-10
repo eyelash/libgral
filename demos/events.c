@@ -92,8 +92,8 @@ static uint32_t utf8_get_next(char const **utf8) {
 	return 0;
 }
 
-static void key_press(int key, int key_code, int modifiers, void *user_data) {
-	printf("key press: %X (%X) (modifiers: %X)\n", key, key_code, modifiers);
+static void key_press(int key, int key_code, int modifiers, int is_repeat, void *user_data) {
+	printf("key press: %X (%X) (modifiers: %X) %s\n", key, key_code, modifiers, is_repeat ? "(repeat)" : "");
 }
 
 static void key_release(int key, int key_code, void *user_data) {

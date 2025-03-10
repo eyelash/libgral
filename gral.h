@@ -90,7 +90,7 @@ struct gral_window_interface {
 	void (*mouse_button_release)(float x, float y, int button, void *user_data);
 	void (*double_click)(float x, float y, int button, int modifiers, void *user_data);
 	void (*scroll)(float dx, float dy, void *user_data);
-	void (*key_press)(int key, int key_code, int modifiers, void *user_data);
+	void (*key_press)(int key, int key_code, int modifiers, int is_repeat, void *user_data);
 	void (*key_release)(int key, int key_code, void *user_data);
 	void (*text)(char const *s, void *user_data);
 	void (*focus_enter)(void *user_data);

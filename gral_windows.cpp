@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2024 Elias Aebi
+Copyright (c) 2016-2025 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -412,9 +412,10 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	case WM_KEYDOWN:
 		{
 			UINT scan_code = (lParam >> 16) & 0xFF;
+			UINT previous_state = (lParam >> 30) & 0x1;
 			int key = get_key((UINT)wParam, scan_code);
 			if (key) {
-				window_data->iface->key_press(key, scan_code, get_modifiers(), window_data->user_data);
+				window_data->iface->key_press(key, scan_code, get_modifiers(), previous_state, window_data->user_data);
 			}
 			return 0;
 		}
