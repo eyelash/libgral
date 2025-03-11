@@ -461,11 +461,38 @@ static int get_key(GdkEventKey *event) {
 		}
 	}
 }
+static int get_key_code(GdkEventKey *event) {
+	int key_code = event->hardware_keycode - 8;
+	if (key_code <= 0x58) {
+		return key_code;
+	}
+	switch (key_code) {
+	case 0x60: return 0xE01C; // NUMPAD_ENTER
+	case 0x61: return 0xE01D; // CONTROL_RIGHT
+	case 0x62: return 0xE035; // NUMPAD_DEVIDE
+	case 0x64: return 0xE038; // ALT_RIGHT
+	case 0x66: return 0xE047; // HOME
+	case 0x67: return 0xE048; // ARROW_UP
+	case 0x68: return 0xE049; // PAGE_UP
+	case 0x69: return 0xE04B; // ARROW_LEFT
+	case 0x6A: return 0xE04D; // ARROW_RIGHT
+	case 0x6B: return 0xE04F; // END
+	case 0x6C: return 0xE050; // ARROW_DOWN
+	case 0x6D: return 0xE051; // PAGE_DOWN
+	case 0x6E: return 0xE052; // INSERT
+	case 0x6F: return 0xE053; // DELETE
+	case 0x75: return 0x59;   // NUMPAD_EQUAL
+	case 0x7D: return 0xE05B; // META_LEFT
+	case 0x7E: return 0xE05C; // META_RIGHT
+	case 0x7F: return 0xE05D; // CONTEXT_MENU
+	default: return 0;
+	}
+}
 static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
 	GralArea *area = GRAL_AREA(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
-	window->interface->key_press(get_key(event), event->hardware_keycode - 8, get_modifiers(event->state), event->keyval == window->last_key, window->user_data);
+	window->interface->key_press(get_key(event), get_key_code(event), get_modifiers(event->state), event->keyval == window->last_key, window->user_data);
 	window->last_key = event->keyval;
 	return GDK_EVENT_STOP;
 }
@@ -473,7 +500,7 @@ static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *even
 	GralArea *area = GRAL_AREA(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
-	window->interface->key_release(get_key(event), event->hardware_keycode - 8, window->user_data);
+	window->interface->key_release(get_key(event), get_key_code(event), window->user_data);
 	if (event->keyval == window->last_key) {
 		window->last_key = GDK_KEY_VoidSymbol;
 	}
