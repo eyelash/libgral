@@ -485,6 +485,13 @@ static int get_key_code(GdkEventKey *event) {
 	case 0x7D: return 0xE05B; // META_LEFT
 	case 0x7E: return 0xE05C; // META_RIGHT
 	case 0x7F: return 0xE05D; // CONTEXT_MENU
+	case 0xB7: return 0x64;   // F13
+	case 0xB8: return 0x65;   // F14
+	case 0xB9: return 0x66;   // F15
+	case 0xBA: return 0x67;   // F16
+	case 0xBB: return 0x68;   // F17
+	case 0xBC: return 0x69;   // F18
+	case 0xBD: return 0x6A;   // F19
 	default: return 0;
 	}
 }

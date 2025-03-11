@@ -157,6 +157,13 @@ static char const *key_code_to_string(int key_code) {
 	case 0x57: return "F11";
 	case 0x58: return "F12";
 	case 0x59: return "NumpadEqual";
+	case 0x64: return "F13";
+	case 0x65: return "F14";
+	case 0x66: return "F15";
+	case 0x67: return "F16";
+	case 0x68: return "F17";
+	case 0x69: return "F18";
+	case 0x6A: return "F19";
 	case 0xE01C: return "NumpadEnter";
 	case 0xE01D: return "ControlRight";
 	case 0xE035: return "NumpadDevide";
