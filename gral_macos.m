@@ -13,6 +13,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "gral.h"
 #import <Cocoa/Cocoa.h>
 #import <Carbon/Carbon.h>
+#import <CoreAudio/CoreAudio.h>
+#import <AudioUnit/AudioUnit.h>
+#import <CoreMIDI/CoreMIDI.h>
 #include <stdlib.h>
 
 static NSUInteger get_next_code_point(CFStringRef string, NSUInteger i, uint32_t *code_point) {
@@ -962,32 +965,38 @@ void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watc
     AUDIO
  ==========*/
 
-#import <AudioToolbox/AudioToolbox.h>
-
-#define FRAMES 1024
-
 typedef struct {
 	int (*callback)(float *buffer, int frames, void *user_data);
 	void *user_data;
+	AudioComponentInstance instance;
+	CFRunLoopRef run_loop;
 } AudioCallbackData;
 
-static void audio_callback(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
+static int audio_callback(void *user_data, AudioUnitRenderActionFlags *action_flags, AudioTimeStamp const *time_stamp, unsigned int bus_number, unsigned int number_frames, AudioBufferList *data) {
 	AudioCallbackData *callback_data = user_data;
-	int frames = buffer->mAudioDataBytesCapacity / (2 * sizeof(float));
-	frames = callback_data->callback(buffer->mAudioData, frames, callback_data->user_data);
-	if (frames > 0) {
-		buffer->mAudioDataByteSize = frames * 2 * sizeof(float);
-		AudioQueueEnqueueBuffer(queue, buffer, buffer->mPacketDescriptionCount, buffer->mPacketDescriptions);
+	float *buffer = data->mBuffers[0].mData;
+	int frames = callback_data->callback(buffer, number_frames, callback_data->user_data);
+	for (unsigned int t = frames; t < number_frames; t++) {
+		buffer[t*2] = 0.0f;
+		buffer[t*2+1] = 0.0f;
 	}
-	else {
-		AudioQueueStop(queue, NO);
-		CFRunLoopStop(CFRunLoopGetCurrent());
+	if (frames == 0) {
+		AudioOutputUnitStop(callback_data->instance);
+		CFRunLoopStop(callback_data->run_loop);
 	}
+	return 0;
 }
 
 void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	AudioCallbackData callback_data = {callback, user_data};
-	AudioQueueRef queue;
+	AudioComponentDescription description;
+	description.componentType = kAudioUnitType_Output;
+	description.componentSubType = kAudioUnitSubType_DefaultOutput;
+	description.componentManufacturer = kAudioUnitManufacturer_Apple;
+	description.componentFlags = 0;
+	description.componentFlagsMask = 0;
+	AudioComponent component = AudioComponentFindNext(NULL, &description);
+	AudioComponentInstanceNew(component, &callback_data.instance);
 	AudioStreamBasicDescription format;
 	format.mFormatID = kAudioFormatLinearPCM;
 	format.mFormatFlags = kLinearPCMFormatFlagIsFloat;
@@ -998,15 +1007,22 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	format.mFramesPerPacket = 1;
 	format.mBytesPerPacket = format.mBytesPerFrame * format.mFramesPerPacket;
 	format.mReserved = 0;
-	AudioQueueNewOutput(&format, &audio_callback, &callback_data, CFRunLoopGetCurrent(), kCFRunLoopCommonModes, 0, &queue);
-	AudioQueueBufferRef buffers[3];
-	for (int i = 0; i < 3; i++) {
-		AudioQueueAllocateBuffer(queue, FRAMES * 2 * sizeof(float), &buffers[i]);
-		audio_callback(&callback_data, queue, buffers[i]);
-	}
-	AudioQueueStart(queue, NULL);
+	AudioUnitSetProperty(callback_data.instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &format, sizeof(AudioStreamBasicDescription));
+	AURenderCallbackStruct callback_struct;
+	callback_struct.inputProc = &audio_callback;
+	callback_struct.inputProcRefCon = &callback_data;
+	AudioUnitSetProperty(callback_data.instance, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &callback_struct, sizeof(AURenderCallbackStruct));
+	AudioUnitInitialize(callback_data.instance);
+	AudioOutputUnitStart(callback_data.instance);
+	callback_data.run_loop = CFRunLoopGetCurrent();
+	CFRunLoopSourceContext source_context = {0};
+	CFRunLoopSourceRef source = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &source_context);
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
+	CFRelease(source);
 	CFRunLoopRun();
-	AudioQueueDispose(queue, NO);
+	//AudioOutputUnitStop(callback_data.instance);
+	AudioUnitUninitialize(callback_data.instance);
+	AudioComponentInstanceDispose(callback_data.instance);
 }
 
 
