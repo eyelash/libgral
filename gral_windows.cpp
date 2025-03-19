@@ -1330,6 +1330,10 @@ double gral_time_get_monotonic() {
 	return count.QuadPart / frequency;
 }
 
+void gral_sleep(double seconds) {
+	Sleep(seconds * 1000.0);
+}
+
 
 /*==========
     AUDIO

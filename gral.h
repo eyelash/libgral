@@ -209,6 +209,7 @@ void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watc
  =========*/
 
 double gral_time_get_monotonic(void);
+void gral_sleep(double seconds);
 
 
 /*==========

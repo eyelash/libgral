@@ -120,3 +120,10 @@ double gral_time_get_monotonic(void) {
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec + ts.tv_nsec / 1e9;
 }
+
+void gral_sleep(double seconds) {
+	struct timespec ts;
+	ts.tv_sec = seconds;
+	ts.tv_nsec = (seconds - ts.tv_sec) * 1e9;
+	nanosleep(&ts, NULL);
+}
