@@ -99,6 +99,7 @@ struct gral_window_interface {
 struct gral_timer;
 struct gral_file;
 struct gral_directory_watcher;
+struct gral_audio;
 struct gral_midi;
 struct gral_midi_interface {
 	void (*note_on)(unsigned char note, unsigned char velocity, void *user_data);
@@ -216,7 +217,8 @@ void gral_sleep(double seconds);
     AUDIO
  ==========*/
 
-void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data);
+struct gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data);
+void gral_audio_delete(struct gral_audio *audio);
 
 
 /*=========

@@ -798,42 +798,39 @@ void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watc
 
 #define FRAMES 1024
 
-typedef struct {
-	int (*callback)(float *buffer, int frames, void *user_data);
+struct gral_audio {
+	void (*callback)(float *buffer, int frames, void *user_data);
 	void *user_data;
-	pa_mainloop *mainloop;
-} CallbackData;
+	pa_threaded_mainloop *mainloop;
+	pa_context *context;
+	pa_stream *stream;
+};
 
-static void drain_callback(pa_stream *stream, int success, void *user_data) {
-	CallbackData *callback_data = user_data;
-	pa_stream_unref(stream);
-	pa_mainloop_quit(callback_data->mainloop, 0);
+static void stream_state_callback(pa_stream *stream, void *user_data) {
+	struct gral_audio *audio = user_data;
+	pa_threaded_mainloop_signal(audio->mainloop, 0);
 }
 
 static void write_callback(pa_stream *stream, size_t n_bytes, void *user_data) {
-	CallbackData *callback_data = user_data;
+	struct gral_audio *audio = user_data;
 	void *buffer = NULL;
 	pa_stream_begin_write(stream, &buffer, &n_bytes);
 	int frames = n_bytes / (2 * sizeof(float));
-	frames = callback_data->callback(buffer, frames, callback_data->user_data);
-	if (frames > 0) {
-		pa_stream_write(stream, buffer, frames * 2 * sizeof(float), NULL, 0, PA_SEEK_RELATIVE);
-	}
-	else {
-		pa_stream_cancel_write(stream);
-		pa_stream_drain(stream, drain_callback, user_data);
-	}
+	audio->callback(buffer, frames, audio->user_data);
+	pa_stream_write(stream, buffer, n_bytes, NULL, 0, PA_SEEK_RELATIVE);
 }
 
-static void state_callback(pa_context *context, void *user_data) {
+static void context_state_callback(pa_context *context, void *user_data) {
+	struct gral_audio *audio = user_data;
 	if (pa_context_get_state(context) == PA_CONTEXT_READY) {
 		pa_sample_spec sample_spec = {
 			.format = PA_SAMPLE_FLOAT32NE,
 			.rate = 44100,
 			.channels = 2
 		};
-		pa_stream *stream = pa_stream_new(context, "libgral", &sample_spec, NULL);
-		pa_stream_set_write_callback(stream, write_callback, user_data);
+		audio->stream = pa_stream_new(context, "libgral", &sample_spec, NULL);
+		pa_stream_set_state_callback(audio->stream, stream_state_callback, audio);
+		pa_stream_set_write_callback(audio->stream, write_callback, audio);
 		pa_buffer_attr buffer_attr = {
 			.maxlength = -1,
 			.tlength = FRAMES * 2 * sizeof(float),
@@ -841,19 +838,34 @@ static void state_callback(pa_context *context, void *user_data) {
 			.minreq = -1,
 			.fragsize = -1
 		};
-		pa_stream_connect_playback(stream, NULL, &buffer_attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
+		pa_stream_connect_playback(audio->stream, NULL, &buffer_attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
 	}
+	pa_threaded_mainloop_signal(audio->mainloop, 0);
 }
 
-void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
-	pa_mainloop *mainloop = pa_mainloop_new();
-	CallbackData callback_data = {callback, user_data, mainloop};
-	pa_context *context = pa_context_new(pa_mainloop_get_api(mainloop), "libgral");
-	pa_context_set_state_callback(context, state_callback, &callback_data);
-	pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL);
-	pa_mainloop_run(mainloop, NULL);
-	pa_context_unref(context);
-	pa_mainloop_free(mainloop);
+struct gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	struct gral_audio *audio = malloc(sizeof(struct gral_audio));
+	audio->callback = callback;
+	audio->user_data = user_data;
+	audio->mainloop = pa_threaded_mainloop_new();
+	audio->context = pa_context_new(pa_threaded_mainloop_get_api(audio->mainloop), "libgral");
+	pa_context_set_state_callback(audio->context, context_state_callback, audio);
+	pa_context_connect(audio->context, NULL, PA_CONTEXT_NOFLAGS, NULL);
+	audio->stream = NULL;
+	pa_threaded_mainloop_start(audio->mainloop);
+	return audio;
+}
+
+void gral_audio_delete(struct gral_audio *audio) {
+	pa_threaded_mainloop_stop(audio->mainloop);
+	if (audio->stream) {
+		pa_stream_disconnect(audio->stream);
+		pa_stream_unref(audio->stream);
+	}
+	pa_context_disconnect(audio->context);
+	pa_context_unref(audio->context);
+	pa_threaded_mainloop_free(audio->mainloop);
+	free(audio);
 }
 
 

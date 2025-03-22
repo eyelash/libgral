@@ -965,30 +965,22 @@ void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watc
     AUDIO
  ==========*/
 
-typedef struct {
-	int (*callback)(float *buffer, int frames, void *user_data);
+struct gral_audio {
+	void (*callback)(float *buffer, int frames, void *user_data);
 	void *user_data;
 	AudioComponentInstance instance;
-	CFRunLoopRef run_loop;
-} AudioCallbackData;
+};
 
 static int audio_callback(void *user_data, AudioUnitRenderActionFlags *action_flags, AudioTimeStamp const *time_stamp, unsigned int bus_number, unsigned int number_frames, AudioBufferList *data) {
-	AudioCallbackData *callback_data = user_data;
-	float *buffer = data->mBuffers[0].mData;
-	int frames = callback_data->callback(buffer, number_frames, callback_data->user_data);
-	for (unsigned int t = frames; t < number_frames; t++) {
-		buffer[t*2] = 0.0f;
-		buffer[t*2+1] = 0.0f;
-	}
-	if (frames == 0) {
-		AudioOutputUnitStop(callback_data->instance);
-		CFRunLoopStop(callback_data->run_loop);
-	}
+	struct gral_audio *audio = user_data;
+	audio->callback(data->mBuffers[0].mData, number_frames, audio->user_data);
 	return 0;
 }
 
-void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
-	AudioCallbackData callback_data = {callback, user_data};
+struct gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	struct gral_audio *audio = malloc(sizeof(struct gral_audio));
+	audio->callback = callback;
+	audio->user_data = user_data;
 	AudioComponentDescription description;
 	description.componentType = kAudioUnitType_Output;
 	description.componentSubType = kAudioUnitSubType_DefaultOutput;
@@ -996,7 +988,7 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	description.componentFlags = 0;
 	description.componentFlagsMask = 0;
 	AudioComponent component = AudioComponentFindNext(NULL, &description);
-	AudioComponentInstanceNew(component, &callback_data.instance);
+	AudioComponentInstanceNew(component, &audio->instance);
 	AudioStreamBasicDescription format;
 	format.mFormatID = kAudioFormatLinearPCM;
 	format.mFormatFlags = kLinearPCMFormatFlagIsFloat;
@@ -1007,22 +999,21 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	format.mFramesPerPacket = 1;
 	format.mBytesPerPacket = format.mBytesPerFrame * format.mFramesPerPacket;
 	format.mReserved = 0;
-	AudioUnitSetProperty(callback_data.instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &format, sizeof(AudioStreamBasicDescription));
+	AudioUnitSetProperty(audio->instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &format, sizeof(AudioStreamBasicDescription));
 	AURenderCallbackStruct callback_struct;
 	callback_struct.inputProc = &audio_callback;
-	callback_struct.inputProcRefCon = &callback_data;
-	AudioUnitSetProperty(callback_data.instance, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &callback_struct, sizeof(AURenderCallbackStruct));
-	AudioUnitInitialize(callback_data.instance);
-	AudioOutputUnitStart(callback_data.instance);
-	callback_data.run_loop = CFRunLoopGetCurrent();
-	CFRunLoopSourceContext source_context = {0};
-	CFRunLoopSourceRef source = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &source_context);
-	CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopDefaultMode);
-	CFRelease(source);
-	CFRunLoopRun();
-	//AudioOutputUnitStop(callback_data.instance);
-	AudioUnitUninitialize(callback_data.instance);
-	AudioComponentInstanceDispose(callback_data.instance);
+	callback_struct.inputProcRefCon = audio;
+	AudioUnitSetProperty(audio->instance, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &callback_struct, sizeof(AURenderCallbackStruct));
+	AudioUnitInitialize(audio->instance);
+	AudioOutputUnitStart(audio->instance);
+	return audio;
+}
+
+void gral_audio_delete(struct gral_audio *audio) {
+	AudioOutputUnitStop(audio->instance);
+	AudioUnitUninitialize(audio->instance);
+	AudioComponentInstanceDispose(audio->instance);
+	free(audio);
 }
 
 

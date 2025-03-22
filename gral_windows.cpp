@@ -1335,7 +1335,16 @@ void gral_sleep(double seconds) {
     AUDIO
  ==========*/
 
-void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+struct gral_audio {
+	void (*callback)(float *buffer, int frames, void *user_data);
+	void *user_data;
+	HANDLE thread;
+	HANDLE exit_event;
+};
+
+static DWORD WINAPI audio_thread(LPVOID user_data) {
+	gral_audio *audio = (gral_audio *)user_data;
+	CoInitialize(NULL);
 	ComPointer<IMMDeviceEnumerator> device_enumerator;
 	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
 	ComPointer<IMMDevice> device;
@@ -1359,26 +1368,41 @@ void gral_audio_play(int (*callback)(float *buffer, int frames, void *user_data)
 	audio_client->SetEventHandle(event);
 	BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);
-	int frames = callback((float *)buffer, buffer_size, user_data);
-	render_client->ReleaseBuffer(frames, 0);
+	audio->callback((float *)buffer, buffer_size, audio->user_data);
+	render_client->ReleaseBuffer(buffer_size, 0);
 	audio_client->Start();
+	HANDLE events[] = {event, audio->exit_event};
 	UINT32 padding;
-	while (frames > 0) {
-		WaitForSingleObject(event, INFINITE);
+	while (WaitForMultipleObjects(2, events, FALSE, INFINITE) != WAIT_OBJECT_0 + 1) {
 		audio_client->GetCurrentPadding(&padding);
 		if (buffer_size - padding > 0) {
 			render_client->GetBuffer(buffer_size - padding, &buffer);
-			frames = callback((float *)buffer, buffer_size - padding, user_data);
-			render_client->ReleaseBuffer(frames, 0);
+			audio->callback((float *)buffer, buffer_size - padding, audio->user_data);
+			render_client->ReleaseBuffer(buffer_size - padding, 0);
 		}
 	}
-	do {
-		WaitForSingleObject(event, INFINITE);
-		audio_client->GetCurrentPadding(&padding);
-	} while (padding > 0);
 	audio_client->Stop();
 	CloseHandle(event);
 	render_client->Release();
+	CoUninitialize();
+	return 0;
+}
+
+gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	gral_audio *audio = new gral_audio();
+	audio->callback = callback;
+	audio->user_data = user_data;
+	audio->exit_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+	audio->thread = CreateThread(NULL, 0, &audio_thread, audio, 0, NULL);
+	return audio;
+}
+
+void gral_audio_delete(gral_audio *audio) {
+	SetEvent(audio->exit_event);
+	WaitForSingleObject(audio->thread, INFINITE);
+	CloseHandle(audio->exit_event);
+	CloseHandle(audio->thread);
+	delete audio;
 }
 
 
