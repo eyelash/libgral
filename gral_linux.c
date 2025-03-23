@@ -796,7 +796,7 @@ void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watc
     AUDIO
  ==========*/
 
-#define FRAMES 1024
+#define FRAMES 512
 
 struct gral_audio {
 	void (*callback)(float *buffer, int frames, void *user_data);
