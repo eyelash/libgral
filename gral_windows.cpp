@@ -1327,7 +1327,7 @@ double gral_time_get_monotonic() {
 }
 
 void gral_sleep(double seconds) {
-	Sleep(seconds * 1000.0);
+	Sleep((DWORD)(seconds * 1000.0));
 }
 
 

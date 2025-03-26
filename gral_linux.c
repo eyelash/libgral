@@ -823,21 +823,19 @@ static void write_callback(pa_stream *stream, size_t n_bytes, void *user_data) {
 static void context_state_callback(pa_context *context, void *user_data) {
 	struct gral_audio *audio = user_data;
 	if (pa_context_get_state(context) == PA_CONTEXT_READY) {
-		pa_sample_spec sample_spec = {
-			.format = PA_SAMPLE_FLOAT32NE,
-			.rate = 44100,
-			.channels = 2
-		};
+		pa_sample_spec sample_spec;
+		sample_spec.format = PA_SAMPLE_FLOAT32NE;
+		sample_spec.rate = 44100;
+		sample_spec.channels = 2;
 		audio->stream = pa_stream_new(context, "libgral", &sample_spec, NULL);
-		pa_stream_set_state_callback(audio->stream, stream_state_callback, audio);
-		pa_stream_set_write_callback(audio->stream, write_callback, audio);
-		pa_buffer_attr buffer_attr = {
-			.maxlength = -1,
-			.tlength = FRAMES * 2 * sizeof(float),
-			.prebuf = -1,
-			.minreq = -1,
-			.fragsize = -1
-		};
+		pa_stream_set_state_callback(audio->stream, &stream_state_callback, audio);
+		pa_stream_set_write_callback(audio->stream, &write_callback, audio);
+		pa_buffer_attr buffer_attr;
+		buffer_attr.maxlength = -1;
+		buffer_attr.tlength = FRAMES * 2 * sizeof(float);
+		buffer_attr.prebuf = -1;
+		buffer_attr.minreq = -1;
+		buffer_attr.fragsize = -1;
 		pa_stream_connect_playback(audio->stream, NULL, &buffer_attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
 	}
 	pa_threaded_mainloop_signal(audio->mainloop, 0);
@@ -849,7 +847,7 @@ struct gral_audio *gral_audio_create(char const *name, void (*callback)(float *b
 	audio->user_data = user_data;
 	audio->mainloop = pa_threaded_mainloop_new();
 	audio->context = pa_context_new(pa_threaded_mainloop_get_api(audio->mainloop), "libgral");
-	pa_context_set_state_callback(audio->context, context_state_callback, audio);
+	pa_context_set_state_callback(audio->context, &context_state_callback, audio);
 	pa_context_connect(audio->context, NULL, PA_CONTEXT_NOFLAGS, NULL);
 	audio->stream = NULL;
 	pa_threaded_mainloop_start(audio->mainloop);
@@ -889,7 +887,6 @@ static void midi_connect_port(struct gral_midi *midi, int client, snd_seq_port_i
 		return;
 	}
 	if ((capability & SND_SEQ_PORT_CAP_READ) && (capability & SND_SEQ_PORT_CAP_SUBS_READ)) {
-		//g_print("connecting to %s - %s\n", snd_seq_client_info_get_name(client_info), snd_seq_port_info_get_name(port_info));
 		snd_seq_connect_from(midi->seq, midi->port, client, port);
 	}
 }
