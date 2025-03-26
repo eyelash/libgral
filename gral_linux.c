@@ -742,6 +742,13 @@ void gral_menu_append_separator(struct gral_menu *menu) {
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
 }
 
+void gral_menu_append_submenu(struct gral_menu *menu, char const *text, struct gral_menu *submenu) {
+	GtkWidget *item = gtk_menu_item_new_with_label(text);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(item), GTK_WIDGET(submenu));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
+	g_object_unref(submenu);
+}
+
 typedef struct {
 	void (*callback)(void *user_data);
 	void *user_data;

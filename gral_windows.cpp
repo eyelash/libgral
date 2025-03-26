@@ -1138,6 +1138,10 @@ void gral_menu_append_separator(gral_menu *menu) {
 	AppendMenu((HMENU)menu, MF_SEPARATOR, 0, NULL);
 }
 
+void gral_menu_append_submenu(gral_menu *menu, char const *text, gral_menu *submenu) {
+	AppendMenu((HMENU)menu, MF_POPUP, (UINT_PTR)submenu, utf8_to_utf16(text));
+}
+
 static void CALLBACK timer_completion_routine(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue) {
 	gral_timer *timer = (gral_timer *)lpArgToCompletionRoutine;
 	timer->callback(timer->user_data);

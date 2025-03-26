@@ -897,6 +897,15 @@ void gral_menu_append_separator(struct gral_menu *menu) {
 	[(NSMenu *)menu addItem:[NSMenuItem separatorItem]];
 }
 
+void gral_menu_append_submenu(struct gral_menu *menu, char const *text, struct gral_menu *submenu) {
+	NSMenuItem *item = [[NSMenuItem alloc] init];
+	[item setTitle:[NSString stringWithUTF8String:text]];
+	[item setSubmenu:(NSMenu *)submenu];
+	[(NSMenu *)menu addItem:item];
+	[item release];
+	[(NSMenu *)submenu release];
+}
+
 struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data) {
 	GralCallbackObject *callback_object = [[GralCallbackObject alloc] init];
 	callback_object->callback = callback;

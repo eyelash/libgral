@@ -117,6 +117,12 @@ static void create_window(void *user_data) {
 	gral_menu_append_item(window->menu, "Second", 2);
 	gral_menu_append_item(window->menu, "Third", 3);
 	gral_menu_append_separator(window->menu);
+	struct gral_menu *submenu = gral_menu_create();
+	gral_menu_append_item(submenu, "Submenu First", 101);
+	gral_menu_append_item(submenu, "Submenu Second", 102);
+	gral_menu_append_item(submenu, "Submenu Third", 103);
+	gral_menu_append_submenu(window->menu, "Submenu", submenu);
+	gral_menu_append_separator(window->menu);
 	gral_menu_append_item(window->menu, "Last", 99);
 	gral_window_show(window->window);
 }

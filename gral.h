@@ -180,6 +180,7 @@ struct gral_menu *gral_menu_create(void);
 void gral_menu_delete(struct gral_menu *menu);
 void gral_menu_append_item(struct gral_menu *menu, char const *text, int id);
 void gral_menu_append_separator(struct gral_menu *menu);
+void gral_menu_append_submenu(struct gral_menu *menu, char const *text, struct gral_menu *submenu);
 
 struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *user_data), void *user_data);
 void gral_timer_delete(struct gral_timer *timer);
