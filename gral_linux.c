@@ -353,43 +353,43 @@ static void gral_window_class_init(GralWindowClass *class) {
 	object_class->finalize = gral_window_finalize;
 }
 
-#define GRAL_TYPE_AREA gral_area_get_type()
-G_DECLARE_FINAL_TYPE(GralArea, gral_area, GRAL, AREA, GtkDrawingArea)
-struct _GralArea {
+#define GRAL_TYPE_WIDGET gral_widget_get_type()
+G_DECLARE_FINAL_TYPE(GralWidget, gral_widget, GRAL, WIDGET, GtkDrawingArea)
+struct _GralWidget {
 	GtkDrawingArea parent_instance;
 	GtkIMContext *im_context;
 };
-G_DEFINE_TYPE(GralArea, gral_area, GTK_TYPE_DRAWING_AREA)
+G_DEFINE_TYPE(GralWidget, gral_widget, GTK_TYPE_DRAWING_AREA)
 
-static void gral_area_realize(GtkWidget *widget) {
-	GTK_WIDGET_CLASS(gral_area_parent_class)->realize(widget);
+static void gral_widget_realize(GtkWidget *widget) {
+	GTK_WIDGET_CLASS(gral_widget_parent_class)->realize(widget);
 }
-static void gral_area_unrealize(GtkWidget *widget) {
-	GTK_WIDGET_CLASS(gral_area_parent_class)->unrealize(widget);
+static void gral_widget_unrealize(GtkWidget *widget) {
+	GTK_WIDGET_CLASS(gral_widget_parent_class)->unrealize(widget);
 }
-static gboolean gral_area_draw(GtkWidget *widget, cairo_t *cr) {
+static gboolean gral_widget_draw(GtkWidget *widget, cairo_t *cr) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	GdkRectangle clip_rectangle;
 	gdk_cairo_get_clip_rectangle(cr, &clip_rectangle);
 	window->interface->draw((struct gral_draw_context *)cr, clip_rectangle.x, clip_rectangle.y, clip_rectangle.width, clip_rectangle.height, window->user_data);
 	return GDK_EVENT_STOP;
 }
-static void gral_area_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
-	GTK_WIDGET_CLASS(gral_area_parent_class)->size_allocate(widget, allocation);
+static void gral_widget_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
+	GTK_WIDGET_CLASS(gral_widget_parent_class)->size_allocate(widget, allocation);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	window->interface->resize(allocation->width, allocation->height, window->user_data);
 }
-static gboolean gral_area_enter_notify_event(GtkWidget *widget, GdkEventCrossing *event) {
+static gboolean gral_widget_enter_notify_event(GtkWidget *widget, GdkEventCrossing *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	window->interface->mouse_enter(window->user_data);
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_area_leave_notify_event(GtkWidget *widget, GdkEventCrossing *event) {
+static gboolean gral_widget_leave_notify_event(GtkWidget *widget, GdkEventCrossing *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	window->interface->mouse_leave(window->user_data);
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion *event) {
+static gboolean gral_widget_motion_notify_event(GtkWidget *widget, GdkEventMotion *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	if (window->is_pointer_locked) {
 		GdkScreen *screen = gtk_widget_get_screen(GTK_WIDGET(window));
@@ -414,7 +414,7 @@ static gboolean gral_area_motion_notify_event(GtkWidget *widget, GdkEventMotion 
 	}
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *event) {
+static gboolean gral_widget_button_press_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	if (event->type == GDK_BUTTON_PRESS) {
 		window->interface->mouse_button_press(event->x, event->y, event->button, get_modifiers(event->state), window->user_data);
@@ -424,12 +424,12 @@ static gboolean gral_area_button_press_event(GtkWidget *widget, GdkEventButton *
 	}
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_area_button_release_event(GtkWidget *widget, GdkEventButton *event) {
+static gboolean gral_widget_button_release_event(GtkWidget *widget, GdkEventButton *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	window->interface->mouse_button_release(event->x, event->y, event->button, window->user_data);
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_area_scroll_event(GtkWidget *widget, GdkEventScroll *event) {
+static gboolean gral_widget_scroll_event(GtkWidget *widget, GdkEventScroll *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gdouble delta_x, delta_y;
 	gdk_event_get_scroll_deltas((GdkEvent *)event, &delta_x, &delta_y);
@@ -509,16 +509,16 @@ static int get_key_code(GdkEventKey *event) {
 	default: return 0;
 	}
 }
-static gboolean gral_area_key_press_event(GtkWidget *widget, GdkEventKey *event) {
-	GralArea *area = GRAL_AREA(widget);
+static gboolean gral_widget_key_press_event(GtkWidget *widget, GdkEventKey *event) {
+	GralWidget *area = GRAL_WIDGET(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
 	window->interface->key_press(get_key(event), get_key_code(event), get_modifiers(event->state), event->keyval == window->last_key, window->user_data);
 	window->last_key = event->keyval;
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *event) {
-	GralArea *area = GRAL_AREA(widget);
+static gboolean gral_widget_key_release_event(GtkWidget *widget, GdkEventKey *event) {
+	GralWidget *area = GRAL_WIDGET(widget);
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	gtk_im_context_filter_keypress(area->im_context, event);
 	window->interface->key_release(get_key(event), get_key_code(event), window->user_data);
@@ -527,49 +527,49 @@ static gboolean gral_area_key_release_event(GtkWidget *widget, GdkEventKey *even
 	}
 	return GDK_EVENT_STOP;
 }
-static void gral_area_commit(GtkIMContext *context, gchar *str, gpointer user_data) {
+static void gral_widget_commit(GtkIMContext *context, gchar *str, gpointer user_data) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(user_data)));
 	window->interface->text(str, window->user_data);
 }
-static gboolean gral_area_focus_in_event(GtkWidget *widget, GdkEventFocus *event) {
+static gboolean gral_widget_focus_in_event(GtkWidget *widget, GdkEventFocus *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	window->interface->focus_enter(window->user_data);
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_area_focus_out_event(GtkWidget *widget, GdkEventFocus *event) {
+static gboolean gral_widget_focus_out_event(GtkWidget *widget, GdkEventFocus *event) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	window->interface->focus_leave(window->user_data);
 	return GDK_EVENT_STOP;
 }
-static void gral_area_dispose(GObject *object) {
-	GralArea *area = GRAL_AREA(object);
-	g_clear_object(&area->im_context);
-	G_OBJECT_CLASS(gral_area_parent_class)->dispose(object);
+static void gral_widget_dispose(GObject *object) {
+	GralWidget *widget = GRAL_WIDGET(object);
+	g_clear_object(&widget->im_context);
+	G_OBJECT_CLASS(gral_widget_parent_class)->dispose(object);
 }
-static void gral_area_init(GralArea *area) {
-	area->im_context = gtk_im_multicontext_new();
-	g_signal_connect_object(area->im_context, "commit", G_CALLBACK(gral_area_commit), area, 0);
-	gtk_widget_add_events(GTK_WIDGET(area), GDK_ENTER_NOTIFY_MASK|GDK_LEAVE_NOTIFY_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_SCROLL_MASK|GDK_SMOOTH_SCROLL_MASK);
-	gtk_widget_set_can_focus(GTK_WIDGET(area), TRUE);
+static void gral_widget_init(GralWidget *widget) {
+	widget->im_context = gtk_im_multicontext_new();
+	g_signal_connect_object(widget->im_context, "commit", G_CALLBACK(gral_widget_commit), widget, 0);
+	gtk_widget_add_events(GTK_WIDGET(widget), GDK_ENTER_NOTIFY_MASK|GDK_LEAVE_NOTIFY_MASK|GDK_POINTER_MOTION_MASK|GDK_BUTTON_PRESS_MASK|GDK_BUTTON_RELEASE_MASK|GDK_SCROLL_MASK|GDK_SMOOTH_SCROLL_MASK);
+	gtk_widget_set_can_focus(GTK_WIDGET(widget), TRUE);
 }
-static void gral_area_class_init(GralAreaClass *class) {
+static void gral_widget_class_init(GralWidgetClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
-	widget_class->realize = gral_area_realize;
-	widget_class->unrealize = gral_area_unrealize;
-	widget_class->draw = gral_area_draw;
-	widget_class->size_allocate = gral_area_size_allocate;
-	widget_class->enter_notify_event = gral_area_enter_notify_event;
-	widget_class->leave_notify_event = gral_area_leave_notify_event;
-	widget_class->motion_notify_event = gral_area_motion_notify_event;
-	widget_class->button_press_event = gral_area_button_press_event;
-	widget_class->button_release_event = gral_area_button_release_event;
-	widget_class->scroll_event = gral_area_scroll_event;
-	widget_class->key_press_event = gral_area_key_press_event;
-	widget_class->key_release_event = gral_area_key_release_event;
-	widget_class->focus_in_event = gral_area_focus_in_event;
-	widget_class->focus_out_event = gral_area_focus_out_event;
+	widget_class->realize = gral_widget_realize;
+	widget_class->unrealize = gral_widget_unrealize;
+	widget_class->draw = gral_widget_draw;
+	widget_class->size_allocate = gral_widget_size_allocate;
+	widget_class->enter_notify_event = gral_widget_enter_notify_event;
+	widget_class->leave_notify_event = gral_widget_leave_notify_event;
+	widget_class->motion_notify_event = gral_widget_motion_notify_event;
+	widget_class->button_press_event = gral_widget_button_press_event;
+	widget_class->button_release_event = gral_widget_button_release_event;
+	widget_class->scroll_event = gral_widget_scroll_event;
+	widget_class->key_press_event = gral_widget_key_press_event;
+	widget_class->key_release_event = gral_widget_key_release_event;
+	widget_class->focus_in_event = gral_widget_focus_in_event;
+	widget_class->focus_out_event = gral_widget_focus_out_event;
 	GObjectClass *object_class = G_OBJECT_CLASS(class);
-	object_class->dispose = gral_area_dispose;
+	object_class->dispose = gral_widget_dispose;
 }
 
 struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data) {
@@ -582,8 +582,8 @@ struct gral_window *gral_window_create(struct gral_application *application, int
 	window->last_key = GDK_KEY_VoidSymbol;
 	gtk_window_set_default_size(GTK_WINDOW(window), width, height);
 	gtk_window_set_title(GTK_WINDOW(window), title);
-	GtkWidget *area = g_object_new(GRAL_TYPE_AREA, NULL);
-	gtk_container_add(GTK_CONTAINER(window), area);
+	GtkWidget *widget = g_object_new(GRAL_TYPE_WIDGET, NULL);
+	gtk_container_add(GTK_CONTAINER(window), widget);
 	return (struct gral_window *)window;
 }
 
@@ -596,13 +596,13 @@ void gral_window_set_title(struct gral_window *window, char const *title) {
 }
 
 void gral_window_request_redraw(struct gral_window *window, int x, int y, int width, int height) {
-	GtkWidget *area = gtk_bin_get_child(GTK_BIN(window));
-	gtk_widget_queue_draw_area(area, x, y, width, height);
+	GtkWidget *widget = gtk_bin_get_child(GTK_BIN(window));
+	gtk_widget_queue_draw_area(widget, x, y, width, height);
 }
 
 void gral_window_set_minimum_size(struct gral_window *window, int minimum_width, int minimum_height) {
-	GtkWidget *area = gtk_bin_get_child(GTK_BIN(window));
-	gtk_widget_set_size_request(area, minimum_width, minimum_height);
+	GtkWidget *widget = gtk_bin_get_child(GTK_BIN(window));
+	gtk_widget_set_size_request(widget, minimum_width, minimum_height);
 }
 
 static char const *get_cursor_name(int cursor) {
@@ -720,13 +720,13 @@ void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(ch
 }
 
 void gral_window_show_context_menu(struct gral_window *window, struct gral_menu *menu, float x, float y) {
-	GtkWidget *area = gtk_bin_get_child(GTK_BIN(window));
+	GtkWidget *widget = gtk_bin_get_child(GTK_BIN(window));
 	if (gtk_menu_get_attach_widget(GTK_MENU(menu)) == NULL) {
-		gtk_menu_attach_to_widget(GTK_MENU(menu), area, NULL);
+		gtk_menu_attach_to_widget(GTK_MENU(menu), widget, NULL);
 	}
 	gtk_widget_show_all(GTK_WIDGET(menu));
 	GdkRectangle rect = {x, y, 1, 1};
-	gtk_menu_popup_at_rect(GTK_MENU(menu), gtk_widget_get_window(area), &rect, GDK_GRAVITY_SOUTH_EAST, GDK_GRAVITY_NORTH_WEST, NULL);
+	gtk_menu_popup_at_rect(GTK_MENU(menu), gtk_widget_get_window(widget), &rect, GDK_GRAVITY_SOUTH_EAST, GDK_GRAVITY_NORTH_WEST, NULL);
 }
 
 struct gral_menu *gral_menu_create(void) {
