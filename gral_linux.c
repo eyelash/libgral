@@ -361,6 +361,12 @@ struct _GralArea {
 };
 G_DEFINE_TYPE(GralArea, gral_area, GTK_TYPE_DRAWING_AREA)
 
+static void gral_area_realize(GtkWidget *widget) {
+	GTK_WIDGET_CLASS(gral_area_parent_class)->realize(widget);
+}
+static void gral_area_unrealize(GtkWidget *widget) {
+	GTK_WIDGET_CLASS(gral_area_parent_class)->unrealize(widget);
+}
 static gboolean gral_area_draw(GtkWidget *widget, cairo_t *cr) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	GdkRectangle clip_rectangle;
@@ -548,6 +554,8 @@ static void gral_area_init(GralArea *area) {
 }
 static void gral_area_class_init(GralAreaClass *class) {
 	GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(class);
+	widget_class->realize = gral_area_realize;
+	widget_class->unrealize = gral_area_unrealize;
 	widget_class->draw = gral_area_draw;
 	widget_class->size_allocate = gral_area_size_allocate;
 	widget_class->enter_notify_event = gral_area_enter_notify_event;
