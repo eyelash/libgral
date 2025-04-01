@@ -16,6 +16,9 @@ target_link_libraries(events gral)
 add_executable(file file.c)
 target_link_libraries(file gral)
 
+add_executable(image image.c)
+target_link_libraries(image gral)
+
 add_executable(file_dialogs file_dialogs.c)
 target_link_libraries(file_dialogs gral)
 
