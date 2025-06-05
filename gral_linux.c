@@ -873,6 +873,10 @@ static void write_callback(pa_stream *stream, size_t n_bytes, void *user_data) {
 	pa_stream_write(stream, buffer, n_bytes, NULL, 0, PA_SEEK_RELATIVE);
 }
 
+static void underflow_callback(pa_stream *stream, void *user_data) {
+	fprintf(stderr, "libgral audio underrun\n");
+}
+
 static void context_state_callback(pa_context *context, void *user_data) {
 	struct gral_audio *audio = user_data;
 	if (pa_context_get_state(context) == PA_CONTEXT_READY) {
@@ -883,6 +887,7 @@ static void context_state_callback(pa_context *context, void *user_data) {
 		audio->stream = pa_stream_new(context, "libgral", &sample_spec, NULL);
 		pa_stream_set_state_callback(audio->stream, &stream_state_callback, audio);
 		pa_stream_set_write_callback(audio->stream, &write_callback, audio);
+		pa_stream_set_underflow_callback(audio->stream, &underflow_callback, audio);
 		pa_buffer_attr buffer_attr;
 		buffer_attr.maxlength = -1;
 		buffer_attr.tlength = FRAMES * 2 * sizeof(float);
