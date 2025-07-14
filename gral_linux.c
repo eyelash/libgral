@@ -702,21 +702,13 @@ void gral_window_clipboard_copy(struct gral_window *window, char const *text) {
 	gtk_clipboard_set_text(clipboard, text, -1);
 }
 
-typedef struct {
-	void (*callback)(char const *text, void *user_data);
-	void *user_data;
-} PasteCallbackData;
-static void paste_callback(GtkClipboard *clipboard, gchar const *text, gpointer user_data) {
-	PasteCallbackData *callback_data = user_data;
-	callback_data->callback(text, callback_data->user_data);
-	g_slice_free(PasteCallbackData, callback_data);
-}
 void gral_window_clipboard_paste(struct gral_window *window, void (*callback)(char const *text, void *user_data), void *user_data) {
 	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(window), GDK_SELECTION_CLIPBOARD);
-	PasteCallbackData *callback_data = g_slice_new(PasteCallbackData);
-	callback_data->callback = callback;
-	callback_data->user_data = user_data;
-	gtk_clipboard_request_text(clipboard, paste_callback, callback_data);
+	gchar *text = gtk_clipboard_wait_for_text(clipboard);
+	if (text) {
+		callback(text, user_data);
+		g_free(text);
+	}
 }
 
 void gral_window_show_context_menu(struct gral_window *window, struct gral_menu *menu, float x, float y) {
