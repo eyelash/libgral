@@ -65,7 +65,8 @@ size_t gral_file_get_size(struct gral_file *file) {
 }
 
 void *gral_file_map(struct gral_file *file, size_t size) {
-	return mmap(NULL, size, PROT_READ, MAP_PRIVATE, (int)(intptr_t)file, 0);
+	void *address = mmap(NULL, size, PROT_READ, MAP_PRIVATE, (int)(intptr_t)file, 0);
+	return address == MAP_FAILED ? NULL : address;
 }
 
 void gral_file_unmap(void *address, size_t size) {
