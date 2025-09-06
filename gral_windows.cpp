@@ -1271,10 +1271,12 @@ void gral_directory_iterate(char const *path_utf8, void (*callback)(char const *
 	StringCchCat(path_utf16, path_utf16.get_length(), L"\\*");
 	WIN32_FIND_DATA find_data;
 	HANDLE handle = FindFirstFile(path_utf16, &find_data);
-	do {
-		callback(utf16_to_utf8(find_data.cFileName), user_data);
-	} while (FindNextFile(handle, &find_data));
-	FindClose(handle);
+	if (handle != INVALID_HANDLE_VALUE) {
+		do {
+			callback(utf16_to_utf8(find_data.cFileName), user_data);
+		} while (FindNextFile(handle, &find_data));
+		FindClose(handle);
+	}
 }
 
 void gral_directory_remove(char const *path) {

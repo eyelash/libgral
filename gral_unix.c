@@ -96,11 +96,13 @@ void gral_directory_create(char const *path) {
 
 void gral_directory_iterate(char const *path, void (*callback)(char const *name, void *user_data), void *user_data) {
 	DIR *directory = opendir(path);
-	struct dirent *entry;
-	while (entry = readdir(directory)) {
-		callback(entry->d_name, user_data);
+	if (directory) {
+		struct dirent *entry;
+		while (entry = readdir(directory)) {
+			callback(entry->d_name, user_data);
+		}
+		closedir(directory);
 	}
-	closedir(directory);
 }
 
 void gral_directory_remove(char const *path) {
