@@ -22,6 +22,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdlib.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
+#include <roapi.h>
+#include <windows.foundation.h>
+#include <windows.devices.enumeration.h>
+#include <windows.devices.midi.h>
 
 template <class T> class ComPointer {
 	T *pointer;
@@ -57,6 +61,41 @@ public:
 		return pointer;
 	}
 };
+
+class HString {
+	HSTRING hstring;
+public:
+	HString(): hstring(NULL) {}
+	HString(WCHAR const *s) {
+		WindowsCreateString(s, wcslen(s), &hstring);
+	}
+	HString(HString const &h_string) {
+		WindowsDuplicateString(h_string.hstring, &hstring);
+	}
+	~HString() {
+		WindowsDeleteString(hstring);
+	}
+	HString &operator =(HString const &h_string) {
+		WindowsDeleteString(hstring);
+		WindowsDuplicateString(h_string.hstring, &hstring);
+		return *this;
+	}
+	HSTRING *operator &() {
+		return &hstring;
+	}
+	operator HSTRING() const {
+		return hstring;
+	}
+};
+
+template <class T> static ComPointer<T> get_activation_factory(WCHAR const *name) {
+	HSTRING_HEADER hstring_header;
+	HSTRING hstring;
+	WindowsCreateStringReference(name, wcslen(name), &hstring_header, &hstring);
+	ComPointer<T> factory;
+	RoGetActivationFactory(hstring, __uuidof(T), (void**)&factory);
+	return factory;
+}
 
 template <class T> class Buffer {
 	size_t length;
@@ -510,7 +549,8 @@ static LRESULT CALLBACK window_procedure(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 
 gral_application *gral_application_create(char const *id, gral_application_interface const *iface, void *user_data) {
 	hInstance = GetModuleHandle(NULL);
-	CoInitialize(NULL);
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+	RoInitialize(RO_INIT_SINGLETHREADED);
 	D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory);
 	factory->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), NULL, 0, &stroke_style);
 	CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&imaging_factory));
@@ -538,6 +578,7 @@ void gral_application_delete(gral_application *application) {
 	stroke_style->Release();
 	imaging_factory->Release();
 	dwrite_factory->Release();
+	RoUninitialize();
 	CoUninitialize();
 }
 
@@ -596,7 +637,7 @@ public:
 	IFACEMETHOD_(ULONG, AddRef)() {
 		return InterlockedIncrement(&reference_count);
 	}
-    IFACEMETHOD_(ULONG, Release)() {
+	IFACEMETHOD_(ULONG, Release)() {
 		ULONG new_reference_count = InterlockedDecrement(&reference_count);
 		if (new_reference_count == 0) {
 			delete this;
@@ -678,7 +719,7 @@ public:
 	IFACEMETHOD_(ULONG, AddRef)() {
 		return InterlockedIncrement(&reference_count);
 	}
-    IFACEMETHOD_(ULONG, Release)() {
+	IFACEMETHOD_(ULONG, Release)() {
 		ULONG new_reference_count = InterlockedDecrement(&reference_count);
 		if (new_reference_count == 0) {
 			delete this;
@@ -1449,50 +1490,180 @@ void gral_audio_delete(gral_audio *audio) {
     MIDI
  =========*/
 
+using namespace ABI::Windows::Foundation;
+using namespace ABI::Windows::Devices::Enumeration;
+using namespace ABI::Windows::Devices::Midi;
+
 struct gral_midi {
 	gral_midi_interface const *iface;
 	void *user_data;
-	HMIDIIN midi;
+	ComPointer<IDeviceWatcher> watcher;
 };
 
-static void CALLBACK midi_callback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-	// TODO: call the callbacks on the main thread
-	gral_midi *midi = (gral_midi *)dwInstance;
-	switch (wMsg) {
-	case MIM_DATA:
-		{
-			if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0x80) {
-				midi->iface->note_off(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
-			}
-			else if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0x90) {
-				midi->iface->note_on(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
-			}
-			else if ((LOBYTE(LOWORD(dwParam1)) & 0xF0) == 0xB0) {
-				midi->iface->control_change(HIBYTE(LOWORD(dwParam1)), LOBYTE(HIWORD(dwParam1)), midi->user_data);
-			}
-			return;
+template <class TSender, class TArg> class GralTypedEventHandler: public ITypedEventHandler<TSender, TArg> {
+	ULONG reference_count;
+public:
+	GralTypedEventHandler(): reference_count(1) {}
+	IFACEMETHOD(QueryInterface)(REFIID riid, void **ppvObject) {
+		if (riid == __uuidof(ITypedEventHandler<TSender, TArg>) || riid == __uuidof(IUnknown)) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
 		}
-	default:
-		return;
+		else {
+			*ppvObject = NULL;
+			return E_NOINTERFACE;
+		}
 	}
-}
+	IFACEMETHOD_(ULONG, AddRef)() {
+		return InterlockedIncrement(&reference_count);
+	}
+	IFACEMETHOD_(ULONG, Release)() {
+		ULONG new_reference_count = InterlockedDecrement(&reference_count);
+		if (new_reference_count == 0) {
+			delete this;
+		}
+		return new_reference_count;
+	}
+};
+
+template <class TResult> class GralAsyncOperationCompletedHandler: public IAsyncOperationCompletedHandler<TResult> {
+	ULONG reference_count;
+public:
+	GralAsyncOperationCompletedHandler(): reference_count(1) {}
+	IFACEMETHOD(QueryInterface)(REFIID riid, void **ppvObject) {
+		if (riid == __uuidof(IAsyncOperationCompletedHandler<TResult>) || riid == __uuidof(IUnknown)) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		else {
+			*ppvObject = NULL;
+			return E_NOINTERFACE;
+		}
+	}
+	IFACEMETHOD_(ULONG, AddRef)() {
+		return InterlockedIncrement(&reference_count);
+	}
+	IFACEMETHOD_(ULONG, Release)() {
+		ULONG new_reference_count = InterlockedDecrement(&reference_count);
+		if (new_reference_count == 0) {
+			delete this;
+		}
+		return new_reference_count;
+	}
+};
+
+class GralMidiMessageReceived: public GralTypedEventHandler<MidiInPort *, MidiMessageReceivedEventArgs *> {
+	gral_midi *midi;
+public:
+	GralMidiMessageReceived(gral_midi *midi): midi(midi) {}
+	IFACEMETHOD(Invoke)(IMidiInPort *sender, IMidiMessageReceivedEventArgs *args) {
+		ComPointer<IMidiMessage> message;
+		args->get_Message(&message);
+		MidiMessageType type;
+		message->get_Type(&type);
+		switch (type) {
+		case MidiMessageType_NoteOn:
+			{
+				ComPointer<IMidiNoteOnMessage> note_on_message;
+				message->QueryInterface(__uuidof(IMidiNoteOnMessage), (void**)&note_on_message);
+				BYTE note;
+				note_on_message->get_Note(&note);
+				BYTE velocity;
+				note_on_message->get_Velocity(&velocity);
+				midi->iface->note_on(note, velocity, midi->user_data);
+				break;
+			}
+		case MidiMessageType_NoteOff:
+			{
+				ComPointer<IMidiNoteOffMessage> note_off_message;
+				message->QueryInterface(__uuidof(IMidiNoteOffMessage), (void**)&note_off_message);
+				BYTE note;
+				note_off_message->get_Note(&note);
+				BYTE velocity;
+				note_off_message->get_Velocity(&velocity);
+				midi->iface->note_off(note, velocity, midi->user_data);
+				break;
+			}
+		case MidiMessageType_ControlChange:
+			{
+				ComPointer<IMidiControlChangeMessage> control_change_message;
+				message->QueryInterface(__uuidof(IMidiControlChangeMessage), (void**)&control_change_message);
+				BYTE controller;
+				control_change_message->get_Controller(&controller);
+				BYTE control_value;
+				control_change_message->get_ControlValue(&control_value);
+				midi->iface->control_change(controller, control_value, midi->user_data);
+				break;
+			}
+		default:
+			break;
+		}
+		return S_OK;
+	}
+};
+
+class GralMidiAsyncCompleted: public GralAsyncOperationCompletedHandler<MidiInPort *> {
+	gral_midi *midi;
+public:
+	GralMidiAsyncCompleted(gral_midi *midi): midi(midi) {}
+	IFACEMETHOD(Invoke)(IAsyncOperation<MidiInPort *> *op, AsyncStatus status) {
+		ComPointer<IMidiInPort> port;
+		op->GetResults(&port);
+		ComPointer<GralMidiMessageReceived> message_received_handler;
+		*&message_received_handler = new GralMidiMessageReceived(midi);
+		EventRegistrationToken token;
+		port->add_MessageReceived(message_received_handler, &token);
+		return S_OK;
+	}
+};
+
+class GralMidiDeviceAdded: public GralTypedEventHandler<DeviceWatcher *, DeviceInformation *> {
+	gral_midi *midi;
+public:
+	GralMidiDeviceAdded(gral_midi *midi): midi(midi) {}
+	IFACEMETHOD(Invoke)(IDeviceWatcher *sender, IDeviceInformation *info) {
+		HString id;
+		info->get_Id(&id);
+		ComPointer<IAsyncOperation<MidiInPort *>> port_op;
+		get_activation_factory<IMidiInPortStatics>(RuntimeClass_Windows_Devices_Midi_MidiInPort)->FromIdAsync(id, &port_op);
+		ComPointer<GralMidiAsyncCompleted> async_completed_handler;
+		*&async_completed_handler = new GralMidiAsyncCompleted(midi);
+		port_op->put_Completed(async_completed_handler);
+		return S_OK;
+	}
+};
+
+class GralMidiDeviceRemoved: public GralTypedEventHandler<DeviceWatcher *, DeviceInformationUpdate *> {
+	gral_midi *midi;
+public:
+	GralMidiDeviceRemoved(gral_midi *midi): midi(midi) {}
+	IFACEMETHOD(Invoke)(IDeviceWatcher *sender, IDeviceInformationUpdate *info) {
+		return S_OK;
+	}
+};
 
 gral_midi *gral_midi_create(gral_application *application, char const *name, gral_midi_interface const *iface, void *user_data) {
 	gral_midi *midi = new gral_midi();
 	midi->iface = iface;
 	midi->user_data = user_data;
-	midi->midi = NULL;
-	return midi;
-	if (midiInGetNumDevs() > 0) {
-		midiInOpen(&midi->midi, 0, (DWORD_PTR)&midi_callback, (DWORD_PTR)midi, CALLBACK_FUNCTION);
-		midiInStart(midi->midi);
-	}
+	HString device_selector;
+	get_activation_factory<IMidiInPortStatics>(RuntimeClass_Windows_Devices_Midi_MidiInPort)->GetDeviceSelector(&device_selector);
+	get_activation_factory<IDeviceInformationStatics>(RuntimeClass_Windows_Devices_Enumeration_DeviceInformation)->CreateWatcherAqsFilter(device_selector, &midi->watcher);
+	ComPointer<GralMidiDeviceAdded> device_added_handler;
+	*&device_added_handler = new GralMidiDeviceAdded(midi);
+	EventRegistrationToken token;
+	midi->watcher->add_Added(device_added_handler, &token);
+	ComPointer<GralMidiDeviceRemoved> device_removed_handler;
+	*&device_removed_handler = new GralMidiDeviceRemoved(midi);
+	midi->watcher->add_Removed(device_removed_handler, &token);
+	midi->watcher->Start();
 	return midi;
 }
 
 void gral_midi_delete(gral_midi *midi) {
-	if (midi->midi) {
-		midiInClose(midi->midi);
-	}
+	midi->watcher->Stop();
+	// TODO: disconnect ports
 	delete midi;
 }
