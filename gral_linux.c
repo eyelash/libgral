@@ -354,18 +354,35 @@ static void gral_window_class_init(GralWindowClass *class) {
 }
 
 #define GRAL_TYPE_WIDGET gral_widget_get_type()
-G_DECLARE_FINAL_TYPE(GralWidget, gral_widget, GRAL, WIDGET, GtkDrawingArea)
+G_DECLARE_FINAL_TYPE(GralWidget, gral_widget, GRAL, WIDGET, GtkWidget)
 struct _GralWidget {
-	GtkDrawingArea parent_instance;
+	GtkWidget parent_instance;
 	GtkIMContext *im_context;
 };
-G_DEFINE_TYPE(GralWidget, gral_widget, GTK_TYPE_DRAWING_AREA)
+G_DEFINE_TYPE(GralWidget, gral_widget, GTK_TYPE_WIDGET)
 
 static void gral_widget_realize(GtkWidget *widget) {
-	GTK_WIDGET_CLASS(gral_widget_parent_class)->realize(widget);
+	gtk_widget_set_realized(widget, TRUE);
+	GtkAllocation allocation;
+	gtk_widget_get_allocation(widget, &allocation);
+	GdkWindowAttr attributes;
+	attributes.window_type = GDK_WINDOW_CHILD;
+	attributes.x = allocation.x;
+	attributes.y = allocation.y;
+	attributes.width = allocation.width;
+	attributes.height = allocation.height;
+	attributes.wclass = GDK_INPUT_OUTPUT;
+	attributes.visual = gtk_widget_get_visual(widget);
+	attributes.event_mask = gtk_widget_get_events(widget) | GDK_EXPOSURE_MASK;
+	GdkWindow *window = gdk_window_new(gtk_widget_get_parent_window(widget), &attributes, GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL);
+	gtk_widget_register_window(widget, window);
+	gtk_widget_set_window(widget, window);
 }
 static void gral_widget_unrealize(GtkWidget *widget) {
-	GTK_WIDGET_CLASS(gral_widget_parent_class)->unrealize(widget);
+	GdkWindow *window = gtk_widget_get_window(widget);
+	gtk_widget_unregister_window(widget, window);
+	gdk_window_destroy(window);
+	gtk_widget_set_realized(widget, FALSE);
 }
 static gboolean gral_widget_draw(GtkWidget *widget, cairo_t *cr) {
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
@@ -375,7 +392,10 @@ static gboolean gral_widget_draw(GtkWidget *widget, cairo_t *cr) {
 	return GDK_EVENT_STOP;
 }
 static void gral_widget_size_allocate(GtkWidget *widget, GtkAllocation *allocation) {
-	GTK_WIDGET_CLASS(gral_widget_parent_class)->size_allocate(widget, allocation);
+	gtk_widget_set_allocation(widget, allocation);
+	if (gtk_widget_get_realized(widget)) {
+		gdk_window_move_resize(gtk_widget_get_window(widget), allocation->x, allocation->y, allocation->width, allocation->height);
+	}
 	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
 	window->interface->resize(allocation->width, allocation->height, window->user_data);
 }
