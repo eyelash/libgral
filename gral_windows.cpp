@@ -20,10 +20,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <wincodec.h>
 #include <dwrite.h>
 #include <stdlib.h>
-#include <mmdeviceapi.h>
-#include <audioclient.h>
 #include <roapi.h>
+#include <MemoryBuffer.h>
 #include <windows.foundation.h>
+#include <windows.media.audio.h>
+#include <windows.media.mediaproperties.h>
 #include <windows.devices.enumeration.h>
 #include <windows.devices.midi.h>
 
@@ -1500,73 +1501,80 @@ void gral_sleep(double seconds) {
     AUDIO
  ==========*/
 
+using namespace ABI::Windows::Foundation;
+using namespace ABI::Windows::Media;
+using namespace ABI::Windows::Media::Audio;
+using namespace ABI::Windows::Media::Render;
+using namespace ABI::Windows::Media::MediaProperties;
+
 struct gral_audio {
 	void (*callback)(float *buffer, int frames, void *user_data);
 	void *user_data;
-	HANDLE thread;
-	HANDLE exit_event;
+	ComPointer<IAudioGraph> graph;
 };
 
-static DWORD WINAPI audio_thread(LPVOID user_data) {
+static void audio_quantum_started(IAudioFrameInputNode *input, IFrameInputNodeQuantumStartedEventArgs *args, void *user_data) {
 	gral_audio *audio = (gral_audio *)user_data;
-	CoInitialize(NULL);
-	ComPointer<IMMDeviceEnumerator> device_enumerator;
-	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
-	ComPointer<IMMDevice> device;
-	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
-	ComPointer<IAudioClient> audio_client;
-	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
-	WAVEFORMATEX wfx;
-	wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-	wfx.nSamplesPerSec = 44100;
-	wfx.wBitsPerSample = 32;
-	wfx.nChannels = 2;
-	wfx.nBlockAlign = wfx.wBitsPerSample / 8 * wfx.nChannels;
-	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
-	wfx.cbSize = 0;
-	audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY, 0, 0, &wfx, NULL);
-	UINT32 buffer_size;
-	audio_client->GetBufferSize(&buffer_size);
-	IAudioRenderClient *render_client;
-	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
-	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	audio_client->SetEventHandle(event);
-	BYTE *buffer;
-	render_client->GetBuffer(buffer_size, &buffer);
-	audio->callback((float *)buffer, buffer_size, audio->user_data);
-	render_client->ReleaseBuffer(buffer_size, 0);
-	audio_client->Start();
-	HANDLE events[] = {event, audio->exit_event};
-	UINT32 padding;
-	while (WaitForMultipleObjects(2, events, FALSE, INFINITE) != WAIT_OBJECT_0 + 1) {
-		audio_client->GetCurrentPadding(&padding);
-		if (buffer_size - padding > 0) {
-			render_client->GetBuffer(buffer_size - padding, &buffer);
-			audio->callback((float *)buffer, buffer_size - padding, audio->user_data);
-			render_client->ReleaseBuffer(buffer_size - padding, 0);
-		}
+	INT32 frames;
+	args->get_RequiredSamples(&frames);
+	ComPointer<IAudioFrame> frame;
+	get_activation_factory<IAudioFrameFactory>(RuntimeClass_Windows_Media_AudioFrame)->Create(frames * 2 * sizeof(float), &frame);
+	{
+		ComPointer<IAudioBuffer> buffer;
+		frame->LockBuffer(AudioBufferAccessMode_Write, &buffer);
+		ComPointer<IMemoryBufferReference> reference;
+		buffer.as<IMemoryBuffer>()->CreateReference(&reference);
+		BYTE *data;
+		UINT32 capacity;
+		reference.as<Windows::Foundation::IMemoryBufferByteAccess>()->GetBuffer(&data, &capacity);
+		audio->callback((float *)data, frames, audio->user_data);
+		reference.as<IClosable>()->Close();
+		buffer.as<IClosable>()->Close();
 	}
-	audio_client->Stop();
-	CloseHandle(event);
-	render_client->Release();
-	CoUninitialize();
-	return 0;
+	input->AddFrame(frame);
+}
+
+static void audio_output_await(ICreateAudioDeviceOutputNodeResult *output_result, void *user_data) {
+	gral_audio *audio = (gral_audio *)user_data;
+	ComPointer<IAudioDeviceOutputNode> output;
+	output_result->get_DeviceOutputNode(&output);
+	ComPointer<IInspectable> properties;
+	get_activation_factory<IActivationFactory>(RuntimeClass_Windows_Media_MediaProperties_AudioEncodingProperties)->ActivateInstance(&properties);
+	HString subtype;
+	get_activation_factory<IMediaEncodingSubtypesStatics>(RuntimeClass_Windows_Media_MediaProperties_MediaEncodingSubtypes)->get_Float(&subtype);
+	properties.as<IMediaEncodingProperties>()->put_Subtype(subtype);
+	properties.as<IAudioEncodingProperties>()->put_SampleRate(44100);
+	properties.as<IAudioEncodingProperties>()->put_ChannelCount(2);
+	ComPointer<IAudioFrameInputNode> input;
+	audio->graph->CreateFrameInputNodeWithFormat(properties.as<IAudioEncodingProperties>(), &input);
+	EventRegistrationToken token;
+	input->add_QuantumStarted(event_handler<AudioFrameInputNode, FrameInputNodeQuantumStartedEventArgs>(&audio_quantum_started, audio), &token);
+	input.as<IAudioInputNode>()->AddOutgoingConnection(output.as<IAudioNode>());
+	audio->graph->Start();
+}
+
+static void audio_graph_await(ICreateAudioGraphResult *graph_result, void *user_data) {
+	gral_audio *audio = (gral_audio *)user_data;
+	graph_result->get_Graph(&audio->graph);
+	ComPointer<IAsyncOperation<CreateAudioDeviceOutputNodeResult *> > output_op;
+	audio->graph->CreateDeviceOutputNodeAsync(&output_op);
+	await(output_op, &audio_output_await, audio);
 }
 
 gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	gral_audio *audio = new gral_audio();
 	audio->callback = callback;
 	audio->user_data = user_data;
-	audio->exit_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	audio->thread = CreateThread(NULL, 0, &audio_thread, audio, 0, NULL);
+	ComPointer<IAudioGraphSettings> settings;
+	get_activation_factory<IAudioGraphSettingsFactory>(RuntimeClass_Windows_Media_Audio_AudioGraphSettings)->Create(AudioRenderCategory_Media, &settings);
+	ComPointer<IAsyncOperation<CreateAudioGraphResult *> > graph_op;
+	get_activation_factory<IAudioGraphStatics>(RuntimeClass_Windows_Media_Audio_AudioGraph)->CreateAsync(settings, &graph_op);
+	await(graph_op, &audio_graph_await, audio);
 	return audio;
 }
 
 void gral_audio_delete(gral_audio *audio) {
-	SetEvent(audio->exit_event);
-	WaitForSingleObject(audio->thread, INFINITE);
-	CloseHandle(audio->exit_event);
-	CloseHandle(audio->thread);
+	audio->graph->Stop();
 	delete audio;
 }
 
@@ -1575,7 +1583,6 @@ void gral_audio_delete(gral_audio *audio) {
     MIDI
  =========*/
 
-using namespace ABI::Windows::Foundation;
 using namespace ABI::Windows::Devices::Enumeration;
 using namespace ABI::Windows::Devices::Midi;
 
