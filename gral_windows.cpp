@@ -93,7 +93,7 @@ template <class T> static ComPointer<T> get_activation_factory(WCHAR const *name
 	HSTRING hstring;
 	WindowsCreateStringReference(name, wcslen(name), &hstring_header, &hstring);
 	ComPointer<T> factory;
-	RoGetActivationFactory(hstring, __uuidof(T), (void**)&factory);
+	RoGetActivationFactory(hstring, __uuidof(T), (void **)&factory);
 	return factory;
 }
 
@@ -695,11 +695,11 @@ int gral_application_run(gral_application *application, int argc_, char **argv_)
     DRAWING
  ============*/
 
-class ColorDrawingEffect: public IUnknown {
+class GralColorDrawingEffect: public IUnknown {
 	ULONG reference_count;
 	D2D1_COLOR_F color;
 public:
-	ColorDrawingEffect(D2D1_COLOR_F const &color): reference_count(1), color(color) {}
+	GralColorDrawingEffect(D2D1_COLOR_F const &color): reference_count(1), color(color) {}
 	D2D1_COLOR_F const &get_color() const {
 		return color;
 	}
@@ -735,7 +735,7 @@ public:
 		gral_draw_context *draw_context = (gral_draw_context *)clientDrawingContext;
 		if (brush) {
 			if (clientDrawingEffect) {
-				ColorDrawingEffect *color_drawing_effect = (ColorDrawingEffect *)clientDrawingEffect;
+				GralColorDrawingEffect *color_drawing_effect = (GralColorDrawingEffect *)clientDrawingEffect;
 				ComPointer<ID2D1SolidColorBrush> effect_brush;
 				draw_context->target->CreateSolidColorBrush(color_drawing_effect->get_color(), &effect_brush);
 				draw_context->target->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, effect_brush, measuringMode);
@@ -894,8 +894,8 @@ void gral_text_set_color(gral_text *text, int start_index, int end_index, float 
 	DWRITE_TEXT_RANGE range;
 	range.startPosition = utf8_index_to_utf16(text->utf16, start_index);
 	range.length = utf8_index_to_utf16(text->utf16, end_index) - range.startPosition;
-	ComPointer<ColorDrawingEffect> drawing_effect;
-	*&drawing_effect = new ColorDrawingEffect(D2D1::ColorF(red, green, blue, alpha));
+	ComPointer<GralColorDrawingEffect> drawing_effect;
+	*&drawing_effect = new GralColorDrawingEffect(D2D1::ColorF(red, green, blue, alpha));
 	text->layout->SetDrawingEffect(drawing_effect, range);
 }
 
