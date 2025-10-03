@@ -60,6 +60,11 @@ public:
 	T *operator ->() const {
 		return pointer;
 	}
+	template <class U> ComPointer<U> as() const {
+		ComPointer<U> result;
+		pointer->QueryInterface(__uuidof(U), (void **)&result);
+		return result;
+	}
 };
 
 class HString {
@@ -1589,8 +1594,7 @@ static void midi_message_received(IMidiInPort *sender, IMidiMessageReceivedEvent
 	switch (type) {
 	case MidiMessageType_NoteOn:
 		{
-			ComPointer<IMidiNoteOnMessage> note_on_message;
-			message->QueryInterface(__uuidof(IMidiNoteOnMessage), (void**)&note_on_message);
+			ComPointer<IMidiNoteOnMessage> note_on_message = message.as<IMidiNoteOnMessage>();
 			BYTE note;
 			note_on_message->get_Note(&note);
 			BYTE velocity;
@@ -1600,8 +1604,7 @@ static void midi_message_received(IMidiInPort *sender, IMidiMessageReceivedEvent
 		}
 	case MidiMessageType_NoteOff:
 		{
-			ComPointer<IMidiNoteOffMessage> note_off_message;
-			message->QueryInterface(__uuidof(IMidiNoteOffMessage), (void**)&note_off_message);
+			ComPointer<IMidiNoteOffMessage> note_off_message = message.as<IMidiNoteOffMessage>();
 			BYTE note;
 			note_off_message->get_Note(&note);
 			BYTE velocity;
@@ -1611,8 +1614,7 @@ static void midi_message_received(IMidiInPort *sender, IMidiMessageReceivedEvent
 		}
 	case MidiMessageType_ControlChange:
 		{
-			ComPointer<IMidiControlChangeMessage> control_change_message;
-			message->QueryInterface(__uuidof(IMidiControlChangeMessage), (void**)&control_change_message);
+			ComPointer<IMidiControlChangeMessage> control_change_message = message.as<IMidiControlChangeMessage>();
 			BYTE controller;
 			control_change_message->get_Controller(&controller);
 			BYTE control_value;
