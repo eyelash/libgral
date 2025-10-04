@@ -21,6 +21,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <dwrite.h>
 #include <stdlib.h>
 #include <mmdeviceapi.h>
+#include <rtworkq.h>
 #include <audioclient.h>
 #include <roapi.h>
 #include <windows.foundation.h>
@@ -1503,19 +1504,70 @@ void gral_sleep(double seconds) {
 struct gral_audio {
 	void (*callback)(float *buffer, int frames, void *user_data);
 	void *user_data;
-	HANDLE thread;
-	HANDLE exit_event;
+	DWORD work_queue_id;
+	ComPointer<IAudioClient> audio_client;
+	UINT32 buffer_size;
+	ComPointer<IAudioRenderClient> render_client;
+	HANDLE event;
 };
 
-static DWORD WINAPI audio_thread(LPVOID user_data) {
-	gral_audio *audio = (gral_audio *)user_data;
-	CoInitialize(NULL);
+class GralAudioCallback: public IRtwqAsyncCallback {
+	ULONG reference_count;
+	gral_audio *audio;
+public:
+	GralAudioCallback(gral_audio *audio): reference_count(1), audio(audio) {}
+	IFACEMETHOD(GetParameters)(DWORD *flags, DWORD *queue) {
+		*flags = 0;
+		*queue = audio->work_queue_id;
+		return S_OK;
+	}
+	IFACEMETHOD(Invoke)(IRtwqAsyncResult *result) {
+		BYTE *buffer;
+		UINT32 padding;
+		audio->audio_client->GetCurrentPadding(&padding);
+		if (audio->buffer_size - padding > 0) {
+			audio->render_client->GetBuffer(audio->buffer_size - padding, &buffer);
+			audio->callback((float *)buffer, audio->buffer_size - padding, audio->user_data);
+			audio->render_client->ReleaseBuffer(audio->buffer_size - padding, 0);
+		}
+		RtwqPutWaitingWorkItem(audio->event, 1, result, NULL);
+		return S_OK;
+	}
+	IFACEMETHOD(QueryInterface)(REFIID riid, void **ppvObject) {
+		if (riid == __uuidof(IRtwqAsyncCallback) || riid == __uuidof(IUnknown)) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		else {
+			*ppvObject = NULL;
+			return E_NOINTERFACE;
+		}
+	}
+	IFACEMETHOD_(ULONG, AddRef)() {
+		return InterlockedIncrement(&reference_count);
+	}
+	IFACEMETHOD_(ULONG, Release)() {
+		ULONG new_reference_count = InterlockedDecrement(&reference_count);
+		if (new_reference_count == 0) {
+			delete this;
+		}
+		return new_reference_count;
+	}
+};
+
+gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+	gral_audio *audio = new gral_audio();
+	audio->callback = callback;
+	audio->user_data = user_data;
+	RtwqStartup();
+	DWORD task_id = 0;
+	RtwqLockSharedWorkQueue(L"Pro Audio", 0, &task_id, &audio->work_queue_id);
 	ComPointer<IMMDeviceEnumerator> device_enumerator;
 	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
 	ComPointer<IMMDevice> device;
 	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
-	ComPointer<IAudioClient> audio_client;
-	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
+	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio->audio_client);
 	WAVEFORMATEX wfx;
 	wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
 	wfx.nSamplesPerSec = 44100;
@@ -1524,19 +1576,22 @@ static DWORD WINAPI audio_thread(LPVOID user_data) {
 	wfx.nBlockAlign = wfx.wBitsPerSample / 8 * wfx.nChannels;
 	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
 	wfx.cbSize = 0;
-	audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY, 0, 0, &wfx, NULL);
-	UINT32 buffer_size;
-	audio_client->GetBufferSize(&buffer_size);
-	IAudioRenderClient *render_client;
-	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
-	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	audio_client->SetEventHandle(event);
-	BYTE *buffer;
+	audio->audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY, 0, 0, &wfx, NULL);
+	audio->audio_client->GetBufferSize(&audio->buffer_size);
+	audio->audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&audio->render_client);
+	audio->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+	ComPointer<GralAudioCallback> callback2;
+	*&callback2 = new GralAudioCallback(audio);
+	ComPointer<IRtwqAsyncResult> async_result;
+	RtwqCreateAsyncResult(NULL, callback2, NULL, &async_result);
+	RtwqPutWaitingWorkItem(audio->event, 1, async_result, NULL);
+	audio->audio_client->SetEventHandle(audio->event);
+	/*BYTE *buffer;
 	render_client->GetBuffer(buffer_size, &buffer);
 	audio->callback((float *)buffer, buffer_size, audio->user_data);
-	render_client->ReleaseBuffer(buffer_size, 0);
-	audio_client->Start();
-	HANDLE events[] = {event, audio->exit_event};
+	render_client->ReleaseBuffer(buffer_size, 0);*/
+	audio->audio_client->Start();
+	/*HANDLE events[] = {event, audio->exit_event};
 	UINT32 padding;
 	while (WaitForMultipleObjects(2, events, FALSE, INFINITE) != WAIT_OBJECT_0 + 1) {
 		audio_client->GetCurrentPadding(&padding);
@@ -1545,28 +1600,15 @@ static DWORD WINAPI audio_thread(LPVOID user_data) {
 			audio->callback((float *)buffer, buffer_size - padding, audio->user_data);
 			render_client->ReleaseBuffer(buffer_size - padding, 0);
 		}
-	}
-	audio_client->Stop();
-	CloseHandle(event);
-	render_client->Release();
-	CoUninitialize();
-	return 0;
-}
-
-gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
-	gral_audio *audio = new gral_audio();
-	audio->callback = callback;
-	audio->user_data = user_data;
-	audio->exit_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	audio->thread = CreateThread(NULL, 0, &audio_thread, audio, 0, NULL);
+	}*/
 	return audio;
 }
 
 void gral_audio_delete(gral_audio *audio) {
-	SetEvent(audio->exit_event);
-	WaitForSingleObject(audio->thread, INFINITE);
-	CloseHandle(audio->exit_event);
-	CloseHandle(audio->thread);
+	audio->audio_client->Stop();
+	CloseHandle(audio->event);
+	RtwqUnlockWorkQueue(audio->work_queue_id);
+	RtwqShutdown();
 	delete audio;
 }
 

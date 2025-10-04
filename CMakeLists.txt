@@ -3,7 +3,7 @@ project(libgral)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	add_library(gral gral_windows.cpp)
-	target_link_libraries(gral d2d1 dwrite windowsapp)
+	target_link_libraries(gral d2d1 dwrite rtworkq windowsapp)
 	target_compile_definitions(gral PUBLIC GRAL_WINDOWS)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 	find_library(COCOA Cocoa)
