@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2025 Elias Aebi
+Copyright (c) 2016-2026 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -214,11 +214,11 @@ void gral_text_set_color(struct gral_text *text, int start_index, int end_index,
 	CGColorRelease(color);
 }
 
-float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
+float gral_text_get_width(struct gral_text *text) {
 	CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)text);
-	CGRect bounds = CTLineGetImageBounds(line, (CGContextRef)draw_context);
+	double width = CTLineGetTypographicBounds(line, NULL, NULL, NULL);
 	CFRelease(line);
-	return bounds.size.width;
+	return width;
 }
 
 float gral_text_index_to_x(struct gral_text *text, int index) {

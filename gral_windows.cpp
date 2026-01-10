@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2025 Elias Aebi
+Copyright (c) 2016-2026 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -904,10 +904,10 @@ void gral_text_set_color(gral_text *text, int start_index, int end_index, float 
 	text->layout->SetDrawingEffect(drawing_effect, range);
 }
 
-float gral_text_get_width(gral_text *text, gral_draw_context *draw_context) {
+float gral_text_get_width(gral_text *text) {
 	DWRITE_TEXT_METRICS metrics;
 	text->layout->GetMetrics(&metrics);
-	return metrics.width;
+	return metrics.widthIncludingTrailingWhitespace;
 }
 
 float gral_text_index_to_x(gral_text *text, int index) {

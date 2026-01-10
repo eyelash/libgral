@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2025 Elias Aebi
+Copyright (c) 2016-2026 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -188,9 +188,9 @@ void gral_text_set_color(struct gral_text *text, int start_index, int end_index,
 	pango_attr_list_change(attr_list, attribute);
 }
 
-float gral_text_get_width(struct gral_text *text, struct gral_draw_context *draw_context) {
+float gral_text_get_width(struct gral_text *text) {
 	PangoRectangle extents;
-	pango_layout_get_extents(PANGO_LAYOUT(text), &extents, NULL);
+	pango_layout_get_extents(PANGO_LAYOUT(text), NULL, &extents);
 	return pango_units_to_double(extents.width);
 }
 

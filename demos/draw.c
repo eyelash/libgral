@@ -94,7 +94,7 @@ static void add_shapes(struct gral_draw_context *draw_context) {
 
 static void draw(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data) {
 	struct demo_window *window = user_data;
-	float text_width = gral_text_get_width(window->text, draw_context);
+	float text_width = gral_text_get_width(window->text);
 	float text_height = window->ascent + window->descent;
 	float text_x = (600.0f - text_width) / 2.0f;
 	float text_y = (200.0f - text_height) / 2.0f + window->ascent;

@@ -33,7 +33,7 @@ static void add_rectangle(struct gral_draw_context *draw_context, float x, float
 
 static void draw(struct gral_draw_context *draw_context, int x, int y, int width, int height, void *user_data) {
 	struct demo_window *window = user_data;
-	float text_width = gral_text_get_width(window->text, draw_context);
+	float text_width = gral_text_get_width(window->text);
 	float text_height = window->ascent + window->descent;
 	add_rectangle(draw_context, 50.0f, 50.0f, text_width, 1.0f);
 	gral_draw_context_fill(draw_context, 1.0f, 0.0f, 0.0f, 1.0f);
