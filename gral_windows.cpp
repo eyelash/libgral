@@ -1510,45 +1510,46 @@ struct gral_audio {
 static DWORD WINAPI audio_thread(LPVOID user_data) {
 	gral_audio *audio = (gral_audio *)user_data;
 	CoInitialize(NULL);
-	ComPointer<IMMDeviceEnumerator> device_enumerator;
-	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
-	ComPointer<IMMDevice> device;
-	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
-	ComPointer<IAudioClient> audio_client;
-	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
-	WAVEFORMATEX wfx;
-	wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-	wfx.nSamplesPerSec = 44100;
-	wfx.wBitsPerSample = 32;
-	wfx.nChannels = 2;
-	wfx.nBlockAlign = wfx.wBitsPerSample / 8 * wfx.nChannels;
-	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
-	wfx.cbSize = 0;
-	audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY, 0, 0, &wfx, NULL);
-	UINT32 buffer_size;
-	audio_client->GetBufferSize(&buffer_size);
-	IAudioRenderClient *render_client;
-	audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
-	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	audio_client->SetEventHandle(event);
-	BYTE *buffer;
-	render_client->GetBuffer(buffer_size, &buffer);
-	audio->callback((float *)buffer, buffer_size, audio->user_data);
-	render_client->ReleaseBuffer(buffer_size, 0);
-	audio_client->Start();
-	HANDLE events[] = {event, audio->exit_event};
-	UINT32 padding;
-	while (WaitForMultipleObjects(2, events, FALSE, INFINITE) != WAIT_OBJECT_0 + 1) {
-		audio_client->GetCurrentPadding(&padding);
-		if (buffer_size - padding > 0) {
-			render_client->GetBuffer(buffer_size - padding, &buffer);
-			audio->callback((float *)buffer, buffer_size - padding, audio->user_data);
-			render_client->ReleaseBuffer(buffer_size - padding, 0);
+	{
+		ComPointer<IMMDeviceEnumerator> device_enumerator;
+		CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
+		ComPointer<IMMDevice> device;
+		device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
+		ComPointer<IAudioClient> audio_client;
+		device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio_client);
+		WAVEFORMATEX wfx;
+		wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+		wfx.nSamplesPerSec = 44100;
+		wfx.wBitsPerSample = 32;
+		wfx.nChannels = 2;
+		wfx.nBlockAlign = wfx.wBitsPerSample / 8 * wfx.nChannels;
+		wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
+		wfx.cbSize = 0;
+		audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY, 0, 0, &wfx, NULL);
+		UINT32 buffer_size;
+		audio_client->GetBufferSize(&buffer_size);
+		ComPointer<IAudioRenderClient> render_client;
+		audio_client->GetService(__uuidof(IAudioRenderClient), (void **)&render_client);
+		HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
+		audio_client->SetEventHandle(event);
+		BYTE *buffer;
+		render_client->GetBuffer(buffer_size, &buffer);
+		audio->callback((float *)buffer, buffer_size, audio->user_data);
+		render_client->ReleaseBuffer(buffer_size, 0);
+		audio_client->Start();
+		HANDLE events[] = {event, audio->exit_event};
+		UINT32 padding;
+		while (WaitForMultipleObjects(2, events, FALSE, INFINITE) != WAIT_OBJECT_0 + 1) {
+			audio_client->GetCurrentPadding(&padding);
+			if (buffer_size - padding > 0) {
+				render_client->GetBuffer(buffer_size - padding, &buffer);
+				audio->callback((float *)buffer, buffer_size - padding, audio->user_data);
+				render_client->ReleaseBuffer(buffer_size - padding, 0);
+			}
 		}
+		audio_client->Stop();
+		CloseHandle(event);
 	}
-	audio_client->Stop();
-	CloseHandle(event);
-	render_client->Release();
 	CoUninitialize();
 	return 0;
 }
