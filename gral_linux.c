@@ -14,9 +14,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <gtk/gtk.h>
 #include <gdk/gdkwayland.h>
 #include <stdlib.h>
-#include <pulse/pulseaudio.h>
 #include <alsa/asoundlib.h>
+#include <glib-unix.h>
+#include <pipewire/pipewire.h>
+#include <spa/param/audio/format-utils.h>
 
+static struct pw_loop *pipewire_loop;
 
 /*================
     APPLICATION
@@ -64,19 +67,32 @@ static void gral_application_class_init(GralApplicationClass *class) {
 	application_class->shutdown = gral_application_shutdown;
 }
 
+static gboolean pipewire_callback(gint fd, GIOCondition condition, gpointer user_data) {
+	pw_loop_iterate(pipewire_loop, 0);
+	return G_SOURCE_CONTINUE;
+}
+
 struct gral_application *gral_application_create(char const *id, struct gral_application_interface const *interface, void *user_data) {
 	GralApplication *application = g_object_new(GRAL_TYPE_APPLICATION, "application-id", id, "flags", G_APPLICATION_NON_UNIQUE|G_APPLICATION_HANDLES_OPEN, NULL);
 	application->interface = interface;
 	application->user_data = user_data;
+	pw_init(NULL, NULL);
+	pipewire_loop = pw_loop_new(NULL);
+	g_unix_fd_add(pw_loop_get_fd(pipewire_loop), G_IO_IN | G_IO_ERR, &pipewire_callback, application);
 	return (struct gral_application *)application;
 }
 
 void gral_application_delete(struct gral_application *application) {
+	pw_loop_destroy(pipewire_loop);
+	pw_deinit();
 	g_object_unref(application);
 }
 
 int gral_application_run(struct gral_application *application, int argc, char **argv) {
-	return g_application_run(G_APPLICATION(application), argc, argv);
+	pw_loop_enter(pipewire_loop);
+	int result = g_application_run(G_APPLICATION(application), argc, argv);
+	pw_loop_leave(pipewire_loop);
+	return result;
 }
 
 
@@ -819,7 +835,6 @@ void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data)
  =========*/
 
 #include <sys/inotify.h>
-#include <glib-unix.h>
 
 typedef struct {
 	void (*callback)(void *user_data);
@@ -861,78 +876,52 @@ void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watc
     AUDIO
  ==========*/
 
-#define FRAMES 512
-
 struct gral_audio {
 	void (*callback)(float *buffer, int frames, void *user_data);
 	void *user_data;
-	pa_threaded_mainloop *mainloop;
-	pa_context *context;
-	pa_stream *stream;
+	struct pw_stream *stream;
 };
 
-static void stream_state_callback(pa_stream *stream, void *user_data) {
+static void audio_process_callback(void *user_data) {
 	struct gral_audio *audio = user_data;
-	pa_threaded_mainloop_signal(audio->mainloop, 0);
-}
-
-static void write_callback(pa_stream *stream, size_t n_bytes, void *user_data) {
-	struct gral_audio *audio = user_data;
-	void *buffer = NULL;
-	pa_stream_begin_write(stream, &buffer, &n_bytes);
-	int frames = n_bytes / (2 * sizeof(float));
-	audio->callback(buffer, frames, audio->user_data);
-	pa_stream_write(stream, buffer, n_bytes, NULL, 0, PA_SEEK_RELATIVE);
-}
-
-static void underflow_callback(pa_stream *stream, void *user_data) {
-	fprintf(stderr, "libgral audio underrun\n");
-}
-
-static void context_state_callback(pa_context *context, void *user_data) {
-	struct gral_audio *audio = user_data;
-	if (pa_context_get_state(context) == PA_CONTEXT_READY) {
-		pa_sample_spec sample_spec;
-		sample_spec.format = PA_SAMPLE_FLOAT32NE;
-		sample_spec.rate = 44100;
-		sample_spec.channels = 2;
-		audio->stream = pa_stream_new(context, "libgral", &sample_spec, NULL);
-		pa_stream_set_state_callback(audio->stream, &stream_state_callback, audio);
-		pa_stream_set_write_callback(audio->stream, &write_callback, audio);
-		pa_stream_set_underflow_callback(audio->stream, &underflow_callback, audio);
-		pa_buffer_attr buffer_attr;
-		buffer_attr.maxlength = -1;
-		buffer_attr.tlength = FRAMES * 2 * sizeof(float);
-		buffer_attr.prebuf = -1;
-		buffer_attr.minreq = -1;
-		buffer_attr.fragsize = -1;
-		pa_stream_connect_playback(audio->stream, NULL, &buffer_attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
+	struct pw_buffer *buffer = pw_stream_dequeue_buffer(audio->stream);
+	if (buffer == NULL || buffer->buffer->n_datas == 0) {
+		return;
 	}
-	pa_threaded_mainloop_signal(audio->mainloop, 0);
+	struct spa_data *data = &buffer->buffer->datas[0];
+	int frames = SPA_MIN(buffer->requested, data->maxsize / (2 * sizeof(float)));
+	audio->callback(data->data, frames, audio->user_data);
+	data->chunk->offset = 0;
+	data->chunk->stride = 2 * sizeof(float);
+	data->chunk->size = frames * (2 * sizeof(float));
+	pw_stream_queue_buffer(audio->stream, buffer);
 }
 
 struct gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	struct gral_audio *audio = malloc(sizeof(struct gral_audio));
 	audio->callback = callback;
 	audio->user_data = user_data;
-	audio->mainloop = pa_threaded_mainloop_new();
-	audio->context = pa_context_new(pa_threaded_mainloop_get_api(audio->mainloop), "libgral");
-	pa_context_set_state_callback(audio->context, &context_state_callback, audio);
-	pa_context_connect(audio->context, NULL, PA_CONTEXT_NOFLAGS, NULL);
-	audio->stream = NULL;
-	pa_threaded_mainloop_start(audio->mainloop);
+	struct pw_properties *properties = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Playback", PW_KEY_MEDIA_ROLE, "Music", NULL);
+	static struct pw_stream_events const events = {
+		PW_VERSION_STREAM_EVENTS,
+		.process = &audio_process_callback
+	};
+	audio->stream = pw_stream_new_simple(pipewire_loop, name, properties, &events, audio);
+	uint8_t buffer[1024];
+	struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
+	struct spa_pod const *params[1];
+	params[0] = spa_format_audio_raw_build(&builder, SPA_PARAM_EnumFormat, &SPA_AUDIO_INFO_RAW_INIT(
+		.format = SPA_AUDIO_FORMAT_F32,
+		.channels = 2,
+		.rate = 44100
+	));
+	pw_stream_connect(audio->stream, PW_DIRECTION_OUTPUT, PW_ID_ANY, PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS, params, 1);
 	return audio;
 }
 
 void gral_audio_delete(struct gral_audio *audio) {
-	pa_threaded_mainloop_stop(audio->mainloop);
-	if (audio->stream) {
-		pa_stream_disconnect(audio->stream);
-		pa_stream_unref(audio->stream);
-	}
-	pa_context_disconnect(audio->context);
-	pa_context_unref(audio->context);
-	pa_threaded_mainloop_free(audio->mainloop);
+	pw_stream_disconnect(audio->stream);
+	pw_stream_destroy(audio->stream);
 	free(audio);
 }
 
