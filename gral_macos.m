@@ -17,6 +17,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #import <AudioUnit/AudioUnit.h>
 #import <CoreMIDI/CoreMIDI.h>
 #include <stdlib.h>
+#include <sys/event.h>
 
 static NSUInteger get_next_code_point(CFStringRef string, NSUInteger i, uint32_t *code_point) {
 	unichar c1 = CFStringGetCharacterAtIndex(string, i);
@@ -130,7 +131,7 @@ static void image_release_callback(void *info, const void *data, size_t size) {
 
 struct gral_image *gral_image_create(int width, int height, void *data) {
 	CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-	CGDataProviderRef data_provider = CGDataProviderCreateWithData(NULL, data, width * height * 4, image_release_callback);
+	CGDataProviderRef data_provider = CGDataProviderCreateWithData(NULL, data, width * height * 4, &image_release_callback);
 	CGImageRef image = CGImageCreate(width, height, 8, 8 * 4, width * 4, color_space, kCGBitmapByteOrder32Big | kCGImageAlphaLast, data_provider, NULL, NO, kCGRenderingIntentDefault);
 	CGDataProviderRelease(data_provider);
 	CGColorSpaceRelease(color_space);
@@ -932,8 +933,6 @@ void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data)
     FILE
  =========*/
 
-#include <sys/event.h>
-
 @interface GralDirectoryWatcher: GralCallbackObject {
 @public
 	int fd;
@@ -982,8 +981,8 @@ struct gral_directory_watcher *gral_directory_watch(char const *path, void (*cal
 	CFFileDescriptorContext context;
 	context.copyDescription = NULL;
 	context.info = directory_watcher;
-	context.release = gral_directory_watcher_release;
-	context.retain = gral_directory_watcher_retain;
+	context.release = &gral_directory_watcher_release;
+	context.retain = &gral_directory_watcher_retain;
 	context.version = 0;
 	CFFileDescriptorRef fdref = CFFileDescriptorCreate(kCFAllocatorDefault, kq, TRUE, &directory_watcher_callback, &context);
 	CFRunLoopSourceRef source = CFFileDescriptorCreateRunLoopSource(kCFAllocatorDefault, fdref, 0);
@@ -1038,11 +1037,11 @@ struct gral_audio *gral_audio_create(char const *name, void (*callback)(float *b
 	format.mFramesPerPacket = 1;
 	format.mBytesPerPacket = format.mBytesPerFrame * format.mFramesPerPacket;
 	format.mReserved = 0;
-	AudioUnitSetProperty(audio->instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &format, sizeof(AudioStreamBasicDescription));
+	AudioUnitSetProperty(audio->instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &format, sizeof(format));
 	AURenderCallbackStruct callback_struct;
 	callback_struct.inputProc = &audio_callback;
 	callback_struct.inputProcRefCon = audio;
-	AudioUnitSetProperty(audio->instance, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &callback_struct, sizeof(AURenderCallbackStruct));
+	AudioUnitSetProperty(audio->instance, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &callback_struct, sizeof(callback_struct));
 	AudioUnitInitialize(audio->instance);
 	AudioOutputUnitStart(audio->instance);
 	return audio;
@@ -1083,20 +1082,20 @@ static void midi_read_callback(MIDIPacketList const *packet_list, void *user_dat
 	for (UInt32 i = 0; i < packet_list->numPackets; i++) {
 		for (UInt16 j = 0; j < packet->length; j++) {
 			if ((packet->data[j] & 0xF0) == 0x80 && j + 2 < packet->length) {
-				Byte note = packet->data[j+1];
-				Byte velocity = packet->data[j+2];
+				Byte note = packet->data[j + 1];
+				Byte velocity = packet->data[j + 2];
 				midi->interface->note_off(note, velocity, midi->user_data);
 				j += 2;
 			}
 			else if ((packet->data[j] & 0xF0) == 0x90 && j + 2 < packet->length) {
-				Byte note = packet->data[j+1];
-				Byte velocity = packet->data[j+2];
+				Byte note = packet->data[j + 1];
+				Byte velocity = packet->data[j + 2];
 				midi->interface->note_on(note, velocity, midi->user_data);
 				j += 2;
 			}
 			else if ((packet->data[j] & 0xF0) == 0xB0 && j + 2 < packet->length) {
-				Byte controller = packet->data[j+1];
-				Byte value = packet->data[j+2];
+				Byte controller = packet->data[j + 1];
+				Byte value = packet->data[j + 2];
 				midi->interface->control_change(controller, value, midi->user_data);
 				j += 2;
 			}

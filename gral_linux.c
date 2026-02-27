@@ -14,6 +14,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <gtk/gtk.h>
 #include <gdk/gdkwayland.h>
 #include <stdlib.h>
+#include <sys/inotify.h>
+#include <glib-unix.h>
 #include <pulse/pulseaudio.h>
 #include <alsa/asoundlib.h>
 
@@ -89,7 +91,7 @@ static void pixbuf_destroy(guchar *pixels, gpointer data) {
 }
 
 struct gral_image *gral_image_create(int width, int height, void *data) {
-	return (struct gral_image *)gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, TRUE, 8, width, height, width * 4, pixbuf_destroy, NULL);
+	return (struct gral_image *)gdk_pixbuf_new_from_data(data, GDK_COLORSPACE_RGB, TRUE, 8, width, height, width * 4, &pixbuf_destroy, NULL);
 }
 
 void gral_image_delete(struct gral_image *image) {
@@ -150,9 +152,9 @@ struct gral_text *gral_text_create(struct gral_window *window, char const *text,
 	PangoLayout *layout = pango_layout_new(context);
 	pango_layout_set_text(layout, text, -1);
 	pango_layout_set_font_description(layout, (PangoFontDescription *)font);
-	PangoAttrList *attr_list = pango_attr_list_new();
-	pango_layout_set_attributes(layout, attr_list);
-	pango_attr_list_unref(attr_list);
+	PangoAttrList *attributes = pango_attr_list_new();
+	pango_layout_set_attributes(layout, attributes);
+	pango_attr_list_unref(attributes);
 	return (struct gral_text *)layout;
 }
 
@@ -164,28 +166,28 @@ void gral_text_set_bold(struct gral_text *text, int start_index, int end_index) 
 	PangoAttribute *attribute = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
 	attribute->start_index = start_index;
 	attribute->end_index = end_index;
-	PangoAttrList *attr_list = pango_layout_get_attributes(PANGO_LAYOUT(text));
-	pango_attr_list_change(attr_list, attribute);
+	PangoAttrList *attributes = pango_layout_get_attributes(PANGO_LAYOUT(text));
+	pango_attr_list_change(attributes, attribute);
 }
 
 void gral_text_set_italic(struct gral_text *text, int start_index, int end_index) {
 	PangoAttribute *attribute = pango_attr_style_new(PANGO_STYLE_ITALIC);
 	attribute->start_index = start_index;
 	attribute->end_index = end_index;
-	PangoAttrList *attr_list = pango_layout_get_attributes(PANGO_LAYOUT(text));
-	pango_attr_list_change(attr_list, attribute);
+	PangoAttrList *attributes = pango_layout_get_attributes(PANGO_LAYOUT(text));
+	pango_attr_list_change(attributes, attribute);
 }
 
 void gral_text_set_color(struct gral_text *text, int start_index, int end_index, float red, float green, float blue, float alpha) {
 	PangoAttribute *attribute = pango_attr_foreground_new(red * 65535.0f, green * 65535.0f, blue * 65535.0f);
 	attribute->start_index = start_index;
 	attribute->end_index = end_index;
-	PangoAttrList *attr_list = pango_layout_get_attributes(PANGO_LAYOUT(text));
-	pango_attr_list_change(attr_list, attribute);
+	PangoAttrList *attributes = pango_layout_get_attributes(PANGO_LAYOUT(text));
+	pango_attr_list_change(attributes, attribute);
 	attribute = pango_attr_foreground_alpha_new(alpha * 65535.0f);
 	attribute->start_index = start_index;
 	attribute->end_index = end_index;
-	pango_attr_list_change(attr_list, attribute);
+	pango_attr_list_change(attributes, attribute);
 }
 
 float gral_text_get_width(struct gral_text *text) {
@@ -529,18 +531,18 @@ static int get_key_code(GdkEventKey *event) {
 	default: return 0;
 	}
 }
-static gboolean gral_widget_key_press_event(GtkWidget *widget, GdkEventKey *event) {
-	GralWidget *area = GRAL_WIDGET(widget);
-	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	gtk_im_context_filter_keypress(area->im_context, event);
+static gboolean gral_widget_key_press_event(GtkWidget *widget_, GdkEventKey *event) {
+	GralWidget *widget = GRAL_WIDGET(widget_);
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget_));
+	gtk_im_context_filter_keypress(widget->im_context, event);
 	window->interface->key_press(get_key(event), get_key_code(event), get_modifiers(event->state), event->keyval == window->last_key, window->user_data);
 	window->last_key = event->keyval;
 	return GDK_EVENT_STOP;
 }
-static gboolean gral_widget_key_release_event(GtkWidget *widget, GdkEventKey *event) {
-	GralWidget *area = GRAL_WIDGET(widget);
-	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget));
-	gtk_im_context_filter_keypress(area->im_context, event);
+static gboolean gral_widget_key_release_event(GtkWidget *widget_, GdkEventKey *event) {
+	GralWidget *widget = GRAL_WIDGET(widget_);
+	GralWindow *window = GRAL_WINDOW(gtk_widget_get_toplevel(widget_));
+	gtk_im_context_filter_keypress(widget->im_context, event);
 	window->interface->key_release(get_key(event), get_key_code(event), window->user_data);
 	if (event->keyval == window->last_key) {
 		window->last_key = GDK_KEY_VoidSymbol;
@@ -787,7 +789,7 @@ struct gral_timer *gral_timer_create(int milliseconds, void (*callback)(void *us
 	TimerCallbackData *callback_data = g_slice_new(TimerCallbackData);
 	callback_data->callback = callback;
 	callback_data->user_data = user_data;
-	return (struct gral_timer *)(intptr_t)g_timeout_add_full(G_PRIORITY_DEFAULT, milliseconds, timer_callback, callback_data, timer_destroy);
+	return (struct gral_timer *)(intptr_t)g_timeout_add_full(G_PRIORITY_DEFAULT, milliseconds, &timer_callback, callback_data, &timer_destroy);
 }
 
 void gral_timer_delete(struct gral_timer *timer) {
@@ -810,16 +812,13 @@ void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data)
 	IdleCallbackData *callback_data = g_slice_new(IdleCallbackData);
 	callback_data->callback = callback;
 	callback_data->user_data = user_data;
-	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, idle_callback, callback_data, idle_destroy);
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, &idle_callback, callback_data, &idle_destroy);
 }
 
 
 /*=========
     FILE
  =========*/
-
-#include <sys/inotify.h>
-#include <glib-unix.h>
 
 typedef struct {
 	void (*callback)(void *user_data);
@@ -849,7 +848,7 @@ struct gral_directory_watcher *gral_directory_watch(char const *path, void (*cal
 	callback_data->user_data = user_data;
 	callback_data->fd = inotify_init1(IN_NONBLOCK);
 	inotify_add_watch(callback_data->fd, path, IN_ATTRIB | IN_CREATE | IN_DELETE | IN_MODIFY | IN_MOVE);
-	return (struct gral_directory_watcher *)(intptr_t)g_unix_fd_add_full(G_PRIORITY_DEFAULT, callback_data->fd, G_IO_IN, inotify_callback, callback_data, inotify_destroy);
+	return (struct gral_directory_watcher *)(intptr_t)g_unix_fd_add_full(G_PRIORITY_DEFAULT, callback_data->fd, G_IO_IN, &inotify_callback, callback_data, &inotify_destroy);
 }
 
 void gral_directory_watcher_delete(struct gral_directory_watcher *directory_watcher) {
