@@ -14,10 +14,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <gtk/gtk.h>
 #include <gdk/gdkwayland.h>
 #include <stdlib.h>
-#include <alsa/asoundlib.h>
 #include <glib-unix.h>
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
+#include <spa/control/control.h>
 
 static struct pw_loop *pipewire_loop;
 
@@ -933,81 +933,67 @@ void gral_audio_delete(struct gral_audio *audio) {
 struct gral_midi {
 	struct gral_midi_interface const *interface;
 	void *user_data;
-	snd_seq_t *seq;
-	int port;
-	guint source_id;
+	struct pw_stream *stream;
 };
 
-static void midi_connect_port(struct gral_midi *midi, int client, snd_seq_port_info_t *port_info) {
-	int port = snd_seq_port_info_get_port(port_info);
-	unsigned int capability = snd_seq_port_info_get_capability(port_info);
-	//int direction = snd_seq_port_info_get_direction(port_info);
-	if (capability & SND_SEQ_PORT_CAP_NO_EXPORT) {
+static void midi_process_callback(void *user_data) {
+	struct gral_midi *midi = user_data;
+	struct pw_buffer *buffer = pw_stream_dequeue_buffer(midi->stream);
+	if (buffer == NULL || buffer->buffer->n_datas == 0) {
 		return;
 	}
-	if ((capability & SND_SEQ_PORT_CAP_READ) && (capability & SND_SEQ_PORT_CAP_SUBS_READ)) {
-		snd_seq_connect_from(midi->seq, midi->port, client, port);
-	}
-}
-
-static gboolean midi_callback(gint fd, GIOCondition condition, gpointer user_data) {
-	struct gral_midi *midi = user_data;
-	snd_seq_event_t *event;
-	while (snd_seq_event_input(midi->seq, &event) > 0) {
-		switch (event->type) {
-		case SND_SEQ_EVENT_NOTEON:
-			midi->interface->note_on(event->data.note.note, event->data.note.velocity, midi->user_data);
-			break;
-		case SND_SEQ_EVENT_NOTEOFF:
-			midi->interface->note_off(event->data.note.note, event->data.note.velocity, midi->user_data);
-			break;
-		case SND_SEQ_EVENT_CONTROLLER:
-			midi->interface->control_change(event->data.control.param, event->data.control.value, midi->user_data);
-			break;
-		case SND_SEQ_EVENT_PORT_START:
-			{
-				snd_seq_port_info_t *port_info;
-				snd_seq_port_info_alloca(&port_info);
-				snd_seq_get_any_port_info(midi->seq, event->data.addr.client, event->data.addr.port, port_info);
-				midi_connect_port(midi, event->data.addr.client, port_info);
-				break;
+	struct spa_data *data = &buffer->buffer->datas[0];
+	struct spa_pod *pod = spa_pod_from_data(data->data, data->maxsize, data->chunk->offset, data->chunk->size);
+	if (spa_pod_is_sequence(pod)) {
+		struct spa_pod_control *control;
+		SPA_POD_SEQUENCE_FOREACH ((struct spa_pod_sequence*)pod, control) {
+			if (control->type == SPA_CONTROL_Midi) {
+				unsigned char *event_data = SPA_POD_BODY(&control->value);
+				uint32_t event_size = SPA_POD_BODY_SIZE(&control->value);
+				if (event_size == 3 && (event_data[0] & 0xF0) == 0x80) {
+					unsigned char note = event_data[1];
+					unsigned char velocity = event_data[2];
+					midi->interface->note_off(note, velocity, midi->user_data);
+				}
+				else if (event_size == 3 && (event_data[0] & 0xF0) == 0x90) {
+					unsigned char note = event_data[1];
+					unsigned char velocity = event_data[2];
+					midi->interface->note_on(note, velocity, midi->user_data);
+				}
+				else if (event_size == 3 && (event_data[0] & 0xF0) == 0xB0) {
+					unsigned char controller = event_data[1];
+					unsigned char value = event_data[2];
+					midi->interface->control_change(controller, value, midi->user_data);
+				}
 			}
-		default:
-			break;
 		}
 	}
-	return G_SOURCE_CONTINUE;
+	pw_stream_queue_buffer(midi->stream, buffer);
 }
 
 struct gral_midi *gral_midi_create(struct gral_application *application, char const *name, struct gral_midi_interface const *interface, void *user_data) {
 	struct gral_midi *midi = malloc(sizeof(struct gral_midi));
 	midi->interface = interface;
 	midi->user_data = user_data;
-	snd_seq_open(&midi->seq, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK);
-	snd_seq_set_client_name(midi->seq, name);
-	int client_id = snd_seq_client_id(midi->seq);
-	midi->port = snd_seq_create_simple_port(midi->seq, name, SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE, SND_SEQ_PORT_TYPE_MIDI_GENERIC);
-	snd_seq_client_info_t *client_info;
-	snd_seq_client_info_alloca(&client_info);
-	snd_seq_port_info_t *port_info;
-	snd_seq_port_info_alloca(&port_info);
-	snd_seq_client_info_set_client(client_info, -1);
-	while (snd_seq_query_next_client(midi->seq, client_info) >= 0) {
-		int client = snd_seq_client_info_get_client(client_info);
-		snd_seq_port_info_set_client(port_info, client);
-		snd_seq_port_info_set_port(port_info, -1);
-		while (snd_seq_query_next_port(midi->seq, port_info) >= 0) {
-			midi_connect_port(midi, client, port_info);
-		}
-	}
-	struct pollfd pfd;
-	snd_seq_poll_descriptors(midi->seq, &pfd, 1, POLLIN);
-	midi->source_id = g_unix_fd_add(pfd.fd, pfd.events, &midi_callback, midi);
+	struct pw_properties *properties = pw_properties_new(PW_KEY_MEDIA_TYPE, "Midi", NULL);
+	static struct pw_stream_events const events = {
+		PW_VERSION_STREAM_EVENTS,
+		.process = &midi_process_callback
+	};
+	midi->stream = pw_stream_new_simple(pipewire_loop, name, properties, &events, midi);
+	uint8_t buffer[1024];
+	struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
+	struct spa_pod const *params[1];
+	params[0] = spa_pod_builder_add_object(&builder, SPA_TYPE_OBJECT_Format, SPA_PARAM_EnumFormat,
+		SPA_FORMAT_mediaType, SPA_POD_Id(SPA_MEDIA_TYPE_application),
+		SPA_FORMAT_mediaSubtype, SPA_POD_Id(SPA_MEDIA_SUBTYPE_control)
+	);
+	pw_stream_connect(midi->stream, PW_DIRECTION_INPUT, PW_ID_ANY, 0, params, 1);
 	return midi;
 }
 
 void gral_midi_delete(struct gral_midi *midi) {
-	g_source_remove(midi->source_id);
-	snd_seq_close(midi->seq);
+	pw_stream_disconnect(midi->stream);
+	pw_stream_destroy(midi->stream);
 	free(midi);
 }
