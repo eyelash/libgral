@@ -910,7 +910,7 @@ static void context_state_callback(pa_context *context, void *user_data) {
 	pa_threaded_mainloop_signal(audio->mainloop, 0);
 }
 
-struct gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+struct gral_audio *gral_audio_create(struct gral_application *application, char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	struct gral_audio *audio = malloc(sizeof(struct gral_audio));
 	audio->callback = callback;
 	audio->user_data = user_data;

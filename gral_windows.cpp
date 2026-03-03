@@ -1554,7 +1554,7 @@ static DWORD WINAPI audio_thread(LPVOID user_data) {
 	return 0;
 }
 
-gral_audio *gral_audio_create(char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
+gral_audio *gral_audio_create(gral_application *application, char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data) {
 	gral_audio *audio = new gral_audio();
 	audio->callback = callback;
 	audio->user_data = user_data;

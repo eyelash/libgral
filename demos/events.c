@@ -298,6 +298,9 @@ static void open_file(char const *path, void *user_data) {
 static void quit(void *user_data) {
 	printf("quit\n");
 	struct demo_application *application = user_data;
+	if (application->timer) {
+		gral_timer_delete(application->timer);
+	}
 	gral_midi_delete(application->midi);
 }
 
