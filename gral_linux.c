@@ -929,11 +929,64 @@ void gral_audio_delete(struct gral_audio *audio) {
     MIDI
  =========*/
 
+struct midi_port_list {
+	struct spa_list link;
+	uint32_t port_id;
+};
+
 struct gral_midi {
 	struct gral_midi_interface const *interface;
 	void *user_data;
+	struct pw_context *context;
+	struct pw_core *core;
+	struct pw_registry *registry;
+	struct spa_hook registry_listener;
 	struct pw_stream *stream;
+	struct spa_hook stream_listener;
+	uint32_t port_id;
+	struct spa_list port_list;
 };
+
+static void midi_connect_ports(struct gral_midi *midi, uint32_t output_port, uint32_t input_port) {
+	struct pw_properties *props = pw_properties_new(PW_KEY_OBJECT_LINGER, "true", NULL);
+	pw_properties_setf(props, PW_KEY_LINK_OUTPUT_PORT, "%u", output_port);
+	pw_properties_setf(props, PW_KEY_LINK_INPUT_PORT, "%u", input_port);
+	struct pw_proxy *proxy = pw_core_create_object(midi->core, "link-factory", PW_TYPE_INTERFACE_Link, PW_VERSION_LINK, &props->dict, 0);
+	pw_properties_free(props);
+	pw_proxy_destroy(proxy);
+}
+
+static void midi_global_callback(void *user_data, uint32_t id, uint32_t permissions, char const *type, uint32_t version, struct spa_dict const *props) {
+	struct gral_midi *midi = user_data;
+	if (spa_streq(type, PW_TYPE_INTERFACE_Port)) {
+		char const *direction = spa_dict_lookup(props, PW_KEY_PORT_DIRECTION);
+		char const *format = spa_dict_lookup(props, PW_KEY_FORMAT_DSP);
+		bool is_midi = spa_streq(format, "8 bit raw midi");
+		if (spa_streq(direction, "out") && is_midi) {
+			struct midi_port_list *elem = malloc(sizeof(struct midi_port_list));
+			elem->port_id = id;
+			spa_list_append(&midi->port_list, &elem->link);
+		}
+		else if (spa_streq(direction, "in") && is_midi) {
+			char const *node_id = spa_dict_lookup(props, PW_KEY_NODE_ID);
+			if (node_id && atoi(node_id) == pw_stream_get_node_id(midi->stream)) {
+				midi->port_id = id;
+			}
+		}
+		if (midi->port_id != SPA_ID_INVALID) {
+			struct midi_port_list *elem;
+			spa_list_consume (elem, &midi->port_list, link) {
+				midi_connect_ports(midi, elem->port_id, midi->port_id);
+				spa_list_remove(&elem->link);
+				free(elem);
+			}
+		}
+	}
+}
+
+static void midi_global_remove_callback(void *user_data, uint32_t id) {
+
+}
 
 static void midi_process_callback(void *user_data) {
 	struct gral_midi *midi = user_data;
@@ -974,12 +1027,24 @@ struct gral_midi *gral_midi_create(struct gral_application *application, char co
 	struct gral_midi *midi = malloc(sizeof(struct gral_midi));
 	midi->interface = interface;
 	midi->user_data = user_data;
+	midi->context = pw_context_new(pipewire_loop, NULL, 0);
+	midi->core = pw_context_connect(midi->context, NULL, 0);
+	midi->registry = pw_core_get_registry(midi->core, PW_VERSION_REGISTRY, 0);
+	static struct pw_registry_events const registry_events = {
+		PW_VERSION_REGISTRY_EVENTS,
+		.global = &midi_global_callback,
+		.global_remove = &midi_global_remove_callback
+	};
+	pw_registry_add_listener(midi->registry, &midi->registry_listener, &registry_events, midi);
 	struct pw_properties *properties = pw_properties_new(PW_KEY_MEDIA_TYPE, "Midi", NULL);
-	static struct pw_stream_events const events = {
+	midi->stream = pw_stream_new(midi->core, name, properties);
+	static struct pw_stream_events const stream_events = {
 		PW_VERSION_STREAM_EVENTS,
 		.process = &midi_process_callback
 	};
-	midi->stream = pw_stream_new_simple(pipewire_loop, name, properties, &events, midi);
+	pw_stream_add_listener(midi->stream, &midi->stream_listener, &stream_events, midi);
+	midi->port_id = SPA_ID_INVALID;
+	spa_list_init(&midi->port_list);
 	uint8_t buffer[1024];
 	struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
 	struct spa_pod const *params[1];
@@ -994,5 +1059,8 @@ struct gral_midi *gral_midi_create(struct gral_application *application, char co
 void gral_midi_delete(struct gral_midi *midi) {
 	pw_stream_disconnect(midi->stream);
 	pw_stream_destroy(midi->stream);
+	pw_proxy_destroy((struct pw_proxy *)midi->registry);
+	pw_core_disconnect(midi->core);
+	pw_context_destroy(midi->context);
 	free(midi);
 }
