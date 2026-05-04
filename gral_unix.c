@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016-2025 Elias Aebi
+Copyright (c) 2016-2026 Elias Aebi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -51,7 +51,8 @@ void gral_file_close(struct gral_file *file) {
 }
 
 size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
-	return read((int)(intptr_t)file, buffer, size);
+	ssize_t result = read((int)(intptr_t)file, buffer, size);
+	return result == -1 ? 0 : result;
 }
 
 void gral_file_write(struct gral_file *file, void const *buffer, size_t size) {
