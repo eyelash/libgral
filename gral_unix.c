@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 #include "gral.h"
+#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -51,12 +52,30 @@ void gral_file_close(struct gral_file *file) {
 }
 
 size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
-	ssize_t result = read((int)(intptr_t)file, buffer, size);
-	return result == -1 ? 0 : result;
+	while (1) {
+		ssize_t result = read((int)(intptr_t)file, buffer, size);
+		if (result == -1) {
+			if (errno == EINTR) {
+				continue;
+			}
+			return 0;
+		}
+		return result;
+	}
 }
 
 void gral_file_write(struct gral_file *file, void const *buffer, size_t size) {
-	write((int)(intptr_t)file, buffer, size);
+	while (size > 0) {
+		ssize_t result = write((int)(intptr_t)file, buffer, size);
+		if (result == -1) {
+			if (errno == EINTR) {
+				continue;
+			}
+			return;
+		}
+		buffer += result;
+		size -= result;
+	}
 }
 
 size_t gral_file_get_size(struct gral_file *file) {
