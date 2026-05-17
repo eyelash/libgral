@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 #include "gral.h"
+#include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -19,6 +20,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdio.h>
 #include <dirent.h>
 #include <time.h>
+
+
+/*===========
+    MEMORY
+ ===========*/
+
+void *gral_memory_allocate(size_t size) {
+	return malloc(size);
+}
+
+void gral_memory_free(void *memory) {
+	free(memory);
+}
 
 
 /*=========

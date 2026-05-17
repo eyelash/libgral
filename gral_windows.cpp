@@ -19,7 +19,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <d2d1.h>
 #include <wincodec.h>
 #include <dwrite.h>
-#include <stdlib.h>
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 #include <roapi.h>
@@ -818,7 +817,7 @@ gral_image *gral_image_create(int width, int height, void *data) {
 }
 
 void gral_image_delete(gral_image *image) {
-	free(image->data);
+	gral_memory_free(image->data);
 	delete image;
 }
 
@@ -1311,6 +1310,24 @@ void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data)
 }
 
 
+/*===========
+    MEMORY
+ ===========*/
+
+static HANDLE get_process_heap() {
+	static HANDLE process_heap = GetProcessHeap();
+	return process_heap;
+}
+
+void *gral_memory_allocate(size_t size) {
+	return HeapAlloc(get_process_heap(), 0, size);
+}
+
+void gral_memory_free(void *memory) {
+	HeapFree(get_process_heap(), 0, memory);
+}
+
+
 /*=========
     FILE
  =========*/
@@ -1414,7 +1431,7 @@ char *gral_get_current_working_directory() {
 	Buffer<wchar_t> utf16_buffer(utf16_length);
 	GetCurrentDirectory(utf16_length, utf16_buffer);
 	int utf8_length = WideCharToMultiByte(CP_UTF8, 0, utf16_buffer, utf16_length, NULL, 0, NULL, NULL);
-	char *utf8_buffer = (char *)malloc(utf8_length);
+	char *utf8_buffer = (char *)gral_memory_allocate(utf8_length);
 	WideCharToMultiByte(CP_UTF8, 0, utf16_buffer, utf16_length, utf8_buffer, utf8_length, NULL, NULL);
 	return utf8_buffer;
 }

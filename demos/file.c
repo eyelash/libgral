@@ -1,7 +1,6 @@
 #include <gral.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
 static void command_cat(int argc, char **argv) {
 	if (argc < 3) {
@@ -43,7 +42,7 @@ static void command_mkdir(int argc, char **argv) {
 static void command_pwd(int argc, char **argv) {
 	char *current_working_directory = gral_get_current_working_directory();
 	printf("%s\n", current_working_directory);
-	free(current_working_directory);
+	gral_memory_free(current_working_directory);
 }
 
 static void command_rm(int argc, char **argv) {

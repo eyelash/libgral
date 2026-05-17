@@ -188,6 +188,14 @@ void gral_timer_delete(struct gral_timer *timer);
 void gral_run_on_main_thread(void (*callback)(void *user_data), void *user_data);
 
 
+/*===========
+    MEMORY
+ ===========*/
+
+void *gral_memory_allocate(size_t size);
+void gral_memory_free(void *memory);
+
+
 /*=========
     FILE
  =========*/

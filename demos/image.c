@@ -1,5 +1,4 @@
 #include <gral.h>
-#include <stdlib.h>
 
 struct demo_application {
 	struct gral_application *application;
@@ -13,7 +12,7 @@ struct demo_window {
 static void destroy(void *user_data) {
 	struct demo_window *window = user_data;
 	gral_image_delete(window->image);
-	free(window);
+	gral_memory_free(window);
 }
 
 static int close(void *user_data) {
@@ -86,7 +85,7 @@ static void activate_menu_item(int id, void *user_data) {
 }
 
 static struct gral_image *create_image(void) {
-	unsigned char *image_data = malloc(100 * 100 * 4);
+	unsigned char *image_data = gral_memory_allocate(100 * 100 * 4);
 	int x, y;
 	for (y = 0; y < 100; y++) {
 		for (x = 0; x < 100; x++) {
@@ -102,7 +101,7 @@ static struct gral_image *create_image(void) {
 
 static void create_window(void *user_data) {
 	struct demo_application *application = user_data;
-	struct demo_window *window = malloc(sizeof(struct demo_window));
+	struct demo_window *window = gral_memory_allocate(sizeof(struct demo_window));
 	static struct gral_window_interface const window_interface = {
 		&destroy,
 		&close,

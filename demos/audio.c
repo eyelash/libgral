@@ -1,5 +1,4 @@
 #include <gral.h>
-#include <stdlib.h>
 
 #define FREQUENCY 220.0f
 
@@ -35,7 +34,7 @@ static void callback(float *buffer, int frames, void *user_data) {
 
 static void destroy(void *user_data) {
 	struct demo_window *window = user_data;
-	free(window);
+	gral_memory_free(window);
 }
 
 static int close(void *user_data) {
@@ -118,7 +117,7 @@ static void activate_menu_item(int id, void *user_data) {
 
 static void create_window(void *user_data) {
 	struct demo_application *application = user_data;
-	struct demo_window *window = malloc(sizeof(struct demo_window));
+	struct demo_window *window = gral_memory_allocate(sizeof(struct demo_window));
 	static struct gral_window_interface const window_interface = {
 		&destroy,
 		&close,
