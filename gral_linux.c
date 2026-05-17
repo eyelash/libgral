@@ -51,9 +51,9 @@ static void gral_application_open(GApplication *gapplication, GFile **files, gin
 	}
 }
 static void gral_application_shutdown(GApplication *gapplication) {
-	G_APPLICATION_CLASS(gral_application_parent_class)->shutdown(gapplication);
 	GralApplication *application = GRAL_APPLICATION(gapplication);
 	application->interface->quit(application->user_data);
+	G_APPLICATION_CLASS(gral_application_parent_class)->shutdown(gapplication);
 }
 static void gral_application_init(GralApplication *application) {
 
