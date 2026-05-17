@@ -27,33 +27,33 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 struct gral_file *gral_file_open_read(char const *path) {
 	int fd = open(path, O_RDONLY);
-	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
+	return (struct gral_file *)(intptr_t)(fd + 1);
 }
 
 struct gral_file *gral_file_open_write(char const *path) {
 	int fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0666);
-	return fd == -1 ? NULL : (struct gral_file *)(intptr_t)fd;
+	return (struct gral_file *)(intptr_t)(fd + 1);
 }
 
 struct gral_file *gral_file_get_standard_input(void) {
-	return (struct gral_file *)STDIN_FILENO;
+	return (struct gral_file *)(intptr_t)(STDIN_FILENO + 1);
 }
 
 struct gral_file *gral_file_get_standard_output(void) {
-	return (struct gral_file *)STDOUT_FILENO;
+	return (struct gral_file *)(intptr_t)(STDOUT_FILENO + 1);
 }
 
 struct gral_file *gral_file_get_standard_error(void) {
-	return (struct gral_file *)STDERR_FILENO;
+	return (struct gral_file *)(intptr_t)(STDERR_FILENO + 1);
 }
 
 void gral_file_close(struct gral_file *file) {
-	close((int)(intptr_t)file);
+	close((int)(intptr_t)file - 1);
 }
 
 size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
 	while (1) {
-		ssize_t result = read((int)(intptr_t)file, buffer, size);
+		ssize_t result = read((int)(intptr_t)file - 1, buffer, size);
 		if (result == -1) {
 			if (errno == EINTR) {
 				continue;
@@ -66,7 +66,7 @@ size_t gral_file_read(struct gral_file *file, void *buffer, size_t size) {
 
 void gral_file_write(struct gral_file *file, void const *buffer, size_t size) {
 	while (size > 0) {
-		ssize_t result = write((int)(intptr_t)file, buffer, size);
+		ssize_t result = write((int)(intptr_t)file - 1, buffer, size);
 		if (result == -1) {
 			if (errno == EINTR) {
 				continue;
@@ -80,12 +80,12 @@ void gral_file_write(struct gral_file *file, void const *buffer, size_t size) {
 
 size_t gral_file_get_size(struct gral_file *file) {
 	struct stat s;
-	fstat((int)(intptr_t)file, &s);
+	fstat((int)(intptr_t)file - 1, &s);
 	return s.st_size;
 }
 
 void *gral_file_map(struct gral_file *file, size_t size) {
-	void *address = mmap(NULL, size, PROT_READ, MAP_PRIVATE, (int)(intptr_t)file, 0);
+	void *address = mmap(NULL, size, PROT_READ, MAP_PRIVATE, (int)(intptr_t)file - 1, 0);
 	return address == MAP_FAILED ? NULL : address;
 }
 
