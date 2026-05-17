@@ -71,7 +71,7 @@ class HString {
 public:
 	HString(): hstring(NULL) {}
 	HString(WCHAR const *s) {
-		WindowsCreateString(s, wcslen(s), &hstring);
+		WindowsCreateString(s, (UINT32)wcslen(s), &hstring);
 	}
 	HString(HString const &h_string) {
 		WindowsDuplicateString(h_string.hstring, &hstring);
@@ -95,7 +95,7 @@ public:
 template <class T> static ComPointer<T> get_activation_factory(WCHAR const *name) {
 	HSTRING_HEADER hstring_header;
 	HSTRING hstring;
-	WindowsCreateStringReference(name, wcslen(name), &hstring_header, &hstring);
+	WindowsCreateStringReference(name, (UINT32)wcslen(name), &hstring_header, &hstring);
 	ComPointer<T> factory;
 	RoGetActivationFactory(hstring, __uuidof(T), (void **)&factory);
 	return factory;
@@ -1495,14 +1495,14 @@ void gral_directory_watcher_delete(gral_directory_watcher *watcher) {
     TIME
  =========*/
 
-static double get_frequency() {
+static double get_performance_frequency() {
 	LARGE_INTEGER frequency;
 	QueryPerformanceFrequency(&frequency);
 	return (double)frequency.QuadPart;
 }
 
 double gral_time_get_monotonic() {
-	static double const frequency = get_frequency();
+	static double const frequency = get_performance_frequency();
 	LARGE_INTEGER count;
 	QueryPerformanceCounter(&count);
 	return count.QuadPart / frequency;
