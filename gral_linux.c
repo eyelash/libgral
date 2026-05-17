@@ -568,6 +568,9 @@ static void gral_widget_dispose(GObject *object) {
 	g_clear_object(&widget->im_context);
 	G_OBJECT_CLASS(gral_widget_parent_class)->dispose(object);
 }
+static void gral_widget_finalize(GObject *object) {
+	G_OBJECT_CLASS(gral_widget_parent_class)->finalize(object);
+}
 static void gral_widget_init(GralWidget *widget) {
 	widget->im_context = gtk_im_multicontext_new();
 	g_signal_connect_object(widget->im_context, "commit", G_CALLBACK(gral_widget_commit), widget, 0);
@@ -592,6 +595,7 @@ static void gral_widget_class_init(GralWidgetClass *class) {
 	widget_class->focus_out_event = gral_widget_focus_out_event;
 	GObjectClass *object_class = G_OBJECT_CLASS(class);
 	object_class->dispose = gral_widget_dispose;
+	object_class->finalize = gral_widget_finalize;
 }
 
 struct gral_window *gral_window_create(struct gral_application *application, int width, int height, char const *title, struct gral_window_interface const *interface, void *user_data) {
