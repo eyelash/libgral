@@ -1043,15 +1043,22 @@ struct gral_audio *gral_audio_create(struct gral_application *application, char 
 	callback_struct.inputProcRefCon = audio;
 	AudioUnitSetProperty(audio->instance, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &callback_struct, sizeof(callback_struct));
 	AudioUnitInitialize(audio->instance);
-	AudioOutputUnitStart(audio->instance);
 	return audio;
 }
 
 void gral_audio_delete(struct gral_audio *audio) {
-	AudioOutputUnitStop(audio->instance);
 	AudioUnitUninitialize(audio->instance);
 	AudioComponentInstanceDispose(audio->instance);
 	free(audio);
+}
+
+void gral_audio_start(struct gral_audio *audio) {
+	AudioUnitReset(audio->instance, kAudioUnitScope_Global, 0);
+	AudioOutputUnitStart(audio->instance);
+}
+
+void gral_audio_stop(struct gral_audio *audio) {
+	AudioOutputUnitStop(audio->instance);
 }
 
 

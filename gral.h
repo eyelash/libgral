@@ -236,6 +236,8 @@ void gral_sleep(double seconds);
 
 struct gral_audio *gral_audio_create(struct gral_application *application, char const *name, void (*callback)(float *buffer, int frames, void *user_data), void *user_data);
 void gral_audio_delete(struct gral_audio *audio);
+void gral_audio_start(struct gral_audio *audio);
+void gral_audio_stop(struct gral_audio *audio);
 
 
 /*=========

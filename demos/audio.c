@@ -5,6 +5,7 @@
 struct demo_application {
 	struct gral_application *application;
 	struct gral_audio *audio;
+	int playing;
 };
 
 struct demo_window {
@@ -85,12 +86,13 @@ static void key_press(int key, int key_code, int modifiers, int is_repeat, void 
 	struct demo_window *window = user_data;
 	// space bar toggles the audio playback
 	if (key == ' ') {
-		if (window->application->audio) {
-			gral_audio_delete(window->application->audio);
-			window->application->audio = 0;
+		if (window->application->playing) {
+			gral_audio_stop(window->application->audio);
+			window->application->playing = 0;
 		}
 		else {
-			window->application->audio = gral_audio_create(window->application->application, "gral audio demo", &callback, NULL);
+			gral_audio_start(window->application->audio);
+			window->application->playing = 1;
 		}
 	}
 }
@@ -144,7 +146,9 @@ static void create_window(void *user_data) {
 }
 
 static void start(void *user_data) {
-
+	struct demo_application *application = user_data;
+	application->audio = gral_audio_create(application->application, "gral audio demo", &callback, application);
+	application->playing = 0;
 }
 
 static void open_empty(void *user_data) {
@@ -157,9 +161,10 @@ static void open_file(char const *path, void *user_data) {
 
 static void quit(void *user_data) {
 	struct demo_application *application = user_data;
-	if (application->audio) {
-		gral_audio_delete(application->audio);
+	if (application->playing) {
+		gral_audio_stop(application->audio);
 	}
+	gral_audio_delete(application->audio);
 }
 
 int main(int argc, char **argv) {

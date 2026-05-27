@@ -909,8 +909,13 @@ static void context_state_callback(pa_context *context, void *user_data) {
 		buffer_attr.prebuf = -1;
 		buffer_attr.minreq = -1;
 		buffer_attr.fragsize = -1;
-		pa_stream_connect_playback(audio->stream, NULL, &buffer_attr, PA_STREAM_ADJUST_LATENCY, NULL, NULL);
+		pa_stream_connect_playback(audio->stream, NULL, &buffer_attr, PA_STREAM_ADJUST_LATENCY | PA_STREAM_START_CORKED, NULL, NULL);
 	}
+	pa_threaded_mainloop_signal(audio->mainloop, 0);
+}
+
+static void success_callback(pa_stream *stream, int success, void *user_data) {
+	struct gral_audio *audio = user_data;
 	pa_threaded_mainloop_signal(audio->mainloop, 0);
 }
 
@@ -923,7 +928,12 @@ struct gral_audio *gral_audio_create(struct gral_application *application, char 
 	pa_context_set_state_callback(audio->context, &context_state_callback, audio);
 	pa_context_connect(audio->context, NULL, PA_CONTEXT_NOFLAGS, NULL);
 	audio->stream = NULL;
+	pa_threaded_mainloop_lock(audio->mainloop);
 	pa_threaded_mainloop_start(audio->mainloop);
+	while (audio->stream == NULL || pa_stream_get_state(audio->stream) == PA_STREAM_CREATING) {
+		pa_threaded_mainloop_wait(audio->mainloop);
+	}
+	pa_threaded_mainloop_unlock(audio->mainloop);
 	return audio;
 }
 
@@ -937,6 +947,31 @@ void gral_audio_delete(struct gral_audio *audio) {
 	pa_context_unref(audio->context);
 	pa_threaded_mainloop_free(audio->mainloop);
 	free(audio);
+}
+
+void gral_audio_start(struct gral_audio *audio) {
+	pa_threaded_mainloop_lock(audio->mainloop);
+	pa_operation *operation = pa_stream_flush(audio->stream, &success_callback, audio);
+	while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING) {
+		pa_threaded_mainloop_wait(audio->mainloop);
+	}
+	pa_operation_unref(operation);
+	operation = pa_stream_cork(audio->stream, 0, &success_callback, audio);
+	while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING) {
+		pa_threaded_mainloop_wait(audio->mainloop);
+	}
+	pa_operation_unref(operation);
+	pa_threaded_mainloop_unlock(audio->mainloop);
+}
+
+void gral_audio_stop(struct gral_audio *audio) {
+	pa_threaded_mainloop_lock(audio->mainloop);
+	pa_operation *operation = pa_stream_cork(audio->stream, 1, &success_callback, audio);
+	while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING) {
+		pa_threaded_mainloop_wait(audio->mainloop);
+	}
+	pa_operation_unref(operation);
+	pa_threaded_mainloop_unlock(audio->mainloop);
 }
 
 

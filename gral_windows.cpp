@@ -1607,6 +1607,7 @@ static void audio_render(gral_audio *audio, IRtwqAsyncResult *result) {
 }
 
 static void audio_start(gral_audio *audio, IRtwqAsyncResult *result) {
+	audio->audio_client->Reset();
 	ComPointer<IRtwqAsyncResult> async_result = audio_create_async_result(audio, &audio_render);
 	audio_fill_buffer(audio);
 	audio->audio_client->Start();
@@ -1648,19 +1649,25 @@ gral_audio *gral_audio_create(gral_application *application, char const *name, v
 	audio->event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	audio->audio_client->SetEventHandle(audio->event);
 	audio->finished_event = CreateEvent(NULL, FALSE, FALSE, NULL);
-	RtwqPutWorkItem(audio->serial_work_queue, 0, audio_create_async_result(audio, &audio_start));
 	return audio;
 }
 
 void gral_audio_delete(gral_audio *audio) {
-	RtwqPutWorkItem(audio->serial_work_queue, 0, audio_create_async_result(audio, &audio_stop));
-	WaitForSingleObject(audio->finished_event, INFINITE);
 	CloseHandle(audio->finished_event);
 	CloseHandle(audio->event);
 	RtwqUnlockWorkQueue(audio->serial_work_queue);
 	RtwqUnlockWorkQueue(audio->shared_work_queue);
 	RtwqShutdown();
 	delete audio;
+}
+
+void gral_audio_start(gral_audio *audio) {
+	RtwqPutWorkItem(audio->serial_work_queue, 0, audio_create_async_result(audio, &audio_start));
+}
+
+void gral_audio_stop(gral_audio *audio) {
+	RtwqPutWorkItem(audio->serial_work_queue, 0, audio_create_async_result(audio, &audio_stop));
+	WaitForSingleObject(audio->finished_event, INFINITE);
 }
 
 
