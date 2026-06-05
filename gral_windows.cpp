@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "gral.h"
 #define UNICODE
 #define _UNICODE
+#define INITGUID
 #include <Windows.h>
 #include <windowsx.h>
 #include <strsafe.h>
@@ -1533,6 +1534,55 @@ struct gral_audio {
 	HANDLE finished_event;
 };
 
+class GralAudioCompletionHandler: public IActivateAudioInterfaceCompletionHandler {
+	ULONG reference_count;
+	HANDLE event;
+public:
+	GralAudioCompletionHandler(HANDLE event): reference_count(1), event(event) {}
+	IFACEMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation) {
+		SetEvent(event);
+		return S_OK;
+	}
+	IFACEMETHOD(QueryInterface)(REFIID riid, void **ppvObject) {
+		if (riid == __uuidof(IActivateAudioInterfaceCompletionHandler) || riid == __uuidof(IAgileObject) || riid == __uuidof(IUnknown)) {
+			*ppvObject = this;
+			AddRef();
+			return S_OK;
+		}
+		else {
+			*ppvObject = NULL;
+			return E_NOINTERFACE;
+		}
+	}
+	IFACEMETHOD_(ULONG, AddRef)() {
+		return InterlockedIncrement(&reference_count);
+	}
+	IFACEMETHOD_(ULONG, Release)() {
+		ULONG new_reference_count = InterlockedDecrement(&reference_count);
+		if (new_reference_count == 0) {
+			delete this;
+		}
+		return new_reference_count;
+	}
+};
+
+static ComPointer<IAudioClient> get_audio_client() {
+	PWSTR audio_renderer_guid_string;
+	StringFromIID(DEVINTERFACE_AUDIO_RENDER, &audio_renderer_guid_string);
+	HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
+	ComPointer<GralAudioCompletionHandler> handler;
+	*&handler = new GralAudioCompletionHandler(event);
+	ComPointer<IActivateAudioInterfaceAsyncOperation> operation;
+	ActivateAudioInterfaceAsync(audio_renderer_guid_string, __uuidof(IAudioClient), NULL, handler, &operation);
+	WaitForSingleObject(event, INFINITE);
+	HRESULT result;
+	ComPointer<IUnknown> audio_client;
+	operation->GetActivateResult(&result, &audio_client);
+	CloseHandle(event);
+	CoTaskMemFree(audio_renderer_guid_string);
+	return audio_client.as<IAudioClient>();
+}
+
 class GralAudioCallback: public IRtwqAsyncCallback {
 	ULONG reference_count;
 	gral_audio *audio;
@@ -1630,11 +1680,7 @@ gral_audio *gral_audio_create(gral_application *application, char const *name, v
 	RtwqLockSharedWorkQueue(L"Pro Audio", 0, &task_id, &audio->shared_work_queue);
 	RtwqAllocateSerialWorkQueue(audio->shared_work_queue, &audio->serial_work_queue);
 	audio->work_item_count = 0;
-	ComPointer<IMMDeviceEnumerator> device_enumerator;
-	CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void **)&device_enumerator);
-	ComPointer<IMMDevice> device;
-	device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
-	device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void **)&audio->audio_client);
+	audio->audio_client = get_audio_client();
 	WAVEFORMATEX wfx;
 	wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
 	wfx.nSamplesPerSec = 44100;
